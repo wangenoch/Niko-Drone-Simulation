@@ -61,7 +61,20 @@
 *   **渲染引擎**：基於 OpenGL ES 的高性能 3D 模擬渲染。
 *   **架構模式**：狀態驅動 (State-driven) 設計，確保低延遲的數據同步。
 
-## ⚖️ 開源授權 (License)
+##📂 專案架構 (Packages)
+*   •...model: 核心邏輯、物理參數與全局狀態機。
+*   •...ui: 主視圖 HUD 與層級式設定介面。
+*   •...render: 基於 OpenGL ES 的 3D 渲染引擎與攝像機運算。
+*   •...audio: 根據油門動態變頻的模擬引擎音效。
+
+##📱 系統配置要求
+*   •最低版本：Android 9.0 (Pie) / API Level 28。
+*   •硬體建議：4GB RAM 或以上；支援 USB OTG (用於外接遙控器)。
+*   •圖形支援：需相容 OpenGL ES 2.0+。
+
+---
+
+*   ## ⚖️ 開源授權 (License)
 *   本專案採用 GNU General Public License v3.0 (GPL-3.0) 授權。
 *   授權要點：
 *   •開放透明：本專案所有原始碼均對公眾開放。
