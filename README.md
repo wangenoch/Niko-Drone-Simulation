@@ -23,6 +23,7 @@
 ### 3. 專業航模遙控器 (EdgeTX / OpenTX)
 *   **品牌相容**：RadioMaster (TX16S, Zorro, Boxer)、Jumper、TBS Tango 2、FrSky 等。
 *   **高階自定義**：支援多通道映射，可自由分配搖桿、旋鈕與三段開關。
+*   **帶屏遙控器**：支持最新RadioMaster AX12
 
 ---
 
