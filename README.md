@@ -4,7 +4,7 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.10-blue.svg)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose-orange.svg)](https://developer.android.com)
 
-**Niko Drone Simulator** 是一款專為無人機愛好者、FPV 玩家及考照學員開發的專業飛行訓練系統。透過高度擬真的物理模擬與強大的硬體相容性，本專案將您的行動裝置轉化為一個不受場地、天氣限制的專業練習平台。
+**Niko Drone Simulator** 是一款專為考照學員開發的專業飛行訓練系統。透過高度擬真的物理模擬與強大的硬體相容性，本專案將您的行動裝置轉化為一個不受場地、天氣限制的專業練習平台。
 
 ---
 
