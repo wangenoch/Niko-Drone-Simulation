@@ -1,0 +1,41 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- White Background Area (Optional, as the background layer handles it, but good for preview) -->
+
+    <!-- NI Logo -->
+    <path
+        android:fillColor="#1B4332"
+        android:pathData="M35,30 L35,60 M35,30 L55,50 L55,30 M55,30 L55,60"
+        android:strokeWidth="4"
+        android:strokeColor="#1B4332"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"/>
+
+    <!-- Smile Curve -->
+    <path
+        android:strokeColor="#1B4332"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M40,65 Q45,72 50,65" />
+
+    <!-- Three Checkmarks -->
+    <path
+        android:fillColor="#1B4332"
+        android:pathData="M30,80 L33,83 L38,78" />
+    <path
+        android:fillColor="#1B4332"
+        android:pathData="M45,80 L48,83 L53,78" />
+    <path
+        android:fillColor="#1B4332"
+        android:pathData="M60,80 L63,83 L68,78" />
+
+    <!-- Text Placeholder (Simplified NIKO) -->
+    <path
+        android:fillColor="#1B4332"
+        android:pathData="M35,90 L38,90 L38,95 L35,95 Z M42,90 L45,90 L45,95 L42,95 Z M49,90 L52,90 L52,95 L49,95 Z M56,90 L59,90 L59,95 L56,95 Z" />
+
+</vector>
