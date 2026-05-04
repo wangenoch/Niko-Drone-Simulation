@@ -89,8 +89,22 @@ fun VirtualJoystick(
                             }
                             
                             internalOffset = finalOffset
-                            // 即時回傳數值給飛行引擎，但 UI 維持本地驅動
-                            onValueChange(finalOffset.x / maxPx, -finalOffset.y / maxPx)
+                            
+                            // [v1.2.95] 向量死區處理與平滑過渡
+                            val d = sqrt(finalOffset.x * finalOffset.x + finalOffset.y * finalOffset.y)
+                            val normalizedD = d / maxPx
+                            val deadzone = 0.05f
+                            
+                            val (outX, outY) = if (normalizedD < deadzone) {
+                                0f to 0f
+                            } else {
+                                // 模長平滑過渡公式：(normalizedD - deadzone) / (1 - deadzone)
+                                val factor = (normalizedD - deadzone) / (1f - deadzone) / normalizedD
+                                (finalOffset.x / maxPx * factor) to (-finalOffset.y / maxPx * factor)
+                            }
+                            
+                            // 即時回傳數值給飛行引擎
+                            onValueChange(outX, outY)
                         }
                     )
                 }

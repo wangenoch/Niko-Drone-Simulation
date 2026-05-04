@@ -59,4 +59,20 @@ object InputProcessor {
 
         return finalValue.coerceIn(-1f, 1f)
     }
+
+    /**
+     * [v1.2.95] 虛擬搖桿專用處理程序
+     * 職責：完全解耦實體映射，套用固定死區與獨立 Expo 運算。
+     */
+    /**
+     * [v1.2.95] 虛擬搖桿專用 Expo 轉換程序
+     * 職責：處理已過濾死區的線性數值，套用 Expo 曲線。
+     */
+    fun processVirtual(linearVal: Float, expo: Float, rate: Float): Float {
+        // 1. Expo 曲線運算 (Output = linear_val * (1 - expo) + linear_val^3 * expo)
+        val absL = abs(linearVal)
+        val afterExpo = (1f - expo) * absL + expo * (absL.pow(3))
+        
+        return (sign(linearVal) * afterExpo * rate).coerceIn(-1f, 1f)
+    }
 }

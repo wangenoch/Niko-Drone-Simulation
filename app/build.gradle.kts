@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
@@ -12,7 +13,7 @@ android {
         minSdk = 28
         targetSdk = 35
         versionCode = 1
-        versionName = "1.2.71"
+        versionName = "1.2.86"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -25,13 +26,16 @@ android {
                 "proguard-rules.pro"
             )
         }
+        debug {
+            isMinifyEnabled = false
+        }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
-    buildFeatures {
-        compose = true
+    kotlinOptions {
+        jvmTarget = "17"
     }
 }
 
@@ -48,7 +52,7 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
 
     // USB Serial Support (for SIYI MK15 / CP2102)
-    implementation("com.github.mik3y:usb-serial-for-android:3.7.3")
+    implementation(libs.usb.serial)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

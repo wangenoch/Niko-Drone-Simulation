@@ -107,6 +107,19 @@ fun MainAppScreen(
         }
     }
 
+    // 8. [v1.3.5] 歡迎導覽與選單聯動：在介紹工具列時自動展開選單
+    LaunchedEffect(viewModel.welcomeStep, droneState.showTutorial) {
+        if (droneState.showTutorial) {
+            when (viewModel.welcomeStep) {
+                1 -> droneState.isMenuExpanded = true  // 步驟 1 (工具列)：自動展開
+                2 -> droneState.isMenuExpanded = false // 步驟 2 (雷達)：自動收起
+            }
+        } else {
+            // 教學關閉時確保選單縮回
+            if (droneState.isMenuExpanded) droneState.isMenuExpanded = false
+        }
+    }
+
     // 6. [v1.2.82] 智慧姿態輔助：進入區域自動縮回選單
     val horizontalDist = sqrt(droneState.posX.pow(2) + (droneState.posZ + 6f).pow(2))
     val currentInZoomZone = horizontalDist > 10.0f && droneState.cameraMode != "FPV 視角" && droneState.cameraMode != "跟隨視角"
@@ -116,6 +129,19 @@ fun MainAppScreen(
             droneState.isMenuExpanded = false
         }
         droneState.lastInZoomZone = currentInZoomZone
+    }
+
+    // 8. [v1.3.5] 歡迎導覽與選單聯動：在介紹工具列時自動展開選單
+    LaunchedEffect(viewModel.welcomeStep, droneState.showTutorial) {
+        if (droneState.showTutorial) {
+            when (viewModel.welcomeStep) {
+                1 -> droneState.isMenuExpanded = true  // 步驟 1 (工具列)：自動展開
+                2 -> droneState.isMenuExpanded = false // 步驟 2 (雷達)：自動收起
+            }
+        } else {
+            // 教學關閉時確保選單縮回
+            if (droneState.isMenuExpanded) droneState.isMenuExpanded = false
+        }
     }
 
     MaterialTheme(colorScheme = darkColorScheme()) {
