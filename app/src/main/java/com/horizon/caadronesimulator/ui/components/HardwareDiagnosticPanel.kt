@@ -68,8 +68,8 @@ fun HardwareDiagnosticPanel(
                     DiagnosticSmallLabel("連結類型", linkType)
                     DiagnosticSmallLabel("硬體路徑", activeSerialPath)
                     
-                    // AX12 專屬協議管理組件
-                    AX12DiagnosticWidget(
+                    // 全通訊協議管理中樞 (v1.3.5)
+                    ProtocolManagementWidget(
                         detectedProtocol = detectedProtocol,
                         lockedProtocol = lockedProtocol,
                         onUpdateLockedProtocol = onUpdateLockedProtocol
@@ -90,22 +90,59 @@ fun HardwareDiagnosticPanel(
                         Text(if (isSignalActive) "OK" else "NO SIGNAL", color = signalColor, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        DiagnosticSmallLabel("傳輸波特率 (Baud)", "$baudRate bps")
-                        Spacer(Modifier.width(8.dp))
-                        Surface(
-                            modifier = Modifier.clickable {
-                                val nextBaud = when(baudRate) {
-                                    57600 -> 115200
-                                    115200 -> 420000
-                                    420000 -> 921600
-                                    else -> 57600
+                        val isBaudLocked = lockedProtocol == "AX12(UMBUS)"
+                        Text("傳輸波特率: ", color = Color.Gray, fontSize = 9.sp)
+                        var expanded by remember { mutableStateOf(false) }
+                        Box {
+                            Surface(
+                                modifier = Modifier.clickable(enabled = !isBaudLocked) { expanded = true },
+                                color = if (isBaudLocked) Color.Gray.copy(alpha = 0.1f) else Color.Cyan.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(4.dp),
+                                border = BorderStroke(0.5.dp, if (isBaudLocked) Color.Gray.copy(0.3f) else Color.Cyan.copy(0.4f))
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        "$baudRate bps", 
+                                        color = if (isBaudLocked) Color.Gray else Color.White, 
+                                        fontSize = 9.sp, 
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    if (!isBaudLocked) {
+                                        Icon(Icons.Default.ArrowDropDown, null, tint = Color.Cyan, modifier = Modifier.size(14.dp))
+                                    } else {
+                                        Icon(Icons.Default.Lock, null, tint = Color.Gray, modifier = Modifier.size(10.dp).padding(start = 2.dp))
+                                    }
                                 }
-                                onUpdateBaudRate(nextBaud)
-                            },
-                            color = Color.Cyan.copy(alpha = 0.2f),
-                            shape = RoundedCornerShape(4.dp)
-                        ) {
-                            Text("切換", color = Color.Cyan, fontSize = 8.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                            }
+                            
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false },
+                                modifier = Modifier.background(Color(0xFF1B2535)).border(1.dp, Color.Cyan.copy(0.3f), RoundedCornerShape(4.dp))
+                            ) {
+                                val baudRates = listOf(9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600)
+                                baudRates.forEach { rate ->
+                                    DropdownMenuItem(
+                                        text = { 
+                                            Text(
+                                                "$rate bps", 
+                                                color = if (rate == baudRate) Color.Cyan else Color.White, 
+                                                fontSize = 12.sp,
+                                                fontWeight = if (rate == baudRate) FontWeight.Bold else FontWeight.Normal
+                                            ) 
+                                        },
+                                        onClick = {
+                                            onUpdateBaudRate(rate)
+                                            expanded = false
+                                        },
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                        modifier = Modifier.height(36.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }

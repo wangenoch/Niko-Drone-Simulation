@@ -33,13 +33,14 @@ object HardwareRegistry {
             driver = com.horizon.caadronesimulator.logic.drivers.AX12Driver()
         ),
         HardwareProfile(
-            id = "SIYI_MK15",
+            id = "QUALCOMM MK15",
             brandName = "SIYI MK15",
             identificationTags = listOf("mk15", "siyi"),
             defaultBaudRate = 115200,
-            defaultInternalPort = "/dev/ttyHS0",
+            defaultInternalPort = "/dev/ttyUSB",
             isProfessionalRemote = true,
-            factoryAppPackage = "com.siyi.transmitter"
+            factoryAppPackage = "com.siyi.transmitter",
+            driver = com.horizon.caadronesimulator.logic.drivers.MK15Driver()
         )
     )
 

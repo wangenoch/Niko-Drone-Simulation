@@ -24,6 +24,16 @@ enum class SettingsTab {
 }
 
 /**
+ * [v1.3.6] 通訊連線狀態列舉
+ */
+enum class ConnectionStatus {
+    IDLE,       // 閒置/未連接
+    SEARCHING,  // 偵測協議中
+    LINKED,     // 已建立物理連線但無有效信號
+    ACTIVE      // 正常運作且有穩定數據流
+}
+
+/**
  * [v1.2.71] 深度效能優化版 DroneState
  * 採用 "局部觀測架構 (Scheme C)"，徹底解決全域重繪導致的模擬器 LAG。
  */
@@ -37,6 +47,7 @@ class DroneState {
     var roll by mutableFloatStateOf(0f)
     var cameraTilt by mutableFloatStateOf(0f)
     var observerHeight by mutableFloatStateOf(6.0f)
+    var observerTilt by mutableFloatStateOf(0f) // [v1.3.8] 站位視角仰角
     var reverseSliderSides by mutableStateOf(false)
     var lastInZoomZone by mutableStateOf(false)
     var activeHidName by mutableStateOf("通用手把")
@@ -67,6 +78,7 @@ class DroneState {
     var hasShownClimateTutorial by mutableStateOf(false)
     var controllerConnected by mutableStateOf(false)
     var usbSerialConnected by mutableStateOf(false)
+    var connectionStatus by mutableStateOf(ConnectionStatus.IDLE)
     var showVirtualJoysticks by mutableStateOf(false)
     var isMenuExpanded by mutableStateOf(false)
     var showSettings by mutableStateOf(false)
@@ -75,6 +87,24 @@ class DroneState {
     var showUpdateNotice by mutableStateOf(false)
     var isInteractionLocked by mutableStateOf(false)
     var isMappingUnlocked by mutableStateOf(false)
+    var useSimplifiedMarkers by mutableStateOf(false) // [v1.3.8] 簡約標線模式
+    var showSpecialTitle by mutableStateOf(false)    // [v1.4.1] 顯示高雄市消防局義消總隊標題
+    var specialTitleScreenPos by mutableStateOf<Offset?>(null) // [v1.4.1] 標題在螢幕上的投影位置
+    var useFlightLimit by mutableStateOf(true)
+    var enableZoomAssistant by mutableStateOf(true)
+    var isNearBoundary by mutableStateOf(false)
+    var batteryVoltage by mutableFloatStateOf(4.2f)
+    var batteryPercent by mutableIntStateOf(100)
+
+    // --- [v1.4.0] 視覺與空域輔助系統狀態 ---
+    var mainFOV by mutableFloatStateOf(45f)          // 廣角視距 (30-70)
+    var useSmartObserver by mutableStateOf(false)   // 智慧觀察員 (自動追蹤)
+    var showSideRulers by mutableStateOf(true)      // 側邊導航刻度標尺
+    var showGroundAnchor by mutableStateOf(false)   // 地面位置投影 (AR)
+    var autoPiPRelocate by mutableStateOf(true)     // 視窗自動避讓邏輯
+    var isManualOverrideActive by mutableStateOf(false) // 手動覆蓋屏蔽標記
+    var lastManualTouchTime by mutableLongStateOf(0L)   // 最後手動操作時間
+    var pipOffsetXPct by mutableFloatStateOf(0.5f)  // PiP 水平位置百分比 (0:左, 0.5:中, 1:右)
     var showUsbSelectionDialog by mutableStateOf(false)
     var showTroubleshootingHint by mutableStateOf(false)
 
@@ -90,8 +120,18 @@ class DroneState {
     var windDirection by mutableStateOf("無")
     var windVariation by mutableIntStateOf(0)
     var windDirVariation by mutableIntStateOf(0)
-    var enableAirPressure by mutableStateOf(false)
+    var enableVerticalDraft by mutableStateOf(false)
     var timeOfDay by mutableStateOf("中午")
+    var isSunSimEnabled by mutableStateOf(false)
+    var sunPosition by mutableFloatStateOf(0.5f) // 0.0 (東) ~ 1.0 (西)
+    var useHardcorePhysics by mutableStateOf(false)
+    
+    // --- [v1.3.9] 網絡通訊參數 ---
+    var networkHost by mutableStateOf("127.0.0.1")
+    var networkPort by mutableIntStateOf(14550)
+    var networkProtocol by mutableStateOf("UDP") // UDP or TCP
+    var isNetworkConnected by mutableStateOf(false)
+    var showNetworkSettingsDialog by mutableStateOf(false)
 
     // --- 設定分頁與模式 ---
     var settingsTab by mutableStateOf(SettingsTab.CONTROLLER)
@@ -239,5 +279,9 @@ class DroneState {
         this.timeOfDay = other.timeOfDay
         this.showShadow = other.showShadow
         this.shadowIntensity = other.shadowIntensity
+        this.observerTilt = other.observerTilt
+        this.isSunSimEnabled = other.isSunSimEnabled
+        this.sunPosition = other.sunPosition
+        this.enableZoomAssistant = other.enableZoomAssistant
     }
 }

@@ -5,7 +5,7 @@ import android.content.SharedPreferences
 import com.horizon.caadronesimulator.logic.DeviceProfileManager
 
 /**
- * v1.2.95 虛擬搖桿開關模組實作
+ * v1.3.5 全系統狀態持久化管理
  */
 class SettingsManager(private val context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("drone_settings", Context.MODE_PRIVATE)
@@ -22,9 +22,18 @@ class SettingsManager(private val context: Context) {
             putBoolean("halfThrottle", state.halfThrottle)
             putFloat("joystickDeadzone", state.joystickDeadzone)
             putBoolean("isMuted", state.isMuted)
-            putBoolean("enableAirPressure", state.enableAirPressure)
+            putBoolean("enableVerticalDraft", state.enableVerticalDraft)
             putBoolean("showShadow", state.showShadow)
             putBoolean("showTutorial", state.showTutorial)
+            putBoolean("useSimplifiedMarkers", state.useSimplifiedMarkers)
+            putBoolean("showSpecialTitle", state.showSpecialTitle)
+            putBoolean("useFlightLimit", state.useFlightLimit)
+            putBoolean("enableZoomAssistant", state.enableZoomAssistant)
+            putFloat("mainFOV", state.mainFOV)
+            putBoolean("useSmartObserver", state.useSmartObserver)
+            putBoolean("showSideRulers", state.showSideRulers)
+            putBoolean("showGroundAnchor", state.showGroundAnchor)
+            putBoolean("autoPiPRelocate", state.autoPiPRelocate)
             putBoolean("hasShownJoystickTutorial", state.hasShownJoystickTutorial)
             putBoolean("hasShownClimateTutorial", state.hasShownClimateTutorial)
             putBoolean("isMappingUnlocked", state.isMappingUnlocked)
@@ -33,8 +42,10 @@ class SettingsManager(private val context: Context) {
             putString("lastSeenVersion", AppConfig.CURRENT_VERSION)
             putBoolean("reverseSliderSides", state.reverseSliderSides)
             putFloat("observerHeight", state.observerHeight)
+            putFloat("observerTilt", state.observerTilt)
             
             putBoolean("useGlobalRates", state.useGlobalRates)
+            putBoolean("showIndividualRates", state.showIndividualRates)
             putFloat("globalRate", state.globalRate)
             putFloat("globalExpo", state.globalExpo)
 
@@ -43,11 +54,26 @@ class SettingsManager(private val context: Context) {
             putBoolean("was_internal_success", state.wasInternalSuccess)
             
             putInt("radarZoomMode", state.radarZoomMode)
-            
-            // [v1.2.95] 虛擬搖桿開關狀態
             putBoolean("showVirtualJoysticks", state.showVirtualJoysticks)
+            putInt("baudRate", state.baudRate)
+            
+            // [v1.3.5] 環境與氣候狀態
+            putInt("windLevel", state.windLevel)
+            putString("windDirection", state.windDirection)
+            putInt("windVariation", state.windVariation)
+            putInt("windDirVariation", state.windDirVariation)
+            putString("timeOfDay", state.timeOfDay)
+            putFloat("shadowIntensity", state.shadowIntensity)
+            putBoolean("useHardcorePhysics", state.useHardcorePhysics)
+            putBoolean("isSunSimEnabled", state.isSunSimEnabled)
+            putFloat("sunPosition", state.sunPosition)
+            
+            // [v1.3.9] 網絡通訊儲存
+            putString("networkHost", state.networkHost)
+            putInt("networkPort", state.networkPort)
+            putString("networkProtocol", state.networkProtocol)
 
-            commit() // 使用 commit() 確保同步寫入磁碟
+            apply()
         }
         
         val targetPrefs = if (state.inputMode == 1) {
@@ -120,9 +146,18 @@ class SettingsManager(private val context: Context) {
             this.halfThrottle = prefs.getBoolean("halfThrottle", state.halfThrottle)
             this.joystickDeadzone = prefs.getFloat("joystickDeadzone", state.joystickDeadzone)
             this.isMuted = prefs.getBoolean("isMuted", state.isMuted)
-            this.enableAirPressure = prefs.getBoolean("enableAirPressure", state.enableAirPressure)
+            this.enableVerticalDraft = prefs.getBoolean("enableVerticalDraft", state.enableVerticalDraft)
             this.showShadow = prefs.getBoolean("showShadow", state.showShadow)
             this.showTutorial = prefs.getBoolean("showTutorial", state.showTutorial)
+            this.useSimplifiedMarkers = prefs.getBoolean("useSimplifiedMarkers", false)
+            this.showSpecialTitle = prefs.getBoolean("showSpecialTitle", false)
+            this.useFlightLimit = prefs.getBoolean("useFlightLimit", true)
+            this.enableZoomAssistant = prefs.getBoolean("enableZoomAssistant", true)
+            this.mainFOV = prefs.getFloat("mainFOV", 45f)
+            this.useSmartObserver = prefs.getBoolean("useSmartObserver", false)
+            this.showSideRulers = prefs.getBoolean("showSideRulers", true)
+            this.showGroundAnchor = prefs.getBoolean("showGroundAnchor", false)
+            this.autoPiPRelocate = prefs.getBoolean("autoPiPRelocate", true)
             this.hasShownJoystickTutorial = prefs.getBoolean("hasShownJoystickTutorial", false)
             this.hasShownClimateTutorial = prefs.getBoolean("hasShownClimateTutorial", false)
             this.isMappingUnlocked = prefs.getBoolean("isMappingUnlocked", state.isMappingUnlocked)
@@ -131,6 +166,24 @@ class SettingsManager(private val context: Context) {
             this.showVirtualJoysticks = prefs.getBoolean("showVirtualJoysticks", this.showVirtualJoysticks)
             this.reverseSliderSides = prefs.getBoolean("reverseSliderSides", state.reverseSliderSides)
             this.observerHeight = prefs.getFloat("observerHeight", state.observerHeight)
+            this.observerTilt = prefs.getFloat("observerTilt", 0f)
+            this.shadowIntensity = prefs.getFloat("shadowIntensity", state.shadowIntensity)
+            
+            // [v1.3.5] 環境與氣候狀態載入
+            this.windLevel = prefs.getInt("windLevel", state.windLevel)
+            this.windDirection = prefs.getString("windDirection", state.windDirection) ?: state.windDirection
+            this.windVariation = prefs.getInt("windVariation", state.windVariation)
+            this.windDirVariation = prefs.getInt("windDirVariation", state.windDirVariation)
+            this.timeOfDay = prefs.getString("timeOfDay", state.timeOfDay) ?: state.timeOfDay
+            this.useHardcorePhysics = prefs.getBoolean("useHardcorePhysics", false)
+            this.isSunSimEnabled = prefs.getBoolean("isSunSimEnabled", false)
+            this.sunPosition = prefs.getFloat("sunPosition", 0.5f)
+            
+            // [v1.3.9] 網絡通訊載入
+            this.networkHost = prefs.getString("networkHost", "127.0.0.1") ?: "127.0.0.1"
+            this.networkPort = prefs.getInt("networkPort", 14550)
+            this.networkProtocol = prefs.getString("networkProtocol", "UDP") ?: "UDP"
+
             this.activeHidName = if (inputMode == 0) DeviceProfileManager.getActiveHidName(context) else "內置系統"
             
             val lastSeen = prefs.getString("lastSeenVersion", "")
@@ -163,6 +216,7 @@ class SettingsManager(private val context: Context) {
             }
             
             this.useGlobalRates = prefs.getBoolean("useGlobalRates", state.useGlobalRates)
+            this.showIndividualRates = prefs.getBoolean("showIndividualRates", state.showIndividualRates)
             this.globalRate = prefs.getFloat("globalRate", state.globalRate)
             this.globalExpo = prefs.getFloat("globalExpo", state.globalExpo)
             
@@ -179,6 +233,7 @@ class SettingsManager(private val context: Context) {
             this.probeAttempts = prefs.getInt("ax12_probe_attempts", 0)
             this.wasInternalSuccess = prefs.getBoolean("was_internal_success", false)
             this.radarZoomMode = prefs.getInt("radarZoomMode", 0)
+            this.baudRate = prefs.getInt("baudRate", 115200)
 
             this.isSettingsLoaded = true
         }

@@ -37,6 +37,39 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    // [v1.3.9] README ➔ Kotlin 代碼生成轉譯層
+    // 讀取根目錄 README.md 並將升級報告區塊轉譯為 Kotlin 常數，消除檔案冗餘
+    val generateReleaseContent by tasks.registering {
+        val readmeFile = rootProject.file("README.md")
+        val outputFile = file("src/main/java/com/horizon/caadronesimulator/generated/ReleaseContent.kt")
+        
+        inputs.file(readmeFile)
+        outputs.file(outputFile)
+        
+        doLast {
+            val content = readmeFile.readText()
+            // 轉義反斜槓與美金符號，避免 Kotlin String Template 衝突
+            val escapedContent = content.replace("\\", "\\\\").replace("$", "\\$")
+            
+            outputFile.parentFile.mkdirs()
+            outputFile.writeText("""
+                package com.horizon.caadronesimulator.generated
+
+                /**
+                 * 由 Gradle 任務 syncReadme 自動生成，請勿手動修改。
+                 * 來源: 專案根目錄 README.md
+                 */
+                object ReleaseContent {
+                    const val RAW_MARKDOWN = ""${'"'}$escapedContent""${'"'}
+                }
+            """.trimIndent())
+        }
+    }
+
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+        dependsOn(generateReleaseContent)
+    }
 }
 
 dependencies {

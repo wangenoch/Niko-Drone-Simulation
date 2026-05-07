@@ -14,6 +14,7 @@ object RenderUtils {
     // 預分配緩衝區以避免 GC 壓力
     private val boxBuffer = createBuffer(3 * 36)
     private val rectBuffer = createBuffer(3 * 4)
+    private val texBuffer = createBuffer(2 * 4) // 材質座標
     private val lineBuffer = createBuffer(3 * 4)
     private val circleBuffer = createBuffer((120 + 2) * 3)
     private val batchLineBuffer = createBuffer(120 * 6 * 3) // 120段 * 2個三角形 * 3個頂點 * 3個坐標
@@ -92,6 +93,33 @@ object RenderUtils {
         GLES20.glUniform4fv(colorH, 1, color, 0)
         GLES20.glUniformMatrix4fv(mvpH, 1, false, mvpMatrix, 0)
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
+    }
+
+    /**
+     * [v1.4.2] 繪製地板貼圖 (用於單位標題)
+     */
+    fun drawTexturedRect(posH: Int, texH: Int, texCoordH: Int, mvpH: Int, mvpMatrix: FloatArray, x: Float, y: Float, z: Float, w: Float, d: Float, textureId: Int) {
+        val v = floatArrayOf(x-w/2, y, z+d/2, x+w/2, y, z+d/2, x-w/2, y, z-d/2, x+w/2, y, z-d/2)
+        rectBuffer.clear(); rectBuffer.put(v).position(0)
+
+        // 還原為之前的座標狀態，停止擅自修正
+        val uv = floatArrayOf(1f, 0f, 0f, 0f, 1f, 1f, 0f, 1f)
+        texBuffer.clear(); texBuffer.put(uv).position(0)
+
+        GLES20.glUniformMatrix4fv(mvpH, 1, false, mvpMatrix, 0)
+        GLES20.glVertexAttribPointer(posH, 3, GLES20.GL_FLOAT, false, 0, rectBuffer)
+        GLES20.glEnableVertexAttribArray(posH)
+
+        GLES20.glVertexAttribPointer(texCoordH, 2, GLES20.GL_FLOAT, false, 0, texBuffer)
+        GLES20.glEnableVertexAttribArray(texCoordH)
+
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId)
+        GLES20.glUniform1i(texH, 0)
+
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
+        
+        GLES20.glDisableVertexAttribArray(texCoordH)
     }
 
     fun drawLine(posH: Int, colorH: Int, mvpH: Int, mvpMatrix: FloatArray, x1: Float, y1: Float, z1: Float, x2: Float, y2: Float, z2: Float, color: FloatArray) {

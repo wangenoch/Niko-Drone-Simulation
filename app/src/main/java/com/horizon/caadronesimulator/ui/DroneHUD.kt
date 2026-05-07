@@ -1,5 +1,7 @@
 package com.horizon.caadronesimulator.ui
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
@@ -12,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -61,8 +64,15 @@ fun DroneHUD(
             }
         }
     ) {
-        // --- 1. 高頻數據欄 (限流優化版) ---
-        Box(modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 8.dp)) {
+        // --- 1. 高頻數據欄 (v1.4.1 強制絕對水平置中) ---
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 8.dp + 16.dp)
+                .wrapContentWidth(Alignment.CenterHorizontally),
+            contentAlignment = Alignment.Center
+        ) {
             ThrottledStatusInfoBar(
                 altitude = state.altitude,
                 posX = state.posX,
@@ -72,6 +82,9 @@ fun DroneHUD(
                 windDirection = state.windDirection,
                 isMotorLocked = state.isMotorLocked,
                 droneType = state.droneType,
+                useFlightLimit = state.useFlightLimit,
+                batteryPercent = state.batteryPercent,
+                batteryVoltage = state.batteryVoltage,
                 isVisible = isStatusVisible,
                 onToggle = { onToggleStatus() }
             )
@@ -82,13 +95,19 @@ fun DroneHUD(
 
         // --- 4. 遠距姿態輔助視窗 (Smart Zoom PiP) ---
         val horizontalDist = sqrt(state.posX.pow(2) + (state.posZ + 6f).pow(2))
-        val isInZoomZone = horizontalDist > 10.0f && state.cameraMode != "FPV 視角" && state.cameraMode != "跟隨視角"
+        val isInZoomZone = state.enableZoomAssistant && horizontalDist > 10.0f && state.cameraMode != "FPV 視角" && state.cameraMode != "跟隨視角"
         
         if (isInZoomZone && !state.isMenuExpanded) {
+            // [v1.4.1 修正] 避讓邏輯：由於現在採用相對偏移，observerTilt < -5 代表飛機位於螢幕上方
+            val shouldRelocate = state.autoPiPRelocate && (state.observerTilt < -5f || state.altitude > 10f)
+            val alignment = if (shouldRelocate) Alignment.TopEnd else Alignment.TopCenter
+            val topPadding = 16.dp
+            val endPadding = if (shouldRelocate) 80.dp else 0.dp
+
             Box(
                 modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 16.dp)
+                    .align(alignment)
+                    .padding(top = topPadding, end = endPadding)
                     .size(150.dp, 100.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(Color(0x55111111))
@@ -118,6 +137,30 @@ fun DroneHUD(
         }
 
         MissionManager.RenderOverlay(state, onUpdateState)
+
+        // --- 5. 邊界預警提示 (v1.3.9) ---
+        androidx.compose.animation.AnimatedVisibility(
+            visible = state.isNearBoundary && !state.isCollision,
+            modifier = Modifier.align(Alignment.Center),
+            enter = androidx.compose.animation.fadeIn(),
+            exit = androidx.compose.animation.fadeOut()
+        ) {
+            val infiniteTransition = rememberInfiniteTransition(label = "warning_text")
+            val alpha by infiniteTransition.animateFloat(
+                initialValue = 0.3f, targetValue = 1f,
+                animationSpec = infiniteRepeatable(tween(400), RepeatMode.Reverse), label = "text_pulse"
+            )
+            Text(
+                "⚠️ 接近空域邊界",
+                color = Color.Yellow.copy(alpha = alpha),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.ExtraBold,
+                style = androidx.compose.ui.text.TextStyle(
+                    shadow = androidx.compose.ui.graphics.Shadow(Color.Black, blurRadius = 10f)
+                )
+            )
+        }
+
     }
 }
 
@@ -129,6 +172,9 @@ fun ThrottledStatusInfoBar(
     altitude: Float, posX: Float, posZ: Float, speed: Float,
     windLevel: Int, windDirection: String,
     isMotorLocked: Boolean, droneType: String,
+    useFlightLimit: Boolean,
+    batteryPercent: Int,
+    batteryVoltage: Float,
     isVisible: Boolean, onToggle: () -> Unit
 ) {
     // 關鍵優化：使用 LaunchedEffect 進行 10FPS (100ms) 的視覺限流
@@ -154,13 +200,28 @@ fun ThrottledStatusInfoBar(
                 .clickable { onToggle() },
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // [v1.4.1 修正] 前方加入對稱空白，抵銷後方 Icon 寬度以達成絕對置中
+            Spacer(modifier = Modifier.width(22.dp)) 
+
             StatusItem("高度", String.format(Locale.US, "%.1f m", displayAlt), if(displayAlt >= 29.9f) Color.Red else Color.Cyan)
             StatusVerticalDivider()
             StatusItem("速度", String.format(Locale.US, "%.1f m/s", displaySpeed), Color.White)
             StatusVerticalDivider()
             StatusItem("距離", String.format(Locale.US, "%.1f m", displayDist), Color.White)
             StatusVerticalDivider()
-            StatusItem("環境", "L$windLevel $windDirection", if(windLevel > 3) Color.Red else Color.White)
+            com.horizon.caadronesimulator.ui.components.WindIndicator(
+                level = windLevel,
+                direction = windDirection
+            )
+            
+            if (useFlightLimit) {
+                StatusVerticalDivider()
+                com.horizon.caadronesimulator.ui.components.BatteryIndicator(
+                    percent = batteryPercent,
+                    voltage = batteryVoltage
+                )
+            }
+
             StatusVerticalDivider()
             StatusItem("馬達", if(isMotorLocked) "鎖定" else "運轉", if(isMotorLocked) Color.Red else Color(0xFFC6FF00))
             Spacer(modifier = Modifier.width(6.dp))

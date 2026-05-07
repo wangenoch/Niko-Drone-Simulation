@@ -62,7 +62,7 @@ class SpotTimerEvaluator : MissionEvaluator {
         
         var currentDist = 0f
         for (idx in coneTargets.indices) {
-            val dist = sqrt((state.posX - coneTargets[idx][0]).pow(2) + (state.posZ - coneTargets[idx][1]).pow(2))
+            val dist = sqrt((state.posX - coneTargets[idx][0]).toDouble().pow(2) + (state.posZ - coneTargets[idx][1]).toDouble().pow(2)).toFloat()
             if (dist < 1.5f) { inZoneId = idx; currentDist = dist; break }
         }
         
@@ -118,12 +118,20 @@ class SpotTimerEvaluator : MissionEvaluator {
     override fun OverlayUI(state: DroneState, onUpdateState: (DroneState.() -> Unit) -> Unit) {
         if (!state.isSpotTimerEnabled || state.isCollision || state.showSettings) return
         val spec = remember(state.droneType) { DroneRegistry.getSpec(state.droneType) }
-        val isButtonVisible = state.altitude <= (spec.groundOffset + 0.15f)
+        val isNearGround = state.altitude <= (spec.groundOffset + 0.15f)
+        
+        // [v1.4.2] 偵測姿態視窗是否正在中央擋路 (與 DroneHUD/FlightInteractionLayer 邏輯同步)
+        val horizontalDist = sqrt(state.posX * state.posX + (state.posZ + 6f) * (state.posZ + 6f))
+        val isInZoomZone = state.enableZoomAssistant && horizontalDist > 10.0f && state.cameraMode != "FPV 視角" && state.cameraMode != "跟隨視角" && !state.isMenuExpanded
+        val isZoomRelocated = state.autoPiPRelocate && (state.observerTilt < -5f || state.altitude > 10f)
+        val isZoomInCenter = isInZoomZone && !isZoomRelocated
+
         val targetPadding by animateDpAsState(
             targetValue = when {
                 state.isMenuExpanded -> 120.dp
-                isButtonVisible -> 12.dp // 避開起槳按鈕，移至其上方
-                else -> 50.dp
+                isZoomInCenter -> 125.dp     // 移至輔助視窗下方 (16 + 100 + 間距)
+                isNearGround -> 30.dp        // 移至起槳按鈕上方 (按鈕在 85)
+                else -> 60.dp
             }, 
             label = "pad"
         )

@@ -5,9 +5,11 @@ package com.horizon.caadronesimulator.model
  * 集中管理版本號、日期等資訊，方便維護。
  */
 object AppConfig {
-    const val CURRENT_VERSION = "1.2.110"
+    const val CURRENT_VERSION = "1.3.3"
     const val RELEASE_DATE = "2026-04"
     const val DEVELOPER = "Enoch Wang"
+
+    const val SPECIAL_TITLE = "高雄市消防局義消總隊第二大隊"
 
     val SPECIAL_THANKS = listOf(
         "測試與建議：全體考照班教官與學員"

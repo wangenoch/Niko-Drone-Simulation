@@ -67,17 +67,58 @@ class DroneViewModel : ViewModel() {
     }
 
     fun updateRadarScale(state: DroneState) {
-        val dx = state.posX.toDouble()
-        val dz = state.posZ + 6.0
-        val dist = kotlin.math.sqrt(dx * dx + dz * dz).toFloat()
+        // [v1.3.9] 邊界預警檢查 (保留邏輯供 HUD 顯示)
+        state.isNearBoundary = PhysicsEngine.isNearBoundary(state.posX, state.posZ)
+
+        val dist = kotlin.math.sqrt(state.posX * state.posX + (state.posZ + 6f) * (state.posZ + 6f))
+
         when (state.radarZoomMode) {
-            0 -> state.currentRadarScale = 1.0f
+            0 -> state.currentRadarScale = 0.65f // 全景模式 (剛好裝下 100m)
             1 -> {
-                if (dist > 12f) state.currentRadarScale = 1.0f
-                else if (dist < 8f) state.currentRadarScale = 2.5f
+                // [v1.3.9] 三階智慧平滑縮放邏輯
+                state.currentRadarScale = when {
+                    dist < 12f -> 2.5f  // 精確近景
+                    dist < 28f -> 1.5f  // 導航中景
+                    else -> 0.65f       // 安全遠景
+                }
             }
-            2 -> state.currentRadarScale = 4.0f
+            2 -> state.currentRadarScale = 4.0f // 跟隨模式
         }
+    }
+
+    fun runSmartObserver(state: DroneState) {
+        if (!state.useSmartObserver || !state.cameraMode.contains("站位視角")) return
+        if (System.currentTimeMillis() - state.lastManualTouchTime < 3000) return
+
+        val dz = state.posZ - (-15f) // 站位在 Z=-15
+        val distToPilot = kotlin.math.sqrt(state.posX * state.posX + dz * dz)
+        
+        // 1. 自動高度補償 (使用 SmoothStep 緩衝)
+        val targetHeight = (1.6f + (distToPilot / 60f) * 6.4f).coerceIn(1.6f, 8.0f)
+        state.observerHeight += (targetHeight - state.observerHeight) * 0.04f
+
+        // 2. 自動視覺參數優化 (FOV, Zoom, 基準 Tilt) [v1.4.2]
+        ViewportOptimizer.applyOptimization(state, smooth = true)
+
+        // 3. 自動仰角細調 (僅在追蹤模式下疊加動態偏移，固定模式則完全遵循 Optimizer)
+        if (state.cameraMode.contains("追蹤")) {
+            // 計算「起降安全區」權重：距離 15m 且高度 13m 內
+            val distWeight = ((18f - distToPilot) / 5f).coerceIn(0f, 1f)
+            val altWeight = ((15f - state.altitude) / 4f).coerceIn(0f, 1f)
+            val safetyZoneWeight = distWeight * altWeight // 1.0 代表完全在安全區，0.0 代表完全在航線區
+
+            // 計算航線區的動態下壓偏移 (根據高度從 +12 變至 -20)
+            val hFactor = (state.altitude / 30f).coerceIn(0f, 1f)
+            val dynamicCruiseOffset = 12f - (hFactor * 32f)
+            
+            // 混合兩者：安全區強制 2 度，航線區動態偏移
+            val targetOffset = (2f * safetyZoneWeight) + (dynamicCruiseOffset * (1f - safetyZoneWeight))
+            
+            // 雲台慣性濾波
+            state.observerTilt += (targetOffset - state.observerTilt) * 0.05f
+        }
+        
+        state.observerTilt = state.observerTilt.coerceIn(-30f, 85f)
     }
 
     override fun onCleared() {

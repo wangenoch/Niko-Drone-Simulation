@@ -35,6 +35,7 @@ import com.horizon.caadronesimulator.ui.DroneHUD
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.isActive
 
 // 數學工具
 import kotlin.math.*
@@ -83,16 +84,42 @@ fun MainAppScreen(
         settingsManager.saveSettings(droneState)
     }
 
-    // 2b. 全局儲存監聽
-    LaunchedEffect(droneState.droneType, droneState.showTutorial, droneState.hasShownJoystickTutorial, droneState.hasShownClimateTutorial, droneState.isMappingUnlocked, droneState.joystickMode) {
+    // 2b. 全局儲存監聽 (v1.3.5 擴充：含環境、陰影、手感與通訊參數)
+    LaunchedEffect(
+        droneState.droneType, droneState.showTutorial, droneState.hasShownJoystickTutorial, 
+        droneState.hasShownClimateTutorial, droneState.isMappingUnlocked, droneState.joystickMode,
+        droneState.shadowIntensity, droneState.windLevel, droneState.windDirection, 
+        droneState.enableVerticalDraft, droneState.joystickDeadzone, droneState.halfThrottle,
+        droneState.useGlobalRates, droneState.showIndividualRates, droneState.globalRate, droneState.globalExpo,
+        droneState.baudRate, droneState.lockedProtocol, droneState.useHardcorePhysics,
+        droneState.isSunSimEnabled, droneState.sunPosition, droneState.useSimplifiedMarkers,
+        droneState.useFlightLimit, droneState.mainFOV, droneState.useSmartObserver,
+        droneState.showSideRulers, droneState.showGroundAnchor, droneState.autoPiPRelocate
+    ) {
         settingsManager.saveSettings(droneState) 
+    }
+
+    // 2c. [v1.4.0] 智慧觀察員運行迴圈 (60Hz)
+    LaunchedEffect(droneState.useSmartObserver, droneState.cameraMode) {
+        if (droneState.useSmartObserver) {
+            while(isActive) {
+                viewModel.runSmartObserver(droneState)
+                delay(16) // 約 60fps
+            }
+        }
     }
 
     // 3. 系統 UI 更新
     LaunchedEffect(droneState.showStatusBar) { onUpdateSystemUI() }
 
-    // 4. 協議鎖定更新
-    LaunchedEffect(droneState.lockedProtocol) { usbSerialManager.setLockedProtocol(droneState.lockedProtocol) }
+    // 4. 協議鎖定更新 (v1.3.5 增加 AX12 強制波特率邏輯)
+    LaunchedEffect(droneState.lockedProtocol) { 
+        usbSerialManager.setLockedProtocol(droneState.lockedProtocol)
+        if (droneState.lockedProtocol == "AX12(UMBUS)") {
+            droneState.baudRate = 921600
+            usbSerialManager.setBaudRate(921600)
+        }
+    }
     
     // 5. [v1.2.85] 委派 ViewModel 處理 Logcat
     LaunchedEffect(droneState.isLogcatEnabled) {
@@ -167,11 +194,20 @@ fun MainAppScreen(
                     renderer.windVariation = droneState.windVariation.toFloat()
                     renderer.windDirVariation = droneState.windDirVariation.toFloat()
                     renderer.timeOfDay = droneState.timeOfDay
-                    renderer.enableAirPressure = droneState.enableAirPressure
+                    renderer.enableVerticalDraft = droneState.enableVerticalDraft
                     renderer.applyPhysicalSpecs = droneState.applyPhysicalSpecs
                     renderer.showShadow = droneState.showShadow
                     renderer.shadowIntensity = droneState.shadowIntensity
                     renderer.showObstacles = droneState.showObstacles
+                    renderer.useHardcorePhysics = droneState.useHardcorePhysics
+                    renderer.isSunSimEnabled = droneState.isSunSimEnabled
+                    renderer.sunPosition = droneState.sunPosition
+                    renderer.observerTilt = droneState.observerTilt
+                    renderer.useSimplifiedMarkers = droneState.useSimplifiedMarkers
+                    renderer.showSpecialTitle = droneState.showSpecialTitle
+                    renderer.useFlightLimit = droneState.useFlightLimit
+                    renderer.mainFOV = droneState.mainFOV
+                    renderer.showGroundAnchor = droneState.showGroundAnchor
 
                     usbSerialManager.updateVirtualJoystickState(
                         t = stickInputState.stickThrottle(droneState), y = stickInputState.stickYaw(droneState),
@@ -201,15 +237,25 @@ fun MainAppScreen(
                 onUpdateZoomPipRect = { rect -> renderer.zoomPipRect = rect }
             )
             FlightInteractionLayer(
-                state = droneState, isStatusVisible = isStatusVisible,
+                state = droneState,
                 onUpdateState = { action -> droneState.action() },
                 onReset = onResetFlight,
-                modifier = Modifier.zIndex(11f),
-                onToggleStatus = { isStatusVisible = !isStatusVisible }
+                modifier = Modifier.zIndex(11f)
             )
             StickInteractionLogic(
                 state = droneState, stickState = stickInputState,
                 onUpdateState = { action -> droneState.action() }
+            )
+
+            // 層級 11: 側邊導航儀表 (v1.4.0)
+            SideNavInstruments(
+                state = droneState,
+                onUpdateState = { action -> 
+                    droneState.action()
+                    // 記錄手動操作時間，觸發手動覆蓋屏蔽
+                    droneState.lastManualTouchTime = System.currentTimeMillis()
+                },
+                modifier = Modifier.zIndex(11f)
             )
 
             // 層級 20: 任務與主教學
@@ -234,7 +280,30 @@ fun MainAppScreen(
                     onUpdateBaudRate = onUpdateBaudRate,
                     onExportLog = onExportLog,
                     onUpdateInputMode = onUpdateInputMode,
+                    onOpenNetworkSettings = { droneState.showNetworkSettingsDialog = true },
+                    onSaveSettings = { settingsManager.saveSettings(droneState) },
                     onTargetPositioned = { name, rect -> tutorialTargets = tutorialTargets + (name to rect) }
+                )
+            }
+
+            if (droneState.showNetworkSettingsDialog) {
+                NetworkSettingsOverlay(
+                    host = droneState.networkHost,
+                    port = droneState.networkPort,
+                    protocol = droneState.networkProtocol,
+                    onDismiss = { droneState.showNetworkSettingsDialog = false },
+                    onSave = { host, port, proto ->
+                        droneState.networkHost = host
+                        droneState.networkPort = port
+                        droneState.networkProtocol = proto
+                        droneState.showNetworkSettingsDialog = false
+                        settingsManager.saveSettings(droneState)
+                        
+                        // 如果目前處於網路模式，立即套用變更
+                        if (droneState.inputMode == 2) {
+                            onUpdateInputMode(2) 
+                        }
+                    }
                 )
             }
 

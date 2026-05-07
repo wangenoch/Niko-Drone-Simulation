@@ -61,58 +61,100 @@ fun InstrumentsLayer(
             }
         }
         
-        // [v1.2.71] 互動式相機控制條 (對稱佈局與左右對調功能)
+        // [v1.3.8] 互動式相機控制條 - 對稱佈局與雙拉桿支援
         val isFPV = state.cameraMode == "FPV 視角"
         val isStation = state.cameraMode.contains("站位視角")
 
-        if (isFPV || isStation) {
-            // 決定位置：FPV 預設在右，Station 預設在左
-            val isLeftSide = if (state.reverseSliderSides) isFPV else isStation
-            val alignment = if (isLeftSide) Alignment.CenterStart else Alignment.CenterEnd
-            val padding = if (isLeftSide) Modifier.padding(start = 16.dp) else Modifier.padding(end = 16.dp)
-
-            Box(
-                modifier = Modifier
-                    .align(alignment)
-                    .then(padding)
-                    .width(40.dp)
-                    .fillMaxHeight(0.4f)
-                    .pointerInput(isFPV, isStation) {
-                        detectVerticalDragGestures { _, dragAmount ->
-                            if (isFPV) {
-                                val sensitivity = 0.5f
-                                val newTilt = (state.cameraTilt - dragAmount * sensitivity).coerceIn(-30f, 45f)
-                                onUpdateState { cameraTilt = newTilt }
-                            } else {
-                                val sensitivity = 0.02f
-                                val newHeight = (state.observerHeight - dragAmount * sensitivity).coerceIn(1.6f, 8.0f)
-                                onUpdateState { observerHeight = newHeight }
-                            }
-                        }
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                // 視覺導軌
-                Box(modifier = Modifier.width(6.dp).fillMaxHeight().background(Color(0x44000000), RoundedCornerShape(3.dp)).border(1.dp, Color(0x22FFFFFF), RoundedCornerShape(3.dp)))
-                
-                // 動態位置圓點
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val frac = if (isFPV) (state.cameraTilt + 30f) / 75f else (state.observerHeight - 1.6f) / (8.0f - 1.6f)
-                    val dotY = size.height * (1f - frac)
-                    drawCircle(color = Color.Cyan, radius = 4.dp.toPx(), center = Offset(size.width / 2, dotY), style = Stroke(2.dp.toPx()))
-                    drawCircle(color = Color.Cyan.copy(alpha = 0.5f), radius = 2.dp.toPx(), center = Offset(size.width / 2, dotY))
+        if (isFPV) {
+            // FPV 模式：單一鏡頭仰角拉桿 (預設在右側)
+            val isOnLeft = state.reverseSliderSides
+            InteractiveCameraSlider(
+                label = "${state.cameraTilt.toInt()}°",
+                value = (state.cameraTilt + 30f) / 75f,
+                alignment = if (isOnLeft) Alignment.CenterStart else Alignment.CenterEnd,
+                modifier = if (isOnLeft) Modifier.padding(start = 16.dp) else Modifier.padding(end = 16.dp),
+                onDrag = { drag -> 
+                    val newTilt = (state.cameraTilt - drag * 0.5f).coerceIn(-30f, 45f)
+                    onUpdateState { cameraTilt = newTilt }
                 }
-                
-                // 數值標籤 (輔助辨識)
-                val label = if (isFPV) "${state.cameraTilt.toInt()}°" else String.format(Locale.US, "%.1fm", state.observerHeight)
-                Text(
-                    text = label,
-                    color = Color.Cyan.copy(0.7f),
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 4.dp)
-                )
+            )
+        } else if (isStation) {
+            // 站位模式：對稱雙拉桿 (高度 + 觀察仰角)
+            
+            // 1. 觀察者高度拉桿 (預設在左側)
+            val isHeightOnLeft = !state.reverseSliderSides
+            InteractiveCameraSlider(
+                label = String.format(Locale.US, "%.1fm", state.observerHeight),
+                value = (state.observerHeight - 1.6f) / (8.0f - 1.6f),
+                alignment = if (isHeightOnLeft) Alignment.CenterStart else Alignment.CenterEnd,
+                modifier = if (isHeightOnLeft) Modifier.padding(start = 16.dp) else Modifier.padding(end = 16.dp),
+                onDrag = { drag -> 
+                    val newHeight = (state.observerHeight - drag * 0.02f).coerceIn(1.6f, 8.0f)
+                    onUpdateState { observerHeight = newHeight }
+                }
+            )
+
+            // 2. 觀察者仰角拉桿 (預設在右側)
+            val isTiltOnLeft = state.reverseSliderSides
+            InteractiveCameraSlider(
+                label = "${state.observerTilt.toInt()}°",
+                value = (state.observerTilt + 30f) / 75f,
+                alignment = if (isTiltOnLeft) Alignment.CenterStart else Alignment.CenterEnd,
+                modifier = if (isTiltOnLeft) Modifier.padding(start = 16.dp) else Modifier.padding(end = 16.dp),
+                onDrag = { drag -> 
+                    val newTilt = (state.observerTilt - drag * 0.4f).coerceIn(-30f, 45f)
+                    onUpdateState { observerTilt = newTilt }
+                },
+                color = Color.Yellow // 黃色區分仰角，青色區分高度
+            )
+        }
+    }
+}
+
+/**
+ * [v1.3.8] 通用相機調整拉桿組件
+ */
+@Composable
+fun InteractiveCameraSlider(
+    label: String,
+    value: Float,
+    alignment: Alignment,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Cyan,
+    onDrag: (Float) -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .then(modifier),
+        contentAlignment = alignment
+    ) {
+        Box(
+            modifier = Modifier
+                .width(40.dp)
+                .fillMaxHeight(0.4f)
+                .pointerInput(Unit) {
+                    detectVerticalDragGestures { _, dragAmount -> onDrag(dragAmount) }
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            // 視覺導軌
+            Box(modifier = Modifier.width(6.dp).fillMaxHeight().background(Color(0x44000000), RoundedCornerShape(3.dp)).border(1.dp, Color(0x22FFFFFF), RoundedCornerShape(3.dp)))
+            
+            // 動態位置圓點
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val dotY = size.height * (1f - value.coerceIn(0f, 1f))
+                drawCircle(color = color, radius = 4.dp.toPx(), center = Offset(size.width / 2, dotY), style = Stroke(2.dp.toPx()))
+                drawCircle(color = color.copy(alpha = 0.5f), radius = 2.dp.toPx(), center = Offset(size.width / 2, dotY))
             }
+            
+            Text(
+                text = label,
+                color = color.copy(0.7f),
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 4.dp)
+            )
         }
     }
 }

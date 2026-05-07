@@ -17,110 +17,102 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+/**
+ * [v1.4.2] 機型選擇分頁 - 全域捲動優化版
+ */
 @Composable
 fun DroneSelectionScreen(
     currentType: String,
     onTypeSelected: (String) -> Unit
 ) {
-    val scrollState = rememberScrollState()
     val config = LocalConfiguration.current
     val isSmallDevice = config.screenWidthDp < 500 && config.screenHeightDp < 300
 
-    Box(
+    // [v1.4.2] 移除 outer Box 與 fillMaxSize，由 UnifiedSettingsScreen 統籌捲動
+    Column(
         modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xEE111111))
-            .clickable(enabled = false) {}
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 6.dp)
-                .verticalScroll(scrollState),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Header removed as per request (moved to UnifiedSettingsScreen header)
+            DroneTypeCard(
+                title = "小型無人機",
+                type = "QUAD_STANDARD",
+                isSelected = currentType == "QUAD_STANDARD",
+                icon = "🚁",
+                onClick = { onTypeSelected("QUAD_STANDARD") }
+            )
             
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            DroneTypeCard(
+                title = "JoyFlight T4",
+                type = "HEAVY_LIFT",
+                isSelected = currentType == "HEAVY_LIFT",
+                icon = "🏗️",
+                onClick = { onTypeSelected("HEAVY_LIFT") }
+            )
+
+            DroneTypeCard(
+                title = "重型直昇機",
+                type = "HELI_900",
+                isSelected = currentType == "HELI_900",
+                icon = "🚁",
+                onClick = { onTypeSelected("HELI_900") }
+            )
+        }
+        
+        if (!isSmallDevice) {
+            Surface(
+                color = Color(0x22FFFFFF),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                DroneTypeCard(
-                    title = "小型無人機",
-                    type = "QUAD_STANDARD",
-                    isSelected = currentType == "QUAD_STANDARD",
-                    icon = "🚁",
-                    onClick = { onTypeSelected("QUAD_STANDARD") }
-                )
-                
-                DroneTypeCard(
-                    title = "JoyFlight T4",
-                    type = "HEAVY_LIFT",
-                    isSelected = currentType == "HEAVY_LIFT",
-                    icon = "🏗️",
-                    onClick = { onTypeSelected("HEAVY_LIFT") }
-                )
-
-                DroneTypeCard(
-                    title = "重型直昇機",
-                    type = "HELI_900",
-                    isSelected = currentType == "HELI_900",
-                    icon = "🚁",
-                    onClick = { onTypeSelected("HELI_900") }
-                )
-            }
-            
-            if (!isSmallDevice) {
-                Surface(
-                    color = Color(0x22FFFFFF),
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
-                        val specTitle = when(currentType) {
-                            "HEAVY_LIFT" -> "機型詳細規格 (JoyFlight T4)"
-                            "HELI_900" -> "機型詳細規格 (重型直昇機)"
-                            else -> "機型詳細規格 (小型練習機)"
-                        }
-                        val specDetail = when(currentType) {
-                            "HEAVY_LIFT" -> "軸距 1100mm / 槳距 24inch / 螺距 8inch / 馬達 150KV\n最大起飛重量 14.9kg / 最大酬載 1kg / 滯空時間約 20min"
-                            "HELI_900" -> "軸距 900mm / 槳距 22inch / 螺距 7inch / 馬達 280KV\n機身重量 10kg / 定速飛行模式 / 滯空時間約 15min"
-                            else -> "軸距 210mm / 槳距 5inch / 螺距 4inch / 馬達 2450KV\n最大起飛重量 0.6kg / 競速等級動力 / 滯空時間約 5-8min"
-                        }
-                        val specDesc = when(currentType) {
-                            "HEAVY_LIFT" -> "說明：大型負重機型具有更長的力臂與獨特的起落架設計，適合進行進階飛行練習與專業考照模擬。"
-                            "HELI_900" -> "說明：採用高重心設計與 22 吋大型旋翼，具備極高的飛行穩定性與獨特的偏航扭力特性。"
-                            else -> "說明：高機動性機型，反應極其靈敏，適合練習精準穿越與反應速度，是初學者建立感官回饋的最佳選擇。"
-                        }
-
-                        Text(
-                            text = specTitle,
-                            color = Color.Cyan,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = specDetail,
-                            color = Color.LightGray,
-                            fontSize = 10.sp,
-                            lineHeight = 14.sp
-                        )
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = Color(0x1AFFFFFF))
-                        Text(
-                            text = specDesc,
-                            color = Color.White.copy(alpha = 0.5f),
-                            fontSize = 10.sp,
-                            lineHeight = 14.sp
-                        )
+                Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
+                    val specTitle = when(currentType) {
+                        "HEAVY_LIFT" -> "機型詳細規格 (JoyFlight T4)"
+                        "HELI_900" -> "機型詳細規格 (重型直昇機)"
+                        else -> "機型詳細規格 (小型練習機)"
                     }
+                    val specDetail = when(currentType) {
+                        "HEAVY_LIFT" -> "軸距 1100mm / 槳距 24inch / 螺距 8inch / 馬達 150KV\n最大起飛重量 14.9kg / 最大酬載 1kg / 滯空時間約 20min"
+                        "HELI_900" -> "軸距 900mm / 槳距 22inch / 螺距 7inch / 馬達 280KV\n機身重量 10kg / 定速飛行模式 / 滯空時間約 15min"
+                        else -> "軸距 210mm / 槳距 5inch / 螺距 4inch / 馬達 2450KV\n最大起飛重量 0.6kg / 競速等級動力 / 滯空時間約 5-8min"
+                    }
+                    val specDesc = when(currentType) {
+                        "HEAVY_LIFT" -> "說明：大型負重機型具有更長的力臂與獨特的起落架設計，適合進行進階飛行練習與專業考照模擬。"
+                        "HELI_900" -> "說明：採用高重心設計與 22 吋大型旋翼，具備極高的飛行穩定性與獨特的偏航扭力特性。"
+                        else -> "說明：高機動性機型，反應極其靈敏，適合練習精準穿越與反應速度，是初學者建立感官回饋的最佳選擇。"
+                    }
+
+                    Text(
+                        text = specTitle,
+                        color = Color.Cyan,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = specDetail,
+                        color = Color.LightGray,
+                        fontSize = 10.sp,
+                        lineHeight = 14.sp
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = Color(0x1AFFFFFF))
+                    Text(
+                        text = specDesc,
+                        color = Color.White.copy(alpha = 0.5f),
+                        fontSize = 10.sp,
+                        lineHeight = 14.sp
+                    )
                 }
             }
-            
-            // 底部留白
-            Spacer(modifier = Modifier.height(4.dp))
         }
+        
+        Spacer(modifier = Modifier.height(4.dp))
     }
 }
 

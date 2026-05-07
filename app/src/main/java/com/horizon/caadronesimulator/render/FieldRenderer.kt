@@ -1,12 +1,14 @@
 package com.horizon.caadronesimulator.render
 
+import android.opengl.GLES20
 import android.opengl.Matrix
 import com.horizon.caadronesimulator.model.Constants
 import com.horizon.caadronesimulator.render.util.RenderUtils
 import kotlin.math.*
 
 object FieldRenderer {
-    fun drawField(posH: Int, colorH: Int, mvpH: Int, mvpMatrix: FloatArray, windLevel: Int, windDirection: String, randomDirAngle: Float, flightTime: Float, showObstacles: Boolean) {
+    fun drawField(posH: Int, colorH: Int, mvpH: Int, mvpMatrix: FloatArray, windLevel: Int, windDirection: String, randomDirAngle: Float, flightTime: Float, showObstacles: Boolean, isSunSimEnabled: Boolean = false, sunPosition: Float = 0.5f, useSimplified: Boolean = false,
+                  titleTextureId: Int = -1, texH: Int = -1, texCoordH: Int = -1, useTexH: Int = -1) {
         // 恢復廣闊的地面背景
         RenderUtils.drawRect(posH, colorH, mvpH, mvpMatrix, 0f, -0.1f, 0f, 800f, 800f, floatArrayOf(0.15f, 0.35f, 0.15f, 1f))
         RenderUtils.drawRect(posH, colorH, mvpH, mvpMatrix, 0f, -0.05f, 0f, 120f, 100f, floatArrayOf(0.35f, 0.35f, 0.35f, 1f))
@@ -26,6 +28,19 @@ object FieldRenderer {
 
             obstacles.forEach { p ->
                 val x = p[0]; val z = p[1]; val h = p[2]
+                
+                // [v1.3.7] 繪製障礙物動態陰影
+                val shadowXOff = if (isSunSimEnabled) {
+                    val angle = Math.toRadians((sunPosition * 180f).toDouble()).toFloat()
+                    -cos(angle) * (h * 0.6f) // 隨建築高度拉長陰影
+                } else {
+                    if (windDirection.contains("北")) 0f // 舊模式維持簡約
+                    else 0f // 這裡可以根據 timeOfDay 做簡單偏移
+                }
+                
+                // 繪製建築物陰影面片
+                RenderUtils.drawFilledCircle(posH, colorH, mvpH, mvpMatrix, x + shadowXOff, 0.01f, z, 3f + (h * 0.1f), floatArrayOf(0f, 0f, 0f, 0.3f))
+
                 when(p[3].toInt()) {
                     0 -> { // 大建築
                         RenderUtils.drawBox(posH, colorH, mvpH, mvpMatrix, baseM, x, h/2, z, 5f, h, 5f, floatArrayOf(0.3f, 0.32f, 0.35f, 1f))
@@ -46,6 +61,16 @@ object FieldRenderer {
                     }
                 }
             }
+            
+            // [v1.3.9] 繪製操作區後方帳篷 (緊貼站位線 Z=-15)
+            val tentColor = floatArrayOf(0.2f, 0.4f, 0.8f, 1f) 
+            // 四根支柱
+            arrayOf(floatArrayOf(-2f, -15.6f), floatArrayOf(2f, -15.6f), floatArrayOf(-2f, -19.4f), floatArrayOf(2f, -19.4f)).forEach { p ->
+                RenderUtils.drawBox(posH, colorH, mvpH, mvpMatrix, baseM, p[0], 1.25f, p[1], 0.1f, 2.5f, 0.1f, floatArrayOf(0.7f, 0.7f, 0.7f, 1f))
+            }
+            // 帳篷頂部
+            RenderUtils.drawBox(posH, colorH, mvpH, mvpMatrix, baseM, 0f, 2.6f, -17.5f, 4.2f, 0.2f, 4f, tentColor)
+            RenderUtils.drawBox(posH, colorH, mvpH, mvpMatrix, baseM, 0f, 2.8f, -17.5f, 3f, 0.3f, 3f, tentColor)
         }
         // 恢復高亮度色彩 (Alpha 0.9)，並優化寬度與高度層次
         val colorWhite = floatArrayOf(1f, 1f, 1f, 0.9f)
@@ -54,16 +79,21 @@ object FieldRenderer {
         
         // 使用極低的 Y 軸偏移 (0.005f)，其餘交給 glPolygonOffset 處理
         val lineY = 0.005f
-        RenderUtils.drawLine(posH, colorH, mvpH, mvpMatrix, 0f, lineY, -11.5f, 0f, lineY, 11.5f, colorWhite)
-        RenderUtils.drawLine(posH, colorH, mvpH, mvpMatrix, -15f, lineY, 0f, 15f, lineY, 0f, colorWhite)
+        if (!useSimplified) {
+            RenderUtils.drawLine(posH, colorH, mvpH, mvpMatrix, 0f, lineY, -11.5f, 0f, lineY, 11.5f, colorWhite)
+            RenderUtils.drawLine(posH, colorH, mvpH, mvpMatrix, -15f, lineY, 0f, 15f, lineY, 0f, colorWhite)
+        }
         
-        drawRectOutline(posH, colorH, mvpH, mvpMatrix, lineY + 0.002f, 16f, 16f, colorYellow)
-        drawRectOutline(posH, colorH, mvpH, mvpMatrix, lineY + 0.002f, 8f, 8f, colorYellow)
+        val targetRectColor = if (useSimplified) colorWhite else colorYellow
+        val targetCircleColor = if (useSimplified) colorWhite else colorRed
+
+        drawRectOutline(posH, colorH, mvpH, mvpMatrix, lineY + 0.002f, 16f, 16f, targetRectColor)
+        drawRectOutline(posH, colorH, mvpH, mvpMatrix, lineY + 0.002f, 8f, 8f, targetRectColor)
         
-        RenderUtils.drawCircleOutline(posH, colorH, mvpH, mvpMatrix, 6f, lineY + 0.004f, 0f, 8f, colorRed)
-        RenderUtils.drawCircleOutline(posH, colorH, mvpH, mvpMatrix, 6f, lineY + 0.004f, 0f, 4f, colorRed)
-        RenderUtils.drawCircleOutline(posH, colorH, mvpH, mvpMatrix, -6f, lineY + 0.004f, 0f, 8f, colorRed)
-        RenderUtils.drawCircleOutline(posH, colorH, mvpH, mvpMatrix, -6f, lineY + 0.004f, 0f, 4f, colorRed)
+        RenderUtils.drawCircleOutline(posH, colorH, mvpH, mvpMatrix, 6f, lineY + 0.004f, 0f, 8f, targetCircleColor)
+        RenderUtils.drawCircleOutline(posH, colorH, mvpH, mvpMatrix, 6f, lineY + 0.004f, 0f, 4f, targetCircleColor)
+        RenderUtils.drawCircleOutline(posH, colorH, mvpH, mvpMatrix, -6f, lineY + 0.004f, 0f, 8f, targetCircleColor)
+        RenderUtils.drawCircleOutline(posH, colorH, mvpH, mvpMatrix, -6f, lineY + 0.004f, 0f, 4f, targetCircleColor)
         
         RenderUtils.drawFilledCircle(posH, colorH, mvpH, mvpMatrix, 0f, lineY + 0.006f, -6.0f, 1.2f, floatArrayOf(1f, 1f, 1f, 1f))
         RenderUtils.drawFilledCircle(posH, colorH, mvpH, mvpMatrix, 0f, lineY + 0.008f, -6.0f, 1.0f, floatArrayOf(0f, 0.35f, 0.7f, 1f))
@@ -75,6 +105,19 @@ object FieldRenderer {
         val solidRed = floatArrayOf(1f, 0f, 0f, 1f)
         RenderUtils.drawFilledCircle(posH, colorH, mvpH, mvpMatrix, -13.5f, lineY + 0.005f, 10.0f, 1.0f, solidRed)
         RenderUtils.drawFilledCircle(posH, colorH, mvpH, mvpMatrix, 13.5f, lineY + 0.005f, 10.0f, 1.0f, solidRed)
+
+        // [v1.3.9] CAA 考場操作員站位標線 (倒 T 型)
+        val markerColor = if (useSimplified) colorWhite else colorWhite 
+        RenderUtils.drawRect(posH, colorH, mvpH, mvpMatrix, 0f, lineY + 0.002f, -15f, 1.8f, 0.1f, markerColor) 
+        RenderUtils.drawRect(posH, colorH, mvpH, mvpMatrix, 0f, lineY + 0.002f, -15.25f, 0.1f, 0.5f, markerColor)
+
+        // [v1.4.5] 修正標題 Z 軸至 -9.0
+        // X=0, Y=0.015(地板), Z=-9.0, W=10.0, D=1.5
+        if (titleTextureId != -1) {
+            GLES20.glUniform1i(useTexH, 1)
+            RenderUtils.drawTexturedRect(posH, texH, texCoordH, mvpH, mvpMatrix, 0f, lineY + 0.01f, -9.0f, 10.0f, 1.5f, titleTextureId)
+            GLES20.glUniform1i(useTexH, 0)
+        }
 
         Constants.CONE_POSITIONS.forEach { drawCone(posH, colorH, mvpH, mvpMatrix, it[0], it[1]) }
     }

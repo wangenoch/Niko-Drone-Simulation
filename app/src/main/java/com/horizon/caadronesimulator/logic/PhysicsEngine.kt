@@ -41,12 +41,22 @@ object PhysicsEngine {
             }
         }
         
-        // 3. 場地邊界判定
-        val isOutOfBounds = abs(x) > 35f || z < -13f || z > 30f
+        // 3. 場地邊界判定 [v1.3.9] 使用擴大後的規格
+        val isOutOfBounds = abs(x) > Constants.FIELD_WIDTH_HALF || z < Constants.FIELD_Z_BACK || z > Constants.FIELD_Z_FRONT
         
         // 4. 極低空翻覆判定
         val isFlippedOnGround = alt < spec.groundOffset * 0.5f && mt > 10f
         
         return isOutOfBounds || isFlippedOnGround
+    }
+
+    /**
+     * [v1.3.9] 檢查是否接近空域邊界
+     */
+    fun isNearBoundary(x: Float, z: Float): Boolean {
+        val b = Constants.WARNING_BUFFER
+        return abs(x) > (Constants.FIELD_WIDTH_HALF - b) || 
+               z < (Constants.FIELD_Z_BACK + b) || 
+               z > (Constants.FIELD_Z_FRONT - b)
     }
 }

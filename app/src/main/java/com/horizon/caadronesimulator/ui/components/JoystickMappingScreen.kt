@@ -34,6 +34,9 @@ import androidx.compose.ui.zIndex
 import java.util.Locale
 import kotlin.math.*
 
+/**
+ * [v1.4.2] 搖桿映射分頁 - 全域捲動優化版
+ */
 @Composable
 fun JoystickMappingScreen(
     mappingLY: ChannelMapping,
@@ -47,11 +50,6 @@ fun JoystickMappingScreen(
     joystickMode: Int,
     stickLX: Float, stickLY: Float,
     stickRX: Float, stickRY: Float,
-    isCalibrating: Boolean,
-    calibrationStep: Int,
-    setupWizardStep: Int,
-    wizardCountdown: Int = 0,
-    isWizardWaiting: Boolean = false,
     activeHidName: String = "通用手把",
     
     // 靈敏度與曲線參數
@@ -65,10 +63,7 @@ fun JoystickMappingScreen(
     showIndividualRates: Boolean,
 
     onStartCalibration: () -> Unit,
-    onNextCalibrationStep: () -> Unit,
-    onFinishCalibration: () -> Unit,
     onStartWizard: () -> Unit,
-    onCancelWizard: () -> Unit,
     onToggleHalfThrottle: (Boolean) -> Unit,
     onUpdateDeadzone: (Float) -> Unit,
     onStartBinding: (String) -> Unit,
@@ -94,6 +89,7 @@ fun JoystickMappingScreen(
     rawHexData: String,
     linkType: String = "None",
     baudRate: Int = 115200,
+    connectionStatus: com.horizon.caadronesimulator.model.ConnectionStatus = com.horizon.caadronesimulator.model.ConnectionStatus.IDLE,
     
     // 新增診斷參數
     packetsPerSecond: Int = 0,
@@ -116,8 +112,6 @@ fun JoystickMappingScreen(
     // 輸入源與連線狀態控制
     isHardwareController: Boolean = false,
     inputMode: Int,
-    usbSerialConnected: Boolean,
-    isHandshaking: Boolean = false,
     isInteractionLocked: Boolean = false,
     isMappingUnlocked: Boolean = false,
     shouldShowExpertUI: Boolean = true,
@@ -125,6 +119,7 @@ fun JoystickMappingScreen(
     localSettingsMessage: String?,
     onUpdateInputMode: (Int) -> Unit,
     onScanUsb: () -> Unit,
+    onOpenNetworkSettings: () -> Unit = {},
     onUpdateBaudRate: (Int) -> Unit = {},
     onToggleMappingUnlock: (Boolean) -> Unit = {},
 
@@ -132,224 +127,190 @@ fun JoystickMappingScreen(
 ) {
     val configuration = LocalConfiguration.current
     val isSmallHeight = configuration.screenHeightDp < 420
-    val scrollState = rememberScrollState()
 
-    Box(modifier = Modifier.fillMaxSize().background(Color(0xEE111111)).clickable(enabled = false) {}) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 4.dp)
-                .verticalScroll(scrollState),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Header (標題與模式切換已整合至 HardwareConnectionSection，此處僅留視覺輔助)
-            Row(modifier = Modifier.fillMaxWidth().height(32.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column {
-                    Text("搖桿與輸入源設定", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    if (inputMode == 0) {
-                        Text("當前裝置：$activeHidName", color = Color.Green.copy(alpha = 0.7f), fontSize = 9.sp)
-                    }
-                }
-                
-                Spacer(modifier = Modifier.weight(1f))
-                
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    MiniStickVisual(joystickMode, true, stickLX, stickLY)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    MiniStickVisual(joystickMode, false, stickRX, stickRY)
-                }
-                
-                Spacer(modifier = Modifier.width(12.dp))
-                Surface(color = Color.Black, shape = RoundedCornerShape(4.dp)) {
-                    Text("活動: $activeAxis", color = Color.Cyan, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+    // [v1.4.2] 移除 outer Box 與 fillMaxSize，由 UnifiedSettingsScreen 統籌捲動
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Header
+        Row(modifier = Modifier.fillMaxWidth().height(32.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column {
+                Text("搖桿與輸入源設定", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                if (inputMode == 0) {
+                    Text("當前裝置：$activeHidName", color = Color.Green.copy(alpha = 0.7f), fontSize = 9.sp)
                 }
             }
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // [v1.2.68] 呼叫獨立出的硬體連線組件
-                HardwareConnectionSection(
-                    inputMode = inputMode,
-                    isHardwareController = isHardwareController,
-                    usbSerialConnected = usbSerialConnected,
-                    isHandshaking = isHandshaking,
-                    isInteractionLocked = isInteractionLocked,
-                    serialByteCount = serialByteCount,
-                    infoMessage = localSettingsMessage,
-                    showHardwareMonitor = showHardwareMonitor,
-                    onUpdateInputMode = onUpdateInputMode,
-                    onScanUsb = onScanUsb,
-                    onToggleHardwareMonitor = onToggleHardwareMonitor,
-                    onTargetPositioned = onTargetPositioned
-                )
-
-            // --- 獨立硬體診斷面板 (已抽離至 HardwareDiagnosticPanel.kt) ---
-            if (showHardwareMonitor) {
-                HardwareDiagnosticPanel(
-                    serialByteCount = serialByteCount.toLong(),
-                    linkType = linkType,
-                    activeSerialPath = activeSerialPath,
-                    detectedProtocol = detectedProtocol,
-                    lockedProtocol = lockedProtocol,
-                    conflictPid = conflictPid,
-                    isSerialConflict = isSerialConflict,
-                    packetsPerSecond = packetsPerSecond,
-                    bufferUsage = bufferUsage,
-                    rawBytesCount = rawBytesCount,
-                    isSignalActive = isSignalActive,
-                    baudRate = baudRate,
-                    diagnosticLog = diagnosticLog,
-                    rawHexData = rawHexData,
-                    rawChannels = rawChannels,
-                    isLogcatEnabled = isLogcatEnabled,
-                    logcatContent = logcatContent,
-                    isMappingUnlocked = isMappingUnlocked,
-                    onUpdateLockedProtocol = onUpdateLockedProtocol,
-                    onUpdateBaudRate = onUpdateBaudRate,
-                    onExportLog = onExportLog,
-                    onToggleLogcat = onToggleLogcat,
-                    onClearLogcat = onClearLogcat,
-                    onToggleMappingUnlock = onToggleMappingUnlock
-                )
+            
+            Spacer(modifier = Modifier.weight(1f))
+            
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                MiniStickVisual(joystickMode, true, stickLX, stickLY)
+                Spacer(modifier = Modifier.width(6.dp))
+                MiniStickVisual(joystickMode, false, stickRX, stickRY)
             }
-
-            // 原有的設定按鈕列
-            if (isSmallHeight) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Surface(color = Color(0x11FFFFFF), shape = RoundedCornerShape(10.dp), modifier = Modifier.weight(1.0f)) {
-                        Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            if (shouldShowExpertUI) {
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Button(onClick = onStartWizard, shape = RoundedCornerShape(8.dp), modifier = Modifier.height(24.dp).weight(1f).onGloballyPositioned { onTargetPositioned("wizard", it.boundsInRoot()) }, contentPadding = PaddingValues(0.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3).copy(alpha = 0.7f))) { Text("引導設定", fontSize = 10.sp) }
-                                    Button(onClick = onStartCalibration, shape = RoundedCornerShape(8.dp), modifier = Modifier.height(24.dp).weight(1f).onGloballyPositioned { onTargetPositioned("calib", it.boundsInRoot()) }, contentPadding = PaddingValues(0.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50).copy(alpha = 0.7f))) { Text("校準", fontSize = 10.sp) }
-                                }
-                                Spacer(Modifier.height(4.dp))
-                            }
-                            val labelLY = when(joystickMode) { 1 -> "俯仰"; 2 -> "油門"; 3 -> "俯仰"; 4 -> "俯仰"; else -> "LY" }
-                            val labelLX = when(joystickMode) { 3 -> "橫滾"; 4 -> "橫滾"; else -> "航向" }
-                            val labelRY = when(joystickMode) { 1 -> "油門"; 2 -> "俯仰"; 3 -> "油門"; 4 -> "油門"; else -> "RY" }
-                            val labelRX = when(joystickMode) { 3 -> "航向"; 4 -> "航向"; else -> "橫滾" }
-                            CompactMappingLine(labelLY, mappingLY, "ly", isAutoBinding, stickLY, onStartBinding, onToggleInvert, onManualBind, isSmall = true, inputMode = inputMode, showExpert = shouldShowExpertUI, onTargetPositioned = onTargetPositioned)
-                            CompactMappingLine(labelLX, mappingLX, "lx", isAutoBinding, stickLX, onStartBinding, onToggleInvert, onManualBind, isSmall = true, inputMode = inputMode, showExpert = shouldShowExpertUI, onTargetPositioned = onTargetPositioned)
-                            CompactMappingLine(labelRY, mappingRY, "ry", isAutoBinding, stickRY, onStartBinding, onToggleInvert, onManualBind, isSmall = true, inputMode = inputMode, showExpert = shouldShowExpertUI, onTargetPositioned = onTargetPositioned)
-                            CompactMappingLine(labelRX, mappingRX, "rx", isAutoBinding, stickRX, onStartBinding, onToggleInvert, onManualBind, isSmall = true, inputMode = inputMode, showExpert = shouldShowExpertUI, onTargetPositioned = onTargetPositioned)
-                            HorizontalDivider(color = Color(0x1AFFFFFF), modifier = Modifier.padding(vertical = 4.dp))
-                            Row(modifier = Modifier.fillMaxWidth().onGloballyPositioned { onTargetPositioned("mode", it.boundsInRoot()) }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                                IconButton(modifier = Modifier.size(24.dp), onClick = { onModeChange(if(joystickMode > 1) joystickMode - 1 else 4) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, null, tint = Color.Cyan, modifier = Modifier.size(18.dp)) }
-                                Text("Mode $joystickMode", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp))
-                                IconButton(modifier = Modifier.size(24.dp), onClick = { onModeChange(if(joystickMode < 4) joystickMode + 1 else 1) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Color.Cyan, modifier = Modifier.size(18.dp)) }
-                            }
-                        }
-                    }
-                    Column(modifier = Modifier.weight(1.0f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        // [v1.2.68] 呼叫獨立的手感靈敏度區塊
-                        JoystickRatesSection(
-                            useGlobalRates = useGlobalRates,
-                            globalRate = globalRate,
-                            globalExpo = globalExpo,
-                            rateLY = rateLY, expoLY = expoLY,
-                            rateLX = rateLX, expoLX = expoLX,
-                            rateRY = rateRY, expoRY = expoRY,
-                            rateRX = rateRX, expoRX = expoRX,
-                            showIndividualRates = showIndividualRates,
-                            onToggleGlobalRates = onToggleGlobalRates,
-                            onUpdateGlobalRate = onUpdateGlobalRate,
-                            onUpdateGlobalExpo = onUpdateGlobalExpo,
-                            onUpdateIndividualRate = onUpdateIndividualRate,
-                            onUpdateIndividualExpo = onUpdateIndividualExpo,
-                            onToggleShowIndividual = onToggleShowIndividual,
-                            onResetRates = onResetRates,
-                            onTargetPositioned = onTargetPositioned
-                        )
-
-                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text("死區 DZ: ${String.format(Locale.US, "%.2f", joystickDeadzone)}", color = Color.Gray, fontSize = 9.sp, modifier = Modifier.width(65.dp))
-                            Slider(value = joystickDeadzone, onValueChange = onUpdateDeadzone, valueRange = 0f..0.5f, modifier = Modifier.weight(1f).height(16.dp), colors = SliderDefaults.colors(thumbColor = Color.Cyan))
-                        }
-                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Start) {
-                            Checkbox(checked = halfThrottle, onCheckedChange = onToggleHalfThrottle, modifier = Modifier.size(18.dp).scale(0.8f), colors = CheckboxDefaults.colors(checkedColor = Color.Cyan))
-                            Text("半油門", color = Color.Gray, fontSize = 9.sp)
-                        }
-                    }
-                }
-            } else {
-                // 標準直向排版
-                Surface(color = Color(0x11FFFFFF), shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp)) {
-                    Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        if (shouldShowExpertUI) {
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                Button(onClick = onStartWizard, shape = RoundedCornerShape(8.dp), modifier = Modifier.height(30.dp).weight(1f).onGloballyPositioned { onTargetPositioned("wizard", it.boundsInRoot()) }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))) { Text("引導設定", fontSize = 12.sp) }
-                                Button(onClick = onStartCalibration, shape = RoundedCornerShape(8.dp), modifier = Modifier.height(30.dp).weight(1f).onGloballyPositioned { onTargetPositioned("calib", it.boundsInRoot()) }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))) { Text("校準", fontSize = 12.sp) }
-                            }
-                            HorizontalDivider(color = Color(0x22FFFFFF), modifier = Modifier.padding(vertical = 4.dp))
-                        }
-                        val labelLY = when(joystickMode) { 1 -> "俯仰 Pitch"; 2 -> "油門 Throttle"; 3 -> "俯仰 Pitch"; 4 -> "俯仰 Pitch"; else -> "LY" }
-                        val labelLX = when(joystickMode) { 3 -> "橫滾 Roll"; 4 -> "橫滾 Roll"; else -> "航向 Yaw" }
-                        val labelRY = when(joystickMode) { 1 -> "油門 Throttle"; 2 -> "俯仰 Pitch"; 3 -> "油門 Throttle"; 4 -> "油門 Throttle"; else -> "RY" }
-                        val labelRX = when(joystickMode) { 3 -> "航向 Yaw"; 4 -> "航向 Yaw"; else -> "橫滾 Roll" }
-                        CompactMappingLine("$labelLY (左垂直)", mappingLY, "ly", isAutoBinding, stickLY, onStartBinding, onToggleInvert, onManualBind, inputMode = inputMode, showExpert = shouldShowExpertUI, onTargetPositioned = onTargetPositioned)
-                        HorizontalDivider(color = Color(0x0AFFFFFF))
-                        CompactMappingLine("$labelLX (左水平)", mappingLX, "lx", isAutoBinding, stickLX, onStartBinding, onToggleInvert, onManualBind, inputMode = inputMode, showExpert = shouldShowExpertUI, onTargetPositioned = onTargetPositioned)
-                        HorizontalDivider(color = Color(0x0AFFFFFF))
-                        CompactMappingLine("$labelRY (右垂直)", mappingRY, "ry", isAutoBinding, stickRY, onStartBinding, onToggleInvert, onManualBind, inputMode = inputMode, showExpert = shouldShowExpertUI, onTargetPositioned = onTargetPositioned)
-                        HorizontalDivider(color = Color(0x0AFFFFFF))
-                        CompactMappingLine("$labelRX (右水平)", mappingRX, "rx", isAutoBinding, stickRX, onStartBinding, onToggleInvert, onManualBind, inputMode = inputMode, showExpert = shouldShowExpertUI, onTargetPositioned = onTargetPositioned)
-                    }
-                }
-                Spacer(modifier = Modifier.height(10.dp))
-                // [v1.2.68] 呼叫獨立的手感靈敏度區塊 (直向排版)
-                JoystickRatesSection(
-                    useGlobalRates = useGlobalRates,
-                    globalRate = globalRate,
-                    globalExpo = globalExpo,
-                    rateLY = rateLY, expoLY = expoLY,
-                    rateLX = rateLX, expoLX = expoLX,
-                    rateRY = rateRY, expoRY = expoRY,
-                    rateRX = rateRX, expoRX = expoRX,
-                    showIndividualRates = showIndividualRates,
-                    onToggleGlobalRates = onToggleGlobalRates,
-                    onUpdateGlobalRate = onUpdateGlobalRate,
-                    onUpdateGlobalExpo = onUpdateGlobalExpo,
-                    onUpdateIndividualRate = onUpdateIndividualRate,
-                    onUpdateIndividualExpo = onUpdateIndividualExpo,
-                    onToggleShowIndividual = onToggleShowIndividual,
-                    onResetRates = onResetRates,
-                    onTargetPositioned = onTargetPositioned
-                )
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(modifier = Modifier.fillMaxWidth().onGloballyPositioned { onTargetPositioned("mode", it.boundsInRoot()) }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                    IconButton(onClick = { onModeChange(if(joystickMode > 1) joystickMode - 1 else 4) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, null, tint = Color.Cyan) }
-                    Text("Mode $joystickMode", color = Color.White, fontWeight = FontWeight.Bold)
-                    IconButton(onClick = { onModeChange(if(joystickMode < 4) joystickMode + 1 else 1) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Color.Cyan) }
-                }
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            Surface(color = Color.Black, shape = RoundedCornerShape(4.dp)) {
+                Text("活動: $activeAxis", color = Color.Cyan, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
             }
         }
 
-        // [v1.2.68] 呼叫獨立的校準圖層
-        JoystickCalibrationOverlay(
-            isCalibrating = isCalibrating,
-            calibrationStep = calibrationStep,
-            joystickMode = joystickMode,
-            stickLX = stickLX,
-            stickLY = stickLY,
-            stickRX = stickRX,
-            stickRY = stickRY,
-            onNextStep = onNextCalibrationStep,
-            onFinish = onFinishCalibration
+        Spacer(modifier = Modifier.height(6.dp))
+
+        HardwareConnectionSection(
+            inputMode = inputMode,
+            isHardwareController = isHardwareController,
+            connectionStatus = connectionStatus,
+            isInteractionLocked = isInteractionLocked,
+            serialByteCount = serialByteCount,
+            infoMessage = localSettingsMessage,
+            showHardwareMonitor = showHardwareMonitor,
+            onUpdateInputMode = onUpdateInputMode,
+            onScanUsb = onScanUsb,
+            onOpenNetworkSettings = onOpenNetworkSettings,
+            onToggleHardwareMonitor = onToggleHardwareMonitor,
+            onTargetPositioned = onTargetPositioned
         )
 
-        // [v1.2.68] 呼叫獨立的引導精靈圖層
-        JoystickWizardOverlay(
-            setupWizardStep = setupWizardStep,
-            isWizardWaiting = isWizardWaiting,
-            wizardCountdown = wizardCountdown,
-            stickLX = stickLX,
-            stickLY = stickLY,
-            stickRX = stickRX,
-            stickRY = stickRY,
-            onCancelWizard = onCancelWizard
-        )
+        if (showHardwareMonitor) {
+            HardwareDiagnosticPanel(
+                serialByteCount = serialByteCount.toLong(),
+                linkType = linkType,
+                activeSerialPath = activeSerialPath,
+                detectedProtocol = detectedProtocol,
+                lockedProtocol = lockedProtocol,
+                conflictPid = conflictPid,
+                isSerialConflict = isSerialConflict,
+                packetsPerSecond = packetsPerSecond,
+                bufferUsage = bufferUsage,
+                rawBytesCount = rawBytesCount,
+                isSignalActive = isSignalActive,
+                baudRate = baudRate,
+                diagnosticLog = diagnosticLog,
+                rawHexData = rawHexData,
+                rawChannels = rawChannels,
+                isLogcatEnabled = isLogcatEnabled,
+                logcatContent = logcatContent,
+                isMappingUnlocked = isMappingUnlocked,
+                onUpdateLockedProtocol = onUpdateLockedProtocol,
+                onUpdateBaudRate = onUpdateBaudRate,
+                onExportLog = onExportLog,
+                onToggleLogcat = onToggleLogcat,
+                onClearLogcat = onClearLogcat,
+                onToggleMappingUnlock = onToggleMappingUnlock
+            )
+        }
+
+        if (isSmallHeight) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Surface(color = Color(0x11FFFFFF), shape = RoundedCornerShape(10.dp), modifier = Modifier.weight(1.0f)) {
+                    Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        if (shouldShowExpertUI) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(onClick = onStartWizard, shape = RoundedCornerShape(8.dp), modifier = Modifier.height(24.dp).weight(1f).onGloballyPositioned { onTargetPositioned("wizard", it.boundsInRoot()) }, contentPadding = PaddingValues(0.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3).copy(alpha = 0.7f))) { Text("引導設定", fontSize = 10.sp) }
+                                Button(onClick = onStartCalibration, shape = RoundedCornerShape(8.dp), modifier = Modifier.height(24.dp).weight(1f).onGloballyPositioned { onTargetPositioned("calib", it.boundsInRoot()) }, contentPadding = PaddingValues(0.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50).copy(alpha = 0.7f))) { Text("校準", fontSize = 10.sp) }
+                            }
+                            Spacer(Modifier.height(4.dp))
+                        }
+                        val labelLY = when(joystickMode) { 1 -> "俯仰"; 2 -> "油門"; 3 -> "俯仰"; 4 -> "俯仰"; else -> "LY" }
+                        val labelLX = when(joystickMode) { 3 -> "橫滾"; 4 -> "橫滾"; else -> "航向" }
+                        val labelRY = when(joystickMode) { 1 -> "油門"; 2 -> "俯仰"; 3 -> "油門"; 4 -> "油門"; else -> "RY" }
+                        val labelRX = when(joystickMode) { 3 -> "航向"; 4 -> "航向"; else -> "橫滾" }
+                        CompactMappingLine(labelLY, mappingLY, "ly", isAutoBinding, stickLY, onStartBinding, onToggleInvert, onManualBind, isSmall = true, inputMode = inputMode, showExpert = shouldShowExpertUI, onTargetPositioned = onTargetPositioned)
+                        CompactMappingLine(labelLX, mappingLX, "lx", isAutoBinding, stickLX, onStartBinding, onToggleInvert, onManualBind, isSmall = true, inputMode = inputMode, showExpert = shouldShowExpertUI, onTargetPositioned = onTargetPositioned)
+                        CompactMappingLine(labelRY, mappingRY, "ry", isAutoBinding, stickRY, onStartBinding, onToggleInvert, onManualBind, isSmall = true, inputMode = inputMode, showExpert = shouldShowExpertUI, onTargetPositioned = onTargetPositioned)
+                        CompactMappingLine(labelRX, mappingRX, "rx", isAutoBinding, stickRX, onStartBinding, onToggleInvert, onManualBind, isSmall = true, inputMode = inputMode, showExpert = shouldShowExpertUI, onTargetPositioned = onTargetPositioned)
+                        HorizontalDivider(color = Color(0x1AFFFFFF), modifier = Modifier.padding(vertical = 4.dp))
+                        Row(modifier = Modifier.fillMaxWidth().onGloballyPositioned { onTargetPositioned("mode", it.boundsInRoot()) }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                            IconButton(modifier = Modifier.size(24.dp), onClick = { onModeChange(if(joystickMode > 1) joystickMode - 1 else 4) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, null, tint = Color.Cyan, modifier = Modifier.size(18.dp)) }
+                            Text("Mode $joystickMode", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp))
+                            IconButton(modifier = Modifier.size(24.dp), onClick = { onModeChange(if(joystickMode < 4) joystickMode + 1 else 1) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Color.Cyan, modifier = Modifier.size(18.dp)) }
+                        }
+                    }
+                }
+                Column(modifier = Modifier.weight(1.0f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    JoystickRatesSection(
+                        useGlobalRates = useGlobalRates,
+                        globalRate = globalRate,
+                        globalExpo = globalExpo,
+                        rateLY = rateLY, expoLY = expoLY,
+                        rateLX = rateLX, expoLX = expoLX,
+                        rateRY = rateRY, expoRY = expoRY,
+                        rateRX = rateRX, expoRX = expoRX,
+                        showIndividualRates = showIndividualRates,
+                        onToggleGlobalRates = onToggleGlobalRates,
+                        onUpdateGlobalRate = onUpdateGlobalRate,
+                        onUpdateGlobalExpo = onUpdateGlobalExpo,
+                        onUpdateIndividualRate = onUpdateIndividualRate,
+                        onUpdateIndividualExpo = onUpdateIndividualExpo,
+                        onToggleShowIndividual = onToggleShowIndividual,
+                        onResetRates = onResetRates,
+                        onTargetPositioned = onTargetPositioned
+                    )
+
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("死區 DZ: ${String.format(Locale.US, "%.2f", joystickDeadzone)}", color = Color.Gray, fontSize = 9.sp, modifier = Modifier.width(65.dp))
+                        Slider(value = joystickDeadzone, onValueChange = onUpdateDeadzone, valueRange = 0f..0.5f, modifier = Modifier.weight(1f).height(16.dp), colors = SliderDefaults.colors(thumbColor = Color.Cyan))
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Start) {
+                        Checkbox(checked = halfThrottle, onCheckedChange = onToggleHalfThrottle, modifier = Modifier.size(18.dp).scale(0.8f), colors = CheckboxDefaults.colors(checkedColor = Color.Cyan))
+                        Text("半油門", color = Color.Gray, fontSize = 9.sp)
+                    }
+                }
+            }
+        } else {
+            Surface(color = Color(0x11FFFFFF), shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp)) {
+                Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (shouldShowExpertUI) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Button(onClick = onStartWizard, shape = RoundedCornerShape(8.dp), modifier = Modifier.height(30.dp).weight(1f).onGloballyPositioned { onTargetPositioned("wizard", it.boundsInRoot()) }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))) { Text("引導設定", fontSize = 12.sp) }
+                            Button(onClick = onStartCalibration, shape = RoundedCornerShape(8.dp), modifier = Modifier.height(30.dp).weight(1f).onGloballyPositioned { onTargetPositioned("calib", it.boundsInRoot()) }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))) { Text("校準", fontSize = 12.sp) }
+                        }
+                        HorizontalDivider(color = Color(0x22FFFFFF), modifier = Modifier.padding(vertical = 4.dp))
+                    }
+                    val labelLY = when(joystickMode) { 1 -> "俯仰 Pitch"; 2 -> "油門 Throttle"; 3 -> "俯仰 Pitch"; 4 -> "俯仰 Pitch"; else -> "LY" }
+                    val labelLX = when(joystickMode) { 3 -> "橫滾 Roll"; 4 -> "橫滾 Roll"; else -> "航向 Yaw" }
+                    val labelRY = when(joystickMode) { 1 -> "油門 Throttle"; 2 -> "俯仰 Pitch"; 3 -> "油門 Throttle"; 4 -> "油門 Throttle"; else -> "RY" }
+                    val labelRX = when(joystickMode) { 3 -> "航向 Yaw"; 4 -> "航向 Yaw"; else -> "橫滾 Roll" }
+                    CompactMappingLine("$labelLY (左垂直)", mappingLY, "ly", isAutoBinding, stickLY, onStartBinding, onToggleInvert, onManualBind, inputMode = inputMode, showExpert = shouldShowExpertUI, onTargetPositioned = onTargetPositioned)
+                    HorizontalDivider(color = Color(0x0AFFFFFF))
+                    CompactMappingLine("$labelLX (左水平)", mappingLX, "lx", isAutoBinding, stickLX, onStartBinding, onToggleInvert, onManualBind, inputMode = inputMode, showExpert = shouldShowExpertUI, onTargetPositioned = onTargetPositioned)
+                    HorizontalDivider(color = Color(0x0AFFFFFF))
+                    CompactMappingLine("$labelRY (右垂直)", mappingRY, "ry", isAutoBinding, stickRY, onStartBinding, onToggleInvert, onManualBind, inputMode = inputMode, showExpert = shouldShowExpertUI, onTargetPositioned = onTargetPositioned)
+                    HorizontalDivider(color = Color(0x0AFFFFFF))
+                    CompactMappingLine("$labelRX (右水平)", mappingRX, "rx", isAutoBinding, stickRX, onStartBinding, onToggleInvert, onManualBind, inputMode = inputMode, showExpert = shouldShowExpertUI, onTargetPositioned = onTargetPositioned)
+                }
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            JoystickRatesSection(
+                useGlobalRates = useGlobalRates,
+                globalRate = globalRate,
+                globalExpo = globalExpo,
+                rateLY = rateLY, expoLY = expoLY,
+                rateLX = rateLX, expoLX = expoLX,
+                rateRY = rateRY, expoRY = expoRY,
+                rateRX = rateRX, expoRX = expoRX,
+                showIndividualRates = showIndividualRates,
+                onToggleGlobalRates = onToggleGlobalRates,
+                onUpdateGlobalRate = onUpdateGlobalRate,
+                onUpdateGlobalExpo = onUpdateGlobalExpo,
+                onUpdateIndividualRate = onUpdateIndividualRate,
+                onUpdateIndividualExpo = onUpdateIndividualExpo,
+                onToggleShowIndividual = onToggleShowIndividual,
+                onResetRates = onResetRates,
+                onTargetPositioned = onTargetPositioned
+            )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(modifier = Modifier.fillMaxWidth().onGloballyPositioned { onTargetPositioned("mode", it.boundsInRoot()) }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                IconButton(onClick = { onModeChange(if(joystickMode > 1) joystickMode - 1 else 4) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, null, tint = Color.Cyan) }
+                Text("Mode $joystickMode", color = Color.White, fontWeight = FontWeight.Bold)
+                IconButton(onClick = { onModeChange(if(joystickMode < 4) joystickMode + 1 else 1) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Color.Cyan) }
+            }
+        }
     }
 }
 
@@ -359,7 +320,6 @@ fun CompactMappingLine(label: String, mapping: ChannelMapping, key: String, isBi
     Row(modifier = Modifier.fillMaxWidth().height(if (isSmall) 22.dp else 30.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.width(if (isSmall) 60.dp else 165.dp)) {
             Text(text = label, color = Color.White, fontSize = if (isSmall) 10.sp else 13.sp, maxLines = 1)
-            // 即時數值條 (Mini Progress Bar)
             Box(modifier = Modifier.fillMaxWidth(0.8f).height(2.dp).background(Color.White.copy(alpha = 0.1f))) {
                 Box(
                     modifier = Modifier
@@ -375,37 +335,70 @@ fun CompactMappingLine(label: String, mapping: ChannelMapping, key: String, isBi
             Button(onClick = { onStartBinding(key) }, colors = ButtonDefaults.buttonColors(containerColor = if(isBinding == key) Color.Cyan else Color(0x22FFFFFF)), shape = RoundedCornerShape(5.dp), contentPadding = PaddingValues(0.dp), modifier = Modifier.height(if (isSmall) 18.dp else 26.dp).weight(1f).onGloballyPositioned { if (key == "ly") onTargetPositioned("auto_bind", it.boundsInRoot()) }) { Text(if(isBinding == key) "偵測" else "Auto", fontSize = 9.sp, color = if(isBinding == key) Color.Black else Color.White) }
             Spacer(modifier = Modifier.width(4.dp))
             Box(modifier = Modifier.width(if (isSmall) 55.dp else 90.dp)) {
-                Box(modifier = Modifier.fillMaxWidth().height(if (isSmall) 18.dp else 26.dp).background(Color(0x33FFFFFF), RoundedCornerShape(5.dp)).clickable { expanded = true }, contentAlignment = Alignment.Center) { 
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(if (isSmall) 18.dp else 26.dp)
+                        .background(Color(0x33FFFFFF), RoundedCornerShape(5.dp))
+                        .clickable { expanded = !expanded }, 
+                    contentAlignment = Alignment.Center
+                ) { 
                     val displayLabel = if(mapping.axis == -1) "未設" 
                                        else if (mapping.axis >= 101) "S${mapping.axis - 100}"
                                        else mapping.label.replace("Axis ","A")
                     Text(text = displayLabel, color = if(mapping.axis == -1) Color.Gray else Color.Cyan, fontSize = 9.sp)
                 }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.width(140.dp), properties = PopupProperties(focusable = false)) {
-                    Column(modifier = Modifier.heightIn(max = 200.dp).verticalScroll(rememberScrollState())) {
-                        DropdownMenuItem(
-                            text = { Text("🚫 取消映射 (未設定)", fontSize = 11.sp, color = Color.Gray) }, 
-                            onClick = { onManualBind(key, -1); expanded = false }
-                        )
-                        HorizontalDivider(color = Color(0x11FFFFFF))
 
-                        if (inputMode == 0) {
-                            // 外接模式：僅顯示 Axis 0~28
-                            (0..28).forEach { axisId -> 
-                                DropdownMenuItem(text = { Text("Axis $axisId", fontSize = 11.sp) }, onClick = { onManualBind(key, axisId); expanded = false }) 
+                // [v1.4.2 修復] 自定義內部選單，取代 DropdownMenu 以防止導航欄彈出
+                if (expanded) {
+                    Surface(
+                        modifier = Modifier
+                            .padding(top = if (isSmall) 20.dp else 28.dp)
+                            .width(140.dp)
+                            .heightIn(max = 160.dp)
+                            .zIndex(500f),
+                        color = Color(0xFF1B2535),
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, Color.White.copy(0.1f)),
+                        shadowElevation = 8.dp
+                    ) {
+                        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                            TextButton(
+                                onClick = { onManualBind(key, -1); expanded = false },
+                                modifier = Modifier.fillMaxWidth().height(32.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp)
+                            ) {
+                                Text("🚫 取消映射", fontSize = 10.sp, color = Color.Gray, modifier = Modifier.fillMaxWidth())
                             }
-                        } else {
-                            // 內置模式：僅顯示 Serial CH 1~24
-                            (1..24).forEach { ch ->
-                                val serialAxisId = 100 + ch
-                                DropdownMenuItem(text = { Text("Serial CH$ch", fontSize = 11.sp, color = if(ch <= 4) Color.Cyan else Color.White) }, onClick = { onManualBind(key, serialAxisId); expanded = false })
+                            HorizontalDivider(color = Color(0x11FFFFFF))
+
+                            if (inputMode == 0) {
+                                (0..28).forEach { axisId -> 
+                                    TextButton(
+                                        onClick = { onManualBind(key, axisId); expanded = false },
+                                        modifier = Modifier.fillMaxWidth().height(32.dp),
+                                        contentPadding = PaddingValues(horizontal = 12.dp)
+                                    ) {
+                                        Text("Axis $axisId", fontSize = 10.sp, color = Color.White, modifier = Modifier.fillMaxWidth())
+                                    }
+                                }
+                            } else {
+                                (1..24).forEach { ch ->
+                                    val serialAxisId = 100 + ch
+                                    TextButton(
+                                        onClick = { onManualBind(key, serialAxisId); expanded = false },
+                                        modifier = Modifier.fillMaxWidth().height(32.dp),
+                                        contentPadding = PaddingValues(horizontal = 12.dp)
+                                    ) {
+                                        Text("Serial CH$ch", fontSize = 10.sp, color = if(ch <= 4) Color.Cyan else Color.White, modifier = Modifier.fillMaxWidth())
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
         } else {
-            // 極簡模式：僅顯示已鎖定的通道編號
             val displayLabel = if(mapping.axis >= 101) "已鎖定 S${mapping.axis - 100}" else "自動對準中"
             Box(modifier = Modifier.weight(1f).height(if (isSmall) 18.dp else 26.dp), contentAlignment = Alignment.CenterStart) {
                 Text(displayLabel, color = Color.Cyan.copy(alpha = 0.6f), fontSize = 10.sp)

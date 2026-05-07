@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
 import com.horizon.caadronesimulator.model.DroneRegistry
 import com.horizon.caadronesimulator.model.DroneState
+import kotlin.math.pow
 
 /**
  * [v1.2.68] 飛行互動控制層
@@ -32,10 +33,8 @@ import com.horizon.caadronesimulator.model.DroneState
 @Composable
 fun FlightInteractionLayer(
     state: DroneState,
-    isStatusVisible: Boolean,
     onUpdateState: (DroneState.() -> Unit) -> Unit,
     onReset: () -> Unit,
-    onToggleStatus: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -44,14 +43,26 @@ fun FlightInteractionLayer(
         val isNearGround by remember(state.altitude) { derivedStateOf { state.altitude <= (spec.groundOffset + 0.15f) } }
         
         if (isNearGround) {
-            Box(modifier = Modifier.align(Alignment.TopCenter).padding(top = 70.dp)) {
+            // [v1.4.2 修正] 統一使用 statusBarsPadding 並動態調整高度避開計時器
+            val horizontalDist = kotlin.math.sqrt(state.posX * state.posX + (state.posZ + 6f) * (state.posZ + 6f))
+            val isInZoomZone = state.enableZoomAssistant && horizontalDist > 10.0f && state.cameraMode != "FPV 視角" && state.cameraMode != "跟隨視角" && !state.isMenuExpanded
+            val isZoomRelocated = state.autoPiPRelocate && (state.observerTilt < -5f || state.altitude > 10f)
+            val isZoomInCenter = isInZoomZone && !isZoomRelocated
+            
+            val buttonTopPadding = if (isZoomInCenter) 175.dp else 85.dp
+            
+            Box(modifier = Modifier
+                .align(Alignment.TopCenter)
+                .statusBarsPadding()
+                .padding(top = buttonTopPadding)
+            ) {
                 Button(
                     onClick = { onUpdateState { this.isMotorLocked = !this.isMotorLocked } }, 
                     colors = ButtonDefaults.buttonColors(containerColor = if (state.isMotorLocked) Color(0xAA4CAF50) else Color(0xAAF44336)), 
                     shape = RoundedCornerShape(8.dp), 
-                    modifier = Modifier.width(100.dp).height(45.dp).border(1.dp, Color.White, RoundedCornerShape(8.dp))
+                    modifier = Modifier.width(100.dp).height(40.dp).border(1.dp, Color.White.copy(0.5f), RoundedCornerShape(8.dp))
                 ) {
-                    Text(if (state.isMotorLocked) "起槳" else "停槳", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text(if (state.isMotorLocked) "起槳" else "停槳", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
             }
         }
@@ -90,7 +101,7 @@ fun FlightInteractionLayer(
                         var viewExpanded by remember { mutableStateOf(false) }
                         var cameraMenuExpanded by remember { mutableStateOf(false) }
                         Box {
-                            InteractionBtn(Icons.Default.Person) { viewExpanded = true }
+                            InteractionBtn(Icons.Default.Visibility) { viewExpanded = true }
                             DropdownMenu(expanded = viewExpanded, onDismissRequest = { viewExpanded = false }, properties = PopupProperties(focusable = false)) {
                                 DropdownMenuItem(text = { Text("視角模式：${state.cameraMode}") }, trailingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowRight, null) }, onClick = { cameraMenuExpanded = true })
                                 
@@ -119,8 +130,8 @@ fun FlightInteractionLayer(
                                 )
 
                                 HorizontalDivider()
+                                DropdownMenuItem(text = { Text(if (state.showObstacles) "隱藏障礙物" else "開啟障礙物") }, onClick = { onUpdateState { this.showObstacles = !this.showObstacles }; viewExpanded = false })
                                 DropdownMenuItem(text = { Text(if (state.showShadow) "關閉陰影" else "開啟陰影") }, onClick = { onUpdateState { this.showShadow = !this.showShadow }; viewExpanded = false })
-                                DropdownMenuItem(text = { Text(if (isStatusVisible) "隱藏飛行數據" else "顯示飛行數據") }, onClick = { onToggleStatus(); viewExpanded = false })
                                 
                                 // [v1.2.68] 新增飛行軌跡開關
                                 DropdownMenuItem(
@@ -128,6 +139,14 @@ fun FlightInteractionLayer(
                                     onClick = { 
                                         onUpdateState { this.showFlightPath = !this.showFlightPath }
                                         viewExpanded = false 
+                                    }
+                                )
+
+                                DropdownMenuItem(
+                                    text = { Text(if (state.enableZoomAssistant) "關閉姿態輔助(ZOOM)" else "開啟姿態輔助(ZOOM)") },
+                                    onClick = {
+                                        onUpdateState { this.enableZoomAssistant = !this.enableZoomAssistant }
+                                        viewExpanded = false
                                     }
                                 )
                             }
