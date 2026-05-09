@@ -122,6 +122,7 @@ fun JoystickMappingScreen(
     onOpenNetworkSettings: () -> Unit = {},
     onUpdateBaudRate: (Int) -> Unit = {},
     onToggleMappingUnlock: (Boolean) -> Unit = {},
+    onOpenAuxMapping: () -> Unit = {}, // [v1.5.0] 開啟輔助映射
 
     onTargetPositioned: (String, Rect) -> Unit = { _, _ -> }
 ) {
@@ -212,6 +213,7 @@ fun JoystickMappingScreen(
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Button(onClick = onStartWizard, shape = RoundedCornerShape(8.dp), modifier = Modifier.height(24.dp).weight(1f).onGloballyPositioned { onTargetPositioned("wizard", it.boundsInRoot()) }, contentPadding = PaddingValues(0.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3).copy(alpha = 0.7f))) { Text("引導設定", fontSize = 10.sp) }
                                 Button(onClick = onStartCalibration, shape = RoundedCornerShape(8.dp), modifier = Modifier.height(24.dp).weight(1f).onGloballyPositioned { onTargetPositioned("calib", it.boundsInRoot()) }, contentPadding = PaddingValues(0.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50).copy(alpha = 0.7f))) { Text("校準", fontSize = 10.sp) }
+                                Button(onClick = onOpenAuxMapping, shape = RoundedCornerShape(8.dp), modifier = Modifier.height(24.dp).weight(1f), contentPadding = PaddingValues(0.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800).copy(alpha = 0.7f))) { Text("擴充映射", fontSize = 10.sp) }
                             }
                             Spacer(Modifier.height(4.dp))
                         }
@@ -265,9 +267,10 @@ fun JoystickMappingScreen(
             Surface(color = Color(0x11FFFFFF), shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp)) {
                 Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     if (shouldShowExpertUI) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Button(onClick = onStartWizard, shape = RoundedCornerShape(8.dp), modifier = Modifier.height(30.dp).weight(1f).onGloballyPositioned { onTargetPositioned("wizard", it.boundsInRoot()) }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))) { Text("引導設定", fontSize = 12.sp) }
                             Button(onClick = onStartCalibration, shape = RoundedCornerShape(8.dp), modifier = Modifier.height(30.dp).weight(1f).onGloballyPositioned { onTargetPositioned("calib", it.boundsInRoot()) }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))) { Text("校準", fontSize = 12.sp) }
+                            Button(onClick = onOpenAuxMapping, shape = RoundedCornerShape(8.dp), modifier = Modifier.height(30.dp).weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800))) { Text("擴充映射", fontSize = 12.sp) }
                         }
                         HorizontalDivider(color = Color(0x22FFFFFF), modifier = Modifier.padding(vertical = 4.dp))
                     }

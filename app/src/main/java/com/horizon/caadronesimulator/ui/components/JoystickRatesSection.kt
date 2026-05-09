@@ -66,11 +66,11 @@ fun JoystickRatesSection(
                 }
                 if (useGlobalRates) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Rate", color = Color.Gray, fontSize = 9.sp, modifier = Modifier.width(25.dp))
+                        Text("Rate: ${String.format(Locale.US, "%.1f", globalRate)}", color = Color.Gray, fontSize = 9.sp, modifier = Modifier.width(55.dp))
                         Slider(value = globalRate, onValueChange = onUpdateGlobalRate, valueRange = 0.1f..2.0f, modifier = Modifier.weight(1f).height(16.dp), colors = SliderDefaults.colors(thumbColor = Color.Cyan))
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Expo", color = Color.Gray, fontSize = 9.sp, modifier = Modifier.width(25.dp))
+                        Text("Expo: ${String.format(Locale.US, "%.1f", globalExpo)}", color = Color.Gray, fontSize = 9.sp, modifier = Modifier.width(55.dp))
                         Slider(value = globalExpo, onValueChange = onUpdateGlobalExpo, valueRange = 0.0f..1.0f, modifier = Modifier.weight(1f).height(16.dp), colors = SliderDefaults.colors(thumbColor = Color.Cyan))
                     }
                 } else {

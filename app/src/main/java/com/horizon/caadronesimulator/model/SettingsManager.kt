@@ -89,6 +89,13 @@ class SettingsManager(private val context: Context) {
             saveMapping("ry", state.mappingRY)
             saveMapping("rx", state.mappingRX)
             
+            // [v1.5.0] 儲存輔助開關映射
+            saveMapping("hold", state.mappingHold)
+            saveMapping("arm", state.mappingArm)
+            saveMapping("obsHeight", state.mappingObsHeight)
+            saveMapping("obsTilt", state.mappingObsTilt)
+            saveMapping("fpvTilt", state.mappingFpvTilt)
+            
             putFloat("rateLY", state.rateLY); putFloat("expoLY", state.expoLY)
             putFloat("rateLX", state.rateLX); putFloat("expoLX", state.expoLX)
             putFloat("rateRY", state.rateRY); putFloat("expoRY", state.expoRY)
@@ -123,7 +130,7 @@ class SettingsManager(private val context: Context) {
             
             if (!profile.contains("ly_axis") && fingerprint != "external_settings") {
                 profile.edit().apply {
-                    listOf("ly", "lx", "ry", "rx").forEach { key ->
+                    listOf("ly", "lx", "ry", "rx", "hold", "arm", "obsHeight", "obsTilt", "fpvTilt").forEach { key ->
                         putInt("${key}_axis", genericExternalPrefs.getInt("${key}_axis", -1))
                         putBoolean("${key}_inverted", genericExternalPrefs.getBoolean("${key}_inverted", false))
                         putString("${key}_label", genericExternalPrefs.getString("${key}_label", "未設定"))
@@ -191,10 +198,15 @@ class SettingsManager(private val context: Context) {
                 this.showUpdateNotice = true
             }
             
-            this.internalProfile.mappingLY = loadMapping(ax12Prefs, "ly", ChannelMapping(104, false, "油門 Throttle"))
-            this.internalProfile.mappingLX = loadMapping(ax12Prefs, "lx", ChannelMapping(101, false, "航向 Yaw"))
             this.internalProfile.mappingRY = loadMapping(ax12Prefs, "ry", ChannelMapping(102, false, "俯仰 Pitch"))
             this.internalProfile.mappingRX = loadMapping(ax12Prefs, "rx", ChannelMapping(103, false, "橫滾 Roll"))
+            
+            // [v1.5.0] 載入內置輔助開關
+            this.internalProfile.mappingHold = loadMapping(ax12Prefs, "hold", ChannelMapping(-1, false, "熄火開關"))
+            this.internalProfile.mappingArm = loadMapping(ax12Prefs, "arm", ChannelMapping(-1, false, "解鎖開關"))
+            this.internalProfile.mappingObsHeight = loadMapping(ax12Prefs, "obsHeight", ChannelMapping(-1, false, "站位高度"))
+            this.internalProfile.mappingObsTilt = loadMapping(ax12Prefs, "obsTilt", ChannelMapping(-1, false, "抬頭角度"))
+            this.internalProfile.mappingFpvTilt = loadMapping(ax12Prefs, "fpvTilt", ChannelMapping(-1, false, "FPV 雲台"))
 
             val hidFingerprint = DeviceProfileManager.getActiveHidFingerprint(context)
             val hidPrefs = context.getSharedPreferences(hidFingerprint, Context.MODE_PRIVATE)
@@ -202,6 +214,13 @@ class SettingsManager(private val context: Context) {
             this.externalProfile.mappingLX = loadMapping(hidPrefs, "lx", ChannelMapping(-1))
             this.externalProfile.mappingRY = loadMapping(hidPrefs, "ry", ChannelMapping(-1))
             this.externalProfile.mappingRX = loadMapping(hidPrefs, "rx", ChannelMapping(-1))
+            
+            // [v1.5.0] 載入外接輔助開關
+            this.externalProfile.mappingHold = loadMapping(hidPrefs, "hold", ChannelMapping(-1))
+            this.externalProfile.mappingArm = loadMapping(hidPrefs, "arm", ChannelMapping(-1))
+            this.externalProfile.mappingObsHeight = loadMapping(hidPrefs, "obsHeight", ChannelMapping(-1))
+            this.externalProfile.mappingObsTilt = loadMapping(hidPrefs, "obsTilt", ChannelMapping(-1))
+            this.externalProfile.mappingFpvTilt = loadMapping(hidPrefs, "fpvTilt", ChannelMapping(-1))
 
             if (inputMode == 1 && !this.isMappingUnlocked && this.mappingLY.axis == -1) {
                 this.mappingLY = ChannelMapping(101, false, "油門/俯仰")

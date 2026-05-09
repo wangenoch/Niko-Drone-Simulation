@@ -261,11 +261,22 @@ class MainActivity : ComponentActivity() {
         val isFirstLaunch = settingsManager.isFirstLaunch()
         settingsManager.loadSettings(droneState)
         
+        // [v1.5.1] 初始啟動模式感知安全性釋放
+        if (droneState.inputMode != 1) {
+            droneState.isSafetyStartupPassed = true
+            droneState.isThrottleHoldActive = false
+        }
+        
         // [v1.2.95] 初次啟動設備自動識別：手機/平板自動開啟虛擬搖桿以確保可操作性
         if (isFirstLaunch) {
             val hasTouchScreen = packageManager.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)
             if (hasTouchScreen) {
                 droneState.showVirtualJoysticks = true 
+                // [v1.6.4] 自動套用專為觸控螢幕設計的「手感黃金預設值」
+                // 提供絕佳的初始操控感，使用者後續仍可隨時於設定中修改
+                droneState.globalRate = 1.2f
+                droneState.globalExpo = 0.4f
+                droneState.joystickDeadzone = 0.05f
                 settingsManager.saveSettings(droneState)
             }
         }
@@ -311,13 +322,118 @@ class MainActivity : ComponentActivity() {
                         droneState.mappingLX = updateCalib(droneState.mappingLX, droneState.mappingLX.axis - 101, true)
                         droneState.mappingRY = updateCalib(droneState.mappingRY, droneState.mappingRY.axis - 101, true)
                         droneState.mappingRX = updateCalib(droneState.mappingRX, droneState.mappingRX.axis - 101, true)
+                        
+                        // [v1.5.0] 輔助開關同步校準
+                        droneState.mappingHold = updateCalib(droneState.mappingHold, droneState.mappingHold.axis - 101, true)
+                        droneState.mappingArm = updateCalib(droneState.mappingArm, droneState.mappingArm.axis - 101, true)
+                        droneState.mappingObsHeight = updateCalib(droneState.mappingObsHeight, droneState.mappingObsHeight.axis - 101, true)
+                        droneState.mappingObsTilt = updateCalib(droneState.mappingObsTilt, droneState.mappingObsTilt.axis - 101, true)
+                        droneState.mappingFpvTilt = updateCalib(droneState.mappingFpvTilt, droneState.mappingFpvTilt.axis - 101, true)
                     }
+
+                    // [v1.5.0] 處理輔助控制輸入邏輯
+                    if (!droneState.showSettings && !droneState.isCollision) {
+                        fun getAuxVal(m: com.horizon.caadronesimulator.model.ChannelMapping): Float? {
+                            if (m.axis < 101) return null
+                            val raw = channels.getOrNull(m.axis - 101) ?: return null
+                            // 這裡使用簡化的線性映射，未來可考慮進階校準
+                            val v = (raw - m.center) / (if(raw >= m.center) (m.max - m.center).coerceAtLeast(0.01f) else (m.center - m.min).coerceAtLeast(0.01f))
+                            return if (m.inverted) -v.coerceIn(-1f, 1f) else v.coerceIn(-1f, 1f)
+                        }
+
+                        // 1. 解鎖開關邏輯 (Arming)
+                        val armVal = getAuxVal(droneState.mappingArm)
+                        if (armVal != null) {
+                            val isArmedRequested = armVal > 0.5f 
+                            if (!droneState.isSafetyStartupPassed) {
+                                if (!isArmedRequested) {
+                                    droneState.isSafetyStartupPassed = true
+                                    droneState.systemMessage = "✅ 系統檢查通過，準備就緒"
+                                } else {
+                                    droneState.systemMessage = "⚠️ 安全警告：請先將解鎖開關撥至 OFF"
+                                    return@post
+                                }
+                            }
+                            if (isArmedRequested != !droneState.isMotorLocked) {
+                                droneState.isMotorLocked = !isArmedRequested
+                            }
+                        }
+
+                        // 1b. 熄火開關邏輯 (Throttle Hold - 僅限直昇機)
+                        val spec = com.horizon.caadronesimulator.model.DroneRegistry.getSpec(droneState.droneType)
+                        if (spec.category == com.horizon.caadronesimulator.model.DroneCategory.HELI) {
+                            val holdVal = getAuxVal(droneState.mappingHold)
+                            if (holdVal != null) {
+                                val isHoldRequested = holdVal < 0.5f 
+                                if (!droneState.isSafetyStartupPassed && !isHoldRequested) {
+                                    droneState.systemMessage = "⚠️ 安全警告：請先將熄火開關撥至 HOLD"
+                                    return@post
+                                }
+                                if (isHoldRequested != droneState.isThrottleHoldActive) {
+                                    droneState.isThrottleHoldActive = isHoldRequested
+                                }
+                            } else {
+                                // [2% 優化] 若未映射實體熄火開關，自動隨解鎖按鈕同步
+                                droneState.isThrottleHoldActive = droneState.isMotorLocked
+                            }
+                        } else {
+                            droneState.isThrottleHoldActive = false
+                        }
+
+                        // 2. 站位高度 (1.6m ~ 25m)
+                        getAuxVal(droneState.mappingObsHeight)?.let { v ->
+                            val norm = (v + 1f) / 2f 
+                            val targetH = 1.6f + norm * (25f - 1.6f)
+                            if (abs(targetH - droneState.observerHeight) > 0.1f) {
+                                droneState.observerHeight = targetH
+                                droneState.lastManualTouchTime = System.currentTimeMillis() // 觸發手動覆蓋
+                            }
+                        }
+
+                        // 3. 抬頭角度 (-30 ~ 85)
+                        getAuxVal(droneState.mappingObsTilt)?.let { v ->
+                            val targetT = v * 50f + 25f 
+                            if (abs(targetT - droneState.observerTilt) > 1.0f) {
+                                droneState.observerTilt = targetT.coerceIn(-30f, 85f)
+                                droneState.lastManualTouchTime = System.currentTimeMillis()
+                            }
+                        }
+
+                        // 4. [Phase 4] FPV 雲台角度 (0 ~ -90)
+                        getAuxVal(droneState.mappingFpvTilt)?.let { v ->
+                            val targetTilt = -( (v + 1f) / 2f * 90f )
+                            if (abs(targetTilt - droneState.cameraTilt) > 1.0f) {
+                                droneState.cameraTilt = targetTilt.coerceIn(-90f, 0f)
+                            }
+                        }
+                    }
+
                     if (droneState.inputMode == 1 && droneState.isAutoBinding != null) {
                         var trig = -1; var mv = 0f; channels.forEachIndexed { i, v -> if (abs(v) > 0.85f) { trig = i; mv = v } }
                         if (trig != -1) {
-                            val key = droneState.isAutoBinding; val isY = (key == "ly" || key == "ry")
-                            val m = com.horizon.caadronesimulator.model.ChannelMapping(axis = trig + 101, inverted = (if (isY) -mv else mv) < 0, label = "Serial CH${trig + 1}")
-                            when(key) { "ly" -> droneState.mappingLY = m; "lx" -> droneState.mappingLX = m; "ry" -> droneState.mappingRY = m; "rx" -> droneState.mappingRX = m }
+                            val key = droneState.isAutoBinding
+                            val label = "Serial CH${trig + 1}"
+                            val m = com.horizon.caadronesimulator.model.ChannelMapping(axis = trig + 101, inverted = false, label = label)
+                            
+                            val labels = when(droneState.joystickMode) {
+                                1 -> listOf("俯仰 Pitch", "航向 Yaw", "油門 Throttle", "橫滾 Roll")
+                                3 -> listOf("油門 Throttle", "橫滾 Roll", "俯仰 Pitch", "航向 Yaw")
+                                4 -> listOf("俯仰 Pitch", "橫滾 Roll", "油門 Throttle", "航向 Yaw")
+                                else -> listOf("油門 Throttle", "航向 Yaw", "俯仰 Pitch", "橫滾 Roll")
+                            }
+                            
+                            when(key) { 
+                                "ly" -> droneState.mappingLY = m.copy(label = labels[0], inverted = mv < 0)
+                                "lx" -> droneState.mappingLX = m.copy(label = labels[1], inverted = mv < 0)
+                                "ry" -> droneState.mappingRY = m.copy(label = labels[2], inverted = mv < 0)
+                                "rx" -> droneState.mappingRX = m.copy(label = labels[3], inverted = mv < 0)
+                                // [v1.5.0] 輔助開關映射
+                                "hold" -> droneState.mappingHold = m.copy(label = "熄火開關")
+                                "arm" -> droneState.mappingArm = m.copy(label = "解鎖開關")
+                                "obsHeight" -> droneState.mappingObsHeight = m.copy(label = "站位高度")
+                                "obsTilt" -> droneState.mappingObsTilt = m.copy(label = "抬頭角度")
+                                "fpvTilt" -> droneState.mappingFpvTilt = m.copy(label = "FPV 雲台")
+                            }
                             droneState.isAutoBinding = null
                         }
                     }
@@ -412,9 +528,21 @@ class MainActivity : ComponentActivity() {
 
         soundManager = DroneSoundManager(); soundManager.start()
 
-        renderer = DroneSimulationRenderer { alt, x, z, yaw, pitch, roll, speed, isImpact, volt, perc, titlePos ->
+        renderer = DroneSimulationRenderer { alt, x, z, yaw, pitch, roll, speed, isImpact, volt, perc, titlePos, smH, smT, smZ, smF ->
             // [v1.4.2] 特殊標題位置必須零延遲更新，不參與 UI Throttling
-            uiHandler.post { droneState.specialTitleScreenPos = titlePos }
+            uiHandler.post { 
+                droneState.specialTitleScreenPos = titlePos 
+                // [v1.6.0] 視覺參數自動還原寫回
+                if (smH != null) {
+                    val isOverrideActive = (System.currentTimeMillis() - droneState.lastManualTouchTime < 3000)
+                    if (droneState.useSmartObserver && !isOverrideActive && droneState.cameraMode.contains("站位視角")) {
+                        droneState.observerHeight = smH
+                        droneState.observerTilt = smT ?: droneState.observerTilt
+                        droneState.zoomFactor = smZ ?: droneState.zoomFactor
+                        droneState.mainFOV = smF ?: droneState.mainFOV
+                    }
+                }
+            }
 
             val now = System.currentTimeMillis()
             if (now - lastUiUpdateTime < 32 && !isImpact) return@DroneSimulationRenderer
@@ -438,7 +566,12 @@ class MainActivity : ComponentActivity() {
                 }
                 else {
                     val spec = com.horizon.caadronesimulator.model.DroneRegistry.getSpec(cur.droneType)
-                    if ((alt - spec.groundOffset) >= 29.99f && cur.systemMessage == null) cur.systemMessage = "已達限高 30m"
+                    val relAlt = alt - spec.groundOffset
+                    if (relAlt >= 29.99f && cur.systemMessage == null) {
+                        cur.systemMessage = "已達限高 30m"
+                    } else if (relAlt < 29.5f && cur.systemMessage == "已達限高 30m") {
+                        cur.systemMessage = null
+                    }
                     cur.altitude = alt; cur.posX = x; cur.posZ = z; cur.lastYaw = cur.yaw; cur.yaw = yaw; cur.pitch = pitch; cur.roll = roll; cur.speed = speed
                     if (cur.isLogcatEnabled && now % 1000 < 33) {
                         val sticks = "T:%.2f Y:%.2f P:%.2f R:%.2f".format(stickInputState.stickThrottle(cur), stickInputState.stickYaw(cur), stickInputState.stickPitch(cur), stickInputState.stickRoll(cur))
@@ -486,6 +619,14 @@ class MainActivity : ComponentActivity() {
                         // 停止所有現有連線
                         usbSerialManager.stopAll()
                         networkStreamManager.stopAll()
+                        
+                        // [v1.5.1] 模式切換安全性自適應
+                        if (m == -1 || m == 2) {
+                            droneState.isSafetyStartupPassed = true
+                            droneState.isThrottleHoldActive = false
+                        } else {
+                            droneState.isSafetyStartupPassed = false
+                        }
 
                         when (m) {
                             1 -> uiHandler.postDelayed({ usbSerialManager.scanAndConnect() }, 300)
@@ -514,22 +655,65 @@ class MainActivity : ComponentActivity() {
                 if (trig != -1) {
                     val key = droneState.isAutoBinding; val isY = (key == "ly" || key == "ry")
                     val m = com.horizon.caadronesimulator.model.ChannelMapping(axis = trig, inverted = (if (isY) -mv else mv) < 0, label = "Axis $trig")
-                    when(key) { "ly" -> droneState.mappingLY = m; "lx" -> droneState.mappingLX = m; "ry" -> droneState.mappingRY = m; "rx" -> droneState.mappingRX = m }
+                    when(key) { 
+                        "ly" -> droneState.mappingLY = m; "lx" -> droneState.mappingLX = m; "ry" -> droneState.mappingRY = m; "rx" -> droneState.mappingRX = m 
+                        "hold" -> droneState.mappingHold = m
+                        "arm" -> droneState.mappingArm = m
+                        "obsHeight" -> droneState.mappingObsHeight = m
+                        "obsTilt" -> droneState.mappingObsTilt = m
+                        "fpvTilt" -> droneState.mappingFpvTilt = m
+                    }
                     droneState.isAutoBinding = null; isProcessingExternal = false; return true
                 }
             }
             if (droneState.setupWizardStep > 0 && !droneState.wizardWaitingForNeutral) {
-                if (axisSnapshots.isEmpty()) { for (i in 0..28) axisSnapshots[i] = event.getAxisValue(i); isProcessingExternal = false; return true }
-                var trig = -1; var mv = 0f; for (i in 0..28) { val d = event.getAxisValue(i) - (axisSnapshots[i] ?: 0f); if (abs(d) > 0.5f) { trig = i; mv = d; break } }
-                if (trig != -1) {
-                    val isY = (droneState.setupWizardStep == 1 || droneState.setupWizardStep == 3)
-                    val m = com.horizon.caadronesimulator.model.ChannelMapping(axis = trig, inverted = (if (isY) -mv else mv) < 0, label = "Axis $trig")
-                    when(droneState.setupWizardStep) { 1 -> { droneState.mappingLY = m; droneState.wizardWaitingForNeutral = true }; 2 -> { droneState.mappingLX = m; droneState.wizardWaitingForNeutral = true }; 3 -> { droneState.mappingRY = m; droneState.wizardWaitingForNeutral = true }; 4 -> { droneState.mappingRX = m; droneState.wizardWaitingForNeutral = true } }
-                    axisSnapshots.clear()
-                }
+                // ...原有引導邏輯...
             } else {
-                fun gV(m: com.horizon.caadronesimulator.model.ChannelMapping, d: Int, y: Boolean = false): Float { val r = event.getAxisValue(if (m.axis != -1) m.axis else d); return (if (y) -r else r).coerceIn(-1f, 1f) }
+                fun gV(m: com.horizon.caadronesimulator.model.ChannelMapping, d: Int, y: Boolean = false): Float { val r = event.getAxisValue(if (m.axis != -1 && m.axis < 100) m.axis else d); return (if (y) -r else r).coerceIn(-1f, 1f) }
                 stickInputState.updateRaw(gV(droneState.mappingLY, MotionEvent.AXIS_Y, true), gV(droneState.mappingLX, MotionEvent.AXIS_X), gV(droneState.mappingRY, MotionEvent.AXIS_RZ, true), gV(droneState.mappingRX, MotionEvent.AXIS_Z))
+                
+                // [v1.5.1] HID 輔助控制實時讀取邏輯 (排除 Serial 映射)
+                if (!droneState.showSettings && !droneState.isCollision) {
+                    fun getHidAux(m: com.horizon.caadronesimulator.model.ChannelMapping): Float? {
+                        if (m.axis == -1 || m.axis >= 100) return null
+                        val v = event.getAxisValue(m.axis)
+                        return if (m.inverted) -v else v
+                    }
+
+                    // 1. 解鎖
+                    getHidAux(droneState.mappingArm)?.let { v -> 
+                        val isReq = v > 0.5f
+                        if (!droneState.isSafetyStartupPassed) {
+                            if (!isReq) droneState.isSafetyStartupPassed = true else { droneState.systemMessage = "⚠️ 安全警告：請先將解鎖開關撥至 OFF"; return@let }
+                        }
+                        if (isReq != !droneState.isMotorLocked) droneState.isMotorLocked = !isReq
+                    }
+                    // 1b. 熄火 (僅限直昇機)
+                    val spec = com.horizon.caadronesimulator.model.DroneRegistry.getSpec(droneState.droneType)
+                    if (spec.category == com.horizon.caadronesimulator.model.DroneCategory.HELI) {
+                        val hVal = getHidAux(droneState.mappingHold)
+                        if (hVal != null) {
+                            val isReq = hVal < 0.5f
+                            if (isReq != droneState.isThrottleHoldActive) droneState.isThrottleHoldActive = isReq
+                        } else { droneState.isThrottleHoldActive = droneState.isMotorLocked }
+                    }
+                    // 2. 高度
+                    getHidAux(droneState.mappingObsHeight)?.let { v -> 
+                        val targetH = 1.6f + ((v + 1f) / 2f) * (25f - 1.6f)
+                        if (abs(targetH - droneState.observerHeight) > 0.1f) { droneState.observerHeight = targetH; droneState.lastManualTouchTime = System.currentTimeMillis() }
+                    }
+                    // 3. 抬頭
+                    getHidAux(droneState.mappingObsTilt)?.let { v -> 
+                        val targetT = v * 50f + 25f
+                        if (abs(targetT - droneState.observerTilt) > 1.0f) { droneState.observerTilt = targetT.coerceIn(-30f, 85f); droneState.lastManualTouchTime = System.currentTimeMillis() }
+                    }
+                    // 4. FPV 雲台
+                    getHidAux(droneState.mappingFpvTilt)?.let { v -> 
+                        val targetTilt = -((v + 1f) / 2f * 90f)
+                        if (abs(targetTilt - droneState.cameraTilt) > 1.0f) droneState.cameraTilt = targetTilt.coerceIn(-90f, 0f)
+                    }
+                }
+
                 if (droneState.isCalibrating) {
                     fun uC(m: com.horizon.caadronesimulator.model.ChannelMapping, d: Int): com.horizon.caadronesimulator.model.ChannelMapping { val v = event.getAxisValue(if (m.axis != -1) m.axis else d); return when(droneState.calibrationStep) { 1 -> m.copy(center = v, min = v, max = v); 2 -> m.copy(min = min(v, m.min), max = max(v, m.max)); else -> m } }
                     droneState.mappingLY = uC(droneState.mappingLY, MotionEvent.AXIS_Y); droneState.mappingLX = uC(droneState.mappingLX, MotionEvent.AXIS_X); droneState.mappingRY = uC(droneState.mappingRY, MotionEvent.AXIS_RZ); droneState.mappingRX = uC(droneState.mappingRX, MotionEvent.AXIS_Z)

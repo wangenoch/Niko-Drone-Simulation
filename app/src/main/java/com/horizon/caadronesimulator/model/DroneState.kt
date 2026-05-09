@@ -107,6 +107,12 @@ class DroneState {
     var pipOffsetXPct by mutableFloatStateOf(0.5f)  // PiP 水平位置百分比 (0:左, 0.5:中, 1:右)
     var showUsbSelectionDialog by mutableStateOf(false)
     var showTroubleshootingHint by mutableStateOf(false)
+    var showAuxMappingOverlay by mutableStateOf(false) // [v1.5.0] 輔助映射彈窗開關
+    
+    // --- [v1.5.0] 專業動力狀態機 ---
+    var isThrottleHoldActive by mutableStateOf(true)  // 熄火開關狀態 (預設為熄火)
+    var motorRpmFactor by mutableFloatStateOf(0f)     // 馬達實際轉速比例 (0.0 ~ 1.0)
+    var isSafetyStartupPassed by mutableStateOf(false) // 安全啟動檢查是否通過
 
 
     // --- 智慧型動態 UI 邏輯 ---
@@ -202,13 +208,20 @@ class DroneState {
     var globalRate by mutableFloatStateOf(1.0f)
     var globalExpo by mutableFloatStateOf(0.0f)
 
-    // --- [v1.2.81 階段二修正] 雙軌參數獨立架構 ---
+    // --- [v1.5.0 擴充] 雙軌參數獨立架構 (含輔助開關) ---
     class ControllerProfile(defaultLabel: String = "未設定") {
         var mappingLY by mutableStateOf(ChannelMapping(-1, false, defaultLabel))
         var mappingLX by mutableStateOf(ChannelMapping(-1, false, defaultLabel))
         var mappingRY by mutableStateOf(ChannelMapping(-1, false, defaultLabel))
         var mappingRX by mutableStateOf(ChannelMapping(-1, false, defaultLabel))
         
+        // [v1.5.0] 輔助開關映射
+        var mappingHold by mutableStateOf(ChannelMapping(-1, false, "熄火開關"))
+        var mappingArm by mutableStateOf(ChannelMapping(-1, false, "解鎖開關"))
+        var mappingObsHeight by mutableStateOf(ChannelMapping(-1, false, "站位高度"))
+        var mappingObsTilt by mutableStateOf(ChannelMapping(-1, false, "抬頭角度"))
+        var mappingFpvTilt by mutableStateOf(ChannelMapping(-1, false, "FPV 雲台"))
+
         var rateLY by mutableFloatStateOf(1.0f); var expoLY by mutableFloatStateOf(0.0f)
         var rateLX by mutableFloatStateOf(1.0f); var expoLX by mutableFloatStateOf(0.0f)
         var rateRY by mutableFloatStateOf(1.0f); var expoRY by mutableFloatStateOf(0.0f)
@@ -220,11 +233,18 @@ class DroneState {
 
     val activeProfile get() = if (inputMode == 1) internalProfile else externalProfile
 
-    // 映射對象獲取器 (向下相容，改為可寫入以支援 UI 連動)
+    // 核心映射對象獲取器
     var mappingLY: ChannelMapping get() = activeProfile.mappingLY; set(v) { activeProfile.mappingLY = v }
     var mappingLX: ChannelMapping get() = activeProfile.mappingLX; set(v) { activeProfile.mappingLX = v }
     var mappingRY: ChannelMapping get() = activeProfile.mappingRY; set(v) { activeProfile.mappingRY = v }
     var mappingRX: ChannelMapping get() = activeProfile.mappingRX; set(v) { activeProfile.mappingRX = v }
+
+    // [v1.5.0] 輔助映射對象獲取器
+    var mappingHold: ChannelMapping get() = activeProfile.mappingHold; set(v) { activeProfile.mappingHold = v }
+    var mappingArm: ChannelMapping get() = activeProfile.mappingArm; set(v) { activeProfile.mappingArm = v }
+    var mappingObsHeight: ChannelMapping get() = activeProfile.mappingObsHeight; set(v) { activeProfile.mappingObsHeight = v }
+    var mappingObsTilt: ChannelMapping get() = activeProfile.mappingObsTilt; set(v) { activeProfile.mappingObsTilt = v }
+    var mappingFpvTilt: ChannelMapping get() = activeProfile.mappingFpvTilt; set(v) { activeProfile.mappingFpvTilt = v }
 
     var rateLY: Float get() = activeProfile.rateLY; set(v) { activeProfile.rateLY = v }
     var expoLY: Float get() = activeProfile.expoLY; set(v) { activeProfile.expoLY = v }

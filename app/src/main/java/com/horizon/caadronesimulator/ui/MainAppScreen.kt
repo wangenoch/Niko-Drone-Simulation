@@ -208,6 +208,9 @@ fun MainAppScreen(
                     renderer.useFlightLimit = droneState.useFlightLimit
                     renderer.mainFOV = droneState.mainFOV
                     renderer.showGroundAnchor = droneState.showGroundAnchor
+                    renderer.isThrottleHoldActive = droneState.isThrottleHoldActive 
+                    renderer.useSmartObserver = droneState.useSmartObserver 
+                    renderer.lastManualTouchTime = droneState.lastManualTouchTime // [v1.6.0] 傳遞手動觸發時間
 
                     usbSerialManager.updateVirtualJoystickState(
                         t = stickInputState.stickThrottle(droneState), y = stickInputState.stickYaw(droneState),

@@ -247,7 +247,13 @@ fun UnifiedSettingsScreen(
                                 onModeChange = { m -> onUpdateState { joystickMode = m } },
                                 onToggleGlobalRates = { b -> onUpdateState { useGlobalRates = b } }, onUpdateGlobalRate = { r -> onUpdateState { globalRate = r } }, onUpdateGlobalExpo = { e -> onUpdateState { globalExpo = e } },
                                 onUpdateIndividualRate = { k, r -> onUpdateState { when(k) { "ly" -> rateLY = r; "lx" -> rateLX = r; "ry" -> rateRY = r; "rx" -> rateRX = r } } }, onUpdateIndividualExpo = { k, e -> onUpdateState { when(k) { "ly" -> expoLY = e; "lx" -> expoLX = e; "ry" -> expoRY = e; "rx" -> expoRX = e } } },
-                                onToggleShowIndividual = { b -> onUpdateState { showIndividualRates = b } }, onResetRates = { onUpdateState { globalRate = 1f; globalExpo = 0f; rateLY = 1f; expoLY = 0f; rateLX = 1f; expoLX = 0f; rateRY = 1f; expoRY = 0f; rateRX = 1f; expoRX = 0f; joystickDeadzone = 0.15f } },
+                                onToggleShowIndividual = { b -> onUpdateState { showIndividualRates = b } }, onResetRates = { onUpdateState { 
+                                    // [v1.6.4] 重置時根據模式套用建議預設值
+                                    globalRate = 1.2f; globalExpo = 0.4f
+                                    rateLY = 1.2f; expoLY = 0.4f; rateLX = 1.2f; expoLX = 0.4f
+                                    rateRY = 1.2f; expoRY = 0.4f; rateRX = 1.2f; expoRX = 0.4f
+                                    joystickDeadzone = 0.05f 
+                                } },
                                 inputMode = state.inputMode, 
                                 isInteractionLocked = state.isInteractionLocked,
                                 isMappingUnlocked = state.isMappingUnlocked, shouldShowExpertUI = state.shouldShowExpertUI,
@@ -261,6 +267,7 @@ fun UnifiedSettingsScreen(
                                 onToggleLogcat = { b -> onUpdateState { isLogcatEnabled = b } },
                                 onClearLogcat = { onUpdateState { logcatContent = "" } },
                                 isHardwareController = state.isHardwareController,
+                                onOpenAuxMapping = { onUpdateState { showAuxMappingOverlay = true } },
                                 onTargetPositioned = onTargetPositioned
                             )
                             SettingsTab.SYSTEM -> Column(modifier = Modifier.fillMaxWidth().padding(end = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -316,6 +323,18 @@ fun UnifiedSettingsScreen(
                             stickRX = if(state.setupWizardStep > 0) stickState.rawRX else stickState.stickRX(state, state.isCalibrating), 
                             stickRY = if(state.setupWizardStep > 0) stickState.rawRY else stickState.stickRY(state, state.isCalibrating),
                             onCancelWizard = { onUpdateState { setupWizardStep = 0; isAutoBinding = null; wizardWaitingForNeutral = false } }
+                        )
+                    }
+
+                    // [v1.5.0] 擴充映射圖層
+                    if (state.showAuxMappingOverlay) {
+                        AuxMappingOverlay(
+                            state = state,
+                            rawChannels = stickState.rawChannels,
+                            onStartBinding = { k -> onUpdateState { isAutoBinding = if (isAutoBinding == k) null else k.ifEmpty { null } } },
+                            onManualBind = { k, a -> onUpdateState { val l = if (a >= 101) "Serial CH${a - 100}" else "Axis $a"; val m = com.horizon.caadronesimulator.model.ChannelMapping(a, false, l); when(k) { "ly" -> mappingLY = m; "lx" -> mappingLX = m; "ry" -> mappingRY = m; "rx" -> mappingRX = m; "hold" -> mappingHold = m; "arm" -> mappingArm = m; "obsHeight" -> mappingObsHeight = m; "obsTilt" -> mappingObsTilt = m; "fpvTilt" -> mappingFpvTilt = m } } },
+                            onToggleInvert = { k -> onUpdateState { when(k) { "ly" -> mappingLY = mappingLY.copy(inverted = !mappingLY.inverted); "lx" -> mappingLX = mappingLX.copy(inverted = !mappingLX.inverted); "ry" -> mappingRY = mappingRY.copy(inverted = !mappingRY.inverted); "rx" -> mappingRX = mappingRX.copy(inverted = !mappingRX.inverted); "hold" -> mappingHold = mappingHold.copy(inverted = !mappingHold.inverted); "arm" -> mappingArm = mappingArm.copy(inverted = !mappingArm.inverted); "obsHeight" -> mappingObsHeight = mappingObsHeight.copy(inverted = !mappingObsHeight.inverted); "obsTilt" -> mappingObsTilt = mappingObsTilt.copy(inverted = !mappingObsTilt.inverted); "fpvTilt" -> mappingFpvTilt = mappingFpvTilt.copy(inverted = !mappingFpvTilt.inverted) } } },
+                            onDismiss = { onUpdateState { showAuxMappingOverlay = false; isAutoBinding = null } }
                         )
                     }
 

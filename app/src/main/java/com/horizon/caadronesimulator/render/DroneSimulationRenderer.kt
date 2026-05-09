@@ -8,7 +8,7 @@ import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import kotlin.math.*
 
-class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Float, Float, Float, Float, Float, Boolean, Float, Int, androidx.compose.ui.geometry.Offset?) -> Unit) : GLSurfaceView.Renderer {
+class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Float, Float, Float, Float, Float, Boolean, Float, Int, androidx.compose.ui.geometry.Offset?, Float?, Float?, Float?, Float?) -> Unit) : GLSurfaceView.Renderer {
     private var program = 0
     private val vMatrix = FloatArray(16)
     private val pMatrix = FloatArray(16)
@@ -43,6 +43,7 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
     var enableVerticalDraft = false
     var useHardcorePhysics = false
     var isSunSimEnabled = false
+    var useSmartObserver = false // [v1.6.0] 智慧觀察員狀態同步
     var sunPosition = 0.5f
     var observerTilt = 0f
     var useSimplifiedMarkers = false
@@ -52,6 +53,9 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
     var showGroundAnchor = false
     var batteryVoltage = 4.2f
     var batteryPercent = 100
+    var isThrottleHoldActive = true // [v1.5.0] 熄火狀態同步
+    var motorRpmFactor = 0f          // [v1.5.0] 馬達轉速比例
+    var lastManualTouchTime = 0L      // [v1.6.0] 手動觸發時間同步
 
     // 子畫面 (PiP) 參數
     var pipRect: android.graphics.Rect? = null
@@ -73,6 +77,10 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
     // [v1.3.7] 旗幟物理慣性
     private var flagVisualAngle = 0f
     private var flagDroopAngle = 0f
+
+    // [v1.5.6] 視覺偏移與目標定錨緩衝
+    private var smoothedTargetY = 0f
+    private var smoothedTargetZ = 0f
 
     private val hZ = -6.0f
 
@@ -156,41 +164,60 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
             flagDroopAngle *= 0.95f // 無風垂落
         }
 
+        // [v1.6.0] 相機導演系統：每幀視覺參數更新
+        com.horizon.caadronesimulator.logic.CameraDirector.update(
+            curX, curY - getGroundY(), curZ,
+            observerHeight, observerTilt, zoomFactor, mainFOV,
+            cameraMode, useSmartObserver, lastManualTouchTime, droneType, dt,
+            // 這裡傳入一個偽 DroneState，因為我們主要靠回調更新 UI
+            com.horizon.caadronesimulator.model.DroneState() 
+        )
+
+        // 將導演系統的平滑數據回傳給 UI (解決拉桿還原問題)
+        onFlightDataUpdate(curY, curX, curZ, curYaw, visPitch, visRoll, 0f, false, batteryVoltage, batteryPercent, specialTitleScreenPos, 
+            com.horizon.caadronesimulator.logic.CameraDirector.smoothedHeight,
+            com.horizon.caadronesimulator.logic.CameraDirector.smoothedTilt,
+            com.horizon.caadronesimulator.logic.CameraDirector.smoothedZoom,
+            com.horizon.caadronesimulator.logic.CameraDirector.smoothedFov
+        )
+
         // 1. 繪製主畫面
         GLES20.glViewport(0, 0, viewWidth, viewHeight)
-        // [v1.4.0] 加入自定義 FOV 邏輯：站位模式使用 state.mainFOV, FPV 使用固定廣角
+        
+        // 使用導演輸出的平滑 FOV 與 Zoom
         val finalFov = if (cameraMode == "FPV 視角") {
             if (droneType == "HEAVY_LIFT") 110f else 85f
         } else {
-            mainFOV // 來自 DroneState 的使用者設定
+            com.horizon.caadronesimulator.logic.CameraDirector.smoothedFov
         }
-        Matrix.perspectiveM(pMatrix, 0, finalFov / zoomFactor, viewWidth.toFloat() / viewHeight, 1.0f, 1000f)
-        updateCameraMatrix(cameraMode)
+        Matrix.perspectiveM(pMatrix, 0, finalFov / com.horizon.caadronesimulator.logic.CameraDirector.smoothedZoom, viewWidth.toFloat() / viewHeight, 1.0f, 1000f)
         
-        // 儲存主畫面矩陣快照，供後續耀光特效與座標投影使用
+        // 由導演系統計算視圖矩陣
+        com.horizon.caadronesimulator.logic.CameraDirector.computeMainViewMatrix(
+            vMatrix, cameraMode, curX, curY, curZ, curYaw,
+            curX + velX * 0.12f, curZ + velZ * 0.12f, cameraTilt, droneType
+        )
+        
         System.arraycopy(pMatrix, 0, mainPMatrix, 0, 16)
         System.arraycopy(vMatrix, 0, mainVMatrix, 0, 16)
-
-        // [v1.4.1] 計算特殊標題的投影位置 (Z=-17.0, X=0.0)
         calculateProjectedTitlePos()
-
         renderScene()
 
         // 2. 繪製子畫面 (PiP) - FPV 視角
         pipRect?.let { rect ->
             GLES20.glEnable(GLES20.GL_SCISSOR_TEST)
-            // 轉換坐標系 (OpenGL 底部為 0)
             val glY = viewHeight - rect.bottom
             GLES20.glScissor(rect.left, glY, rect.width(), rect.height())
             GLES20.glViewport(rect.left, glY, rect.width(), rect.height())
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
             
-            // 子畫面 FOV 固定為 FPV 標準
             val pipFov = if (droneType == "HEAVY_LIFT") 110f else 85f
             Matrix.perspectiveM(pMatrix, 0, pipFov, rect.width().toFloat() / rect.height(), 0.5f, 500f)
-            updateCameraMatrix("FPV 視角")
+            com.horizon.caadronesimulator.logic.CameraDirector.computeMainViewMatrix(
+                vMatrix, "FPV 視角", curX, curY, curZ, curYaw,
+                curX + velX * 0.12f, curZ + velZ * 0.12f, cameraTilt, droneType
+            )
             renderScene()
-            
             GLES20.glDisable(GLES20.GL_SCISSOR_TEST)
         }
 
@@ -202,13 +229,14 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
             GLES20.glViewport(rect.left, glY, rect.width(), rect.height())
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
             
-            // 計算動態 FOV 使其看起來像在 2 公尺處 (高倍率姿態觀察)
-            // [v1.3.9] 觀察點固定在新站位線 (0, observerHeight, -15)
-            val distToCam = sqrt(curX.pow(2) + (observerHeight - curY).pow(2) + (curZ + 15f).pow(2))
-            val dynamicFov = (120f / distToCam).coerceIn(3f, 45f)
-            
+            // 使用導演系統計算的動態姿態 FOV
+            val dynamicFov = com.horizon.caadronesimulator.logic.CameraDirector.smoothedZoomPipFov
             Matrix.perspectiveM(pMatrix, 0, dynamicFov, rect.width().toFloat() / rect.height(), 0.1f, 1000f)
-            updateCameraMatrix("姿態輔助視角")
+            
+            // [v1.6.0修正] 姿態輔助採用「精準模式」：100% 鎖定飛機中心，無視主畫面構圖偏移
+            com.horizon.caadronesimulator.logic.CameraDirector.computePrecisionViewMatrix(
+                vMatrix, curX, curY, curZ
+            )
             renderScene()
             GLES20.glDisable(GLES20.GL_SCISSOR_TEST)
         }
@@ -245,7 +273,7 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
         ArAnchorRenderer.drawAnchor(mvpMatrix, curX, curY, curZ, 0f, posH, colorH, mvpH, showGroundAnchor)
 
         DroneRenderer.drawDroneShadow(posH, colorH, mvpH, mvpMatrix, droneType, curX, curY, curZ, timeOfDay, showShadow, shadowIntensity, isSunSimEnabled, sunPosition)
-        DroneRenderer.drawActiveDrone(posH, colorH, mvpH, mvpMatrix, droneType, curX, curY, curZ, curYaw, visPitch, visRoll, flightTime, isMotorLocked)
+        DroneRenderer.drawActiveDrone(posH, colorH, mvpH, mvpMatrix, droneType, curX, curY, curZ, curYaw, visPitch, visRoll, flightTime, isMotorLocked, motorRpmFactor)
     }
 
     private fun getCurrentWindVector(): FloatArray {
@@ -256,8 +284,31 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
 
     private fun updatePhysics(dt: Float, groundY: Float) {
         val mass = DroneRegistry.getActiveMass(droneType, applyPhysicalSpecs)
-        val power = DroneRegistry.getActivePower(droneType, applyPhysicalSpecs)
         val damping = DroneRegistry.getActiveDamping(droneType, applyPhysicalSpecs)
+        val spec = DroneRegistry.getSpec(droneType)
+
+        // [v1.5.0] 專業直昇機/多旋翼動力狀態機
+        val isHeli = spec.category == com.horizon.caadronesimulator.model.DroneCategory.HELI
+        val isPowerOn = !isMotorLocked && !isThrottleHoldActive
+        
+        if (isPowerOn) {
+            // 軟啟動：1.5 秒達到滿轉
+            motorRpmFactor = (motorRpmFactor + dt / 1.5f).coerceIn(0f, 1f)
+        } else {
+            if (isHeli && curY > groundY + 1.0f) {
+                // [自轉物理] 在空中熄火時，根據下墜速度與螺距(ctrlThrottle)維持轉速
+                val descentFactor = (-velY / 15.0f).coerceIn(0f, 1f)
+                // 若螺距低（阻力小），轉速下降較慢；若螺距大，轉速消耗快
+                val pitchDrag = (ctrlThrottle + 0.2f).coerceIn(0.1f, 1.2f)
+                val decay = (dt / 8.0f) * pitchDrag // 自然衰減較慢 (8秒)
+                val windCharge = descentFactor * dt * 0.15f // 下坠氣流帶動旋翼
+                
+                motorRpmFactor = (motorRpmFactor - decay + windCharge).coerceIn(0.1f, 1f)
+            } else {
+                // 停機：1.0 秒完全停轉
+                motorRpmFactor = (motorRpmFactor - dt / 1.0f).coerceIn(0f, 1f)
+            }
+        }
 
         if (!isMotorLocked) {
             flightTime += dt
@@ -266,18 +317,20 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
             
             // [v1.3.7] 硬核物理：垂直氣墊效應 (Ground Effect)
             var geLift = 0f
-            val spec = DroneRegistry.getSpec(droneType)
             val tiltRad = max(abs(visPitch), abs(visRoll)) * (Math.PI.toFloat() / 180f)
             val tiltOffset = spec.collisionRadius * sin(tiltRad)
             val effectiveBottom = curY - groundY - tiltOffset
             
             if (useHardcorePhysics && effectiveBottom < 0.6f && effectiveBottom > 0f) {
-                // 離地越近，下洗氣流產生的反向升力越強
                 val geFactor = (1.0f - (effectiveBottom / 0.6f)).coerceIn(0f, 1f)
-                geLift = (9.8f * 0.2f) * geFactor // 最大抵消 20% 重力加速度
+                geLift = (9.8f * 0.2f) * geFactor
             }
 
-            velY += (((ctrlThrottle * 8.0f) - velY) * (5.0f / mass) + geLift) * dt
+            // [核心自轉升力] 最終動力輸出由 motorRpmFactor 決定 (即使 PowerOff 仍有慣性升力)
+            val liftEfficiency = if (isHeli) motorRpmFactor else (if(isPowerOn) motorRpmFactor else 0f)
+            val effectiveThrottle = ctrlThrottle * liftEfficiency
+            val power = DroneRegistry.getActivePower(droneType, applyPhysicalSpecs)
+            velY += (((effectiveThrottle * 8.0f) - velY) * (5.0f / mass) + geLift) * dt
             
             var nextY = curY + velY * dt
             val maxAlt = groundY + 30.0f
@@ -337,15 +390,15 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
                 }
 
                 if (!isImpact) reportedSpeed = sqrt(velX * velX + velY * velY + velZ * velZ)
-                onFlightDataUpdate(curY, curX, curZ, curYaw, visPitch, visRoll, reportedSpeed, isImpact, batteryVoltage, batteryPercent, specialTitleScreenPos)
+                onFlightDataUpdate(curY, curX, curZ, curYaw, visPitch, visRoll, reportedSpeed, isImpact, batteryVoltage, batteryPercent, specialTitleScreenPos, null, null, null, null)
             } else { 
                 velX = 0f; velZ = 0f
                 if (!isImpact) reportedSpeed = abs(velY)
-                onFlightDataUpdate(curY, curX, curZ, curYaw, visPitch, visRoll, reportedSpeed, isImpact, batteryVoltage, batteryPercent, specialTitleScreenPos)
+                onFlightDataUpdate(curY, curX, curZ, curYaw, visPitch, visRoll, reportedSpeed, isImpact, batteryVoltage, batteryPercent, specialTitleScreenPos, null, null, null, null)
             }
         } else { 
             curY = groundY; velX = 0f; velY = 0f; velZ = 0f
-            onFlightDataUpdate(curY, curX, curZ, curYaw, visPitch, visRoll, 0f, false, batteryVoltage, batteryPercent, specialTitleScreenPos)
+            onFlightDataUpdate(curY, curX, curZ, curYaw, visPitch, visRoll, 0f, false, batteryVoltage, batteryPercent, specialTitleScreenPos, null, null, null, null)
         }
     }
 
@@ -441,63 +494,6 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
         }
     }
 
-    private fun updateCameraMatrix(mode: String) {
-        when (mode) {
-            "站位視角 (追蹤)" -> {
-                // [v1.4.1 修復] 回歸相對追蹤邏輯：以無人機 Y 為基準加上仰角偏移
-                // 這樣當 observerTilt = 0 時，無人機保證在螢幕正中央
-                val rad = Math.toRadians(observerTilt.toDouble()).toFloat()
-                val dist = sqrt(curX * curX + (curZ + 15f) * (curZ + 15f))
-                val targetYOffset = tan(rad) * dist
-                Matrix.setLookAtM(vMatrix, 0, 0f, observerHeight, -15f, curX, curY + targetYOffset, curZ, 0f, 1f, 0f)
-            }
-            "站位視角 (固定)" -> {
-                // [v1.4.0 修正] 絕對仰角模式
-                val rad = Math.toRadians(observerTilt.toDouble()).toFloat()
-                val targetY = observerHeight + tan(rad) * 15f
-                Matrix.setLookAtM(vMatrix, 0, 0f, observerHeight, -15f, 0f, targetY, 0f, 0f, 1f, 0f)
-            }
-            "跟隨視角" -> {
-                val rad = Math.toRadians(curYaw.toDouble()).toFloat(); val camX = curX - sin(rad) * 5f; val camZ = curZ - cos(rad) * 5f
-                Matrix.setLookAtM(vMatrix, 0, camX, curY + 2.5f, camZ, curX, curY, curZ, 0f, 1f, 0f)
-            }
-            "FPV 視角" -> {
-                val rad = Math.toRadians(curYaw.toDouble()).toFloat()
-                val tRad = Math.toRadians(cameraTilt.toDouble()).toFloat()
-                val s = DroneRegistry.getSpec(droneType).scale
-                val fOff = if (droneType == "HEAVY_LIFT") 0.38f * s else 0.4f * s
-                val eY = curY + 0.1f * s
-                val eX = curX + sin(rad) * fOff
-                val eZ = curZ + cos(rad) * fOff
-                val lX = eX + sin(rad) * cos(tRad) * 10f
-                val lZ = eZ + cos(rad) * cos(tRad) * 10f
-                val lY = eY + sin(tRad) * 10f
-                Matrix.setLookAtM(vMatrix, 0, eX, eY, eZ, lX, lY, lZ, -sin(rad) * sin(tRad), cos(tRad), -cos(rad) * sin(tRad))
-            }
-            "姿態輔助視角" -> {
-                // 根據當前模式決定「望遠鏡」的架設位置
-                when {
-                    cameraMode.contains("站位視角") -> {
-                        // 從觀察者原位發射的望遠鏡視角
-                        Matrix.setLookAtM(vMatrix, 0, 0f, observerHeight, -15f, curX, curY, curZ, 0f, 1f, 0f)
-                    }
-                    cameraMode == "跟隨視角" -> {
-                        // 從跟隨攝影機位置放大的視角
-                        val rad = Math.toRadians(curYaw.toDouble()).toFloat()
-                        val camX = curX - sin(rad) * 5f; val camZ = curZ - cos(rad) * 5f
-                        Matrix.setLookAtM(vMatrix, 0, camX, curY + 2.5f, camZ, curX, curY, curZ, 0f, 1f, 0f)
-                    }
-                    else -> {
-                        // FPV 或其他模式下，預設使用近距離追蹤以觀察機身
-                        val rad = Math.toRadians(curYaw.toDouble()).toFloat()
-                        val camX = curX - sin(rad) * 2.5f; val camZ = curZ - cos(rad) * 2.5f
-                        Matrix.setLookAtM(vMatrix, 0, camX, curY + 1.2f, camZ, curX, curY, curZ, 0f, 1f, 0f)
-                    }
-                }
-            }
-            else -> Matrix.setLookAtM(vMatrix, 0, 0f, 6f, -22f, 0f, 0f, 0f, 0f, 1f, 0f)
-        }
-    }
 
     fun updateControls(yaw: Float, throttle: Float, roll: Float, pitch: Float) { ctrlYaw = yaw; ctrlThrottle = throttle; ctrlRoll = roll; ctrlPitch = pitch }
     private fun getGroundY(): Float = DroneRegistry.getSpec(droneType).groundOffset
@@ -506,8 +502,10 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
     fun resetFlight() { 
         curX = 0f; curY = getGroundY(); curZ = hZ; curYaw = 0f; velX = 0f; velY = 0f; velZ = 0f; visPitch = 0f; visRoll = 0f; flightTime = 0f
         batteryPercent = 100; batteryVoltage = 4.2f
+        motorRpmFactor = 0f // [v1.5.0] 重置轉速
+        smoothedTargetY = curY; smoothedTargetZ = hZ // [v1.5.6] 初始化視覺緩衝
         randomDirAngle = (0..359).random().toFloat() // 隨機風向重置
-        onFlightDataUpdate(curY, 0f, hZ, 0f, 0f, 0f, 0f, false, 4.2f, 100, null)
+        onFlightDataUpdate(curY, 0f, hZ, 0f, 0f, 0f, 0f, false, 4.2f, 100, null, null, null, null, null)
     }
 
     private fun calculateProjectedTitlePos() {

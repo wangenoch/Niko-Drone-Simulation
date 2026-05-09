@@ -1,18 +1,32 @@
 package com.horizon.caadronesimulator.model
 
+/**
+ * [v1.5.0] 機種類型列舉
+ */
+enum class DroneCategory {
+    MULTI_ROTOR, // 多旋翼 (如 T4, 小練習機)
+    HELI,        // 直昇機 (支援熄火開關與自轉物理)
+    FIXED_WING   // 固定翼 (預留)
+}
+
 data class DroneSpecs(
     val id: String,
     val name: String,
+    val category: DroneCategory, // [v1.5.0] 類別定義
     val groundOffset: Float,  
     val visualOffset: Float,  
     val collisionRadius: Float,
     val scale: Float,         
     val shadowSizeBase: Float,
     val icon: String,
+    
     // 物理特性 (開啟開關時套用)
     val physicsMass: Float,
     val physicsPower: Float,
-    val physicsDamping: Float
+    val physicsDamping: Float,
+    
+    // [v1.5.0] 功能支援標記
+    val isHoldSupported: Boolean = false 
 )
 
 object DroneRegistry {
@@ -20,45 +34,48 @@ object DroneRegistry {
         "QUAD_STANDARD" to DroneSpecs(
             id = "QUAD_STANDARD",
             name = "小型無人機",
+            category = DroneCategory.MULTI_ROTOR,
             groundOffset = 0.08f,   
             visualOffset = 0.0f,    
             collisionRadius = 0.6f,
             scale = 0.7f,
             shadowSizeBase = 0.5f,
             icon = "🚁",
-            physicsMass = 0.8f,      // 0.6kg 輕量化
-            physicsPower = 24.0f,    // 高轉速爆發力
-            physicsDamping = 0.90f   // 低慣性，反應極快
+            physicsMass = 0.8f,
+            physicsPower = 24.0f,
+            physicsDamping = 0.90f
         ),
         "HEAVY_LIFT" to DroneSpecs(
             id = "HEAVY_LIFT",
             name = "JoyFlight T4",
+            category = DroneCategory.MULTI_ROTOR,
             groundOffset = 0.45f,   
             visualOffset = -0.07f, 
             collisionRadius = 0.83f,
             scale = 0.6875f,       
             shadowSizeBase = 0.55f,
             icon = "🏗️",
-            physicsMass = 2.8f,      // 14.9kg 重型機感
-            physicsPower = 13.5f,    // 低 KV 沉穩推力
-            physicsDamping = 0.98f   // 高慣性，煞車距離長
+            physicsMass = 2.8f,
+            physicsPower = 13.5f,
+            physicsDamping = 0.98f
         ),
         "HELI_900" to DroneSpecs(
             id = "HELI_900",
             name = "重型直昇機",
+            category = DroneCategory.HELI, // 標記為直昇機
             groundOffset = 0.25f,   
             visualOffset = -0.05f, 
             collisionRadius = 0.75f,
-            scale = 0.5625f,       // 1.6 * 0.5625 = 0.9 (900mm)
+            scale = 0.5625f,
             shadowSizeBase = 0.52f,
             icon = "🚁",
-            physicsMass = 2.2f,      // 稍微增加重量感
-            physicsPower = 17.5f,    // 提升動力儲備
-            physicsDamping = 0.95f   // 調整阻尼，使其轉向更有慣性
+            physicsMass = 2.2f,
+            physicsPower = 17.5f,
+            physicsDamping = 0.95f,
+            isHoldSupported = true // 僅直昇機支援熄火開關
         )
     )
     
-    // 初始平衡數值 (開關關閉時使用)
     private val NEUTRAL_MASS = 1.0f
     private val NEUTRAL_POWER = 18.0f
     private val NEUTRAL_DAMPING = 0.92f

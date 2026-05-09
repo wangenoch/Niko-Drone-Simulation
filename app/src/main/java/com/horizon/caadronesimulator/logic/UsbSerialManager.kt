@@ -461,8 +461,8 @@ class UsbSerialManager(
         val now = System.currentTimeMillis()
         if (now - lastPpsCalcTime >= 1000) {
             pps = packetCount; packetCount = 0; lastPpsCalcTime = now
-            // 如果長時間沒封包，自動解鎖
-            if (now - lastValidPacketTime > 1500) {
+            // [v1.6.2] 放寬自動解鎖容忍度 (1.5s -> 3.0s) 避免網路或系統抖動導致閃爍
+            if (now - lastValidPacketTime > 3000) {
                 isSessionLocked = false
             }
         }
@@ -471,9 +471,9 @@ class UsbSerialManager(
             lastDiagnosticReportTime = now
             val actualSignal = (now - lastValidPacketTime < 2000) && (pps > 10 || isSessionLocked)
             
-            // [v1.2.81] 800ms 防抖邏輯
+            // [v1.6.2] 強化防抖邏輯 (800ms -> 1500ms)
             if (actualSignal) lastSignalOnTime = now
-            val isSignalActive = (now - lastSignalOnTime < 800) && (now - lastValidPacketTime < 5000)
+            val isSignalActive = (now - lastSignalOnTime < 1500) && (now - lastValidPacketTime < 5000)
 
             val statusText = if (isSignalActive) "SIGNAL OK" else "NO SIGNAL"
             

@@ -87,38 +87,15 @@ class DroneViewModel : ViewModel() {
     }
 
     fun runSmartObserver(state: DroneState) {
+        // [v1.6.0] 職責遷移：智慧觀察員邏輯現在由 CameraDirector 統籌管理
+        // 此處僅保留與 UI 觸發相關的延時判定
         if (!state.useSmartObserver || !state.cameraMode.contains("站位視角")) return
-        if (System.currentTimeMillis() - state.lastManualTouchTime < 3000) return
-
-        val dz = state.posZ - (-15f) // 站位在 Z=-15
-        val distToPilot = kotlin.math.sqrt(state.posX * state.posX + dz * dz)
-        
-        // 1. 自動高度補償 (使用 SmoothStep 緩衝)
-        val targetHeight = (1.6f + (distToPilot / 60f) * 6.4f).coerceIn(1.6f, 8.0f)
-        state.observerHeight += (targetHeight - state.observerHeight) * 0.04f
-
-        // 2. 自動視覺參數優化 (FOV, Zoom, 基準 Tilt) [v1.4.2]
-        ViewportOptimizer.applyOptimization(state, smooth = true)
-
-        // 3. 自動仰角細調 (僅在追蹤模式下疊加動態偏移，固定模式則完全遵循 Optimizer)
-        if (state.cameraMode.contains("追蹤")) {
-            // 計算「起降安全區」權重：距離 15m 且高度 13m 內
-            val distWeight = ((18f - distToPilot) / 5f).coerceIn(0f, 1f)
-            val altWeight = ((15f - state.altitude) / 4f).coerceIn(0f, 1f)
-            val safetyZoneWeight = distWeight * altWeight // 1.0 代表完全在安全區，0.0 代表完全在航線區
-
-            // 計算航線區的動態下壓偏移 (根據高度從 +12 變至 -20)
-            val hFactor = (state.altitude / 30f).coerceIn(0f, 1f)
-            val dynamicCruiseOffset = 12f - (hFactor * 32f)
-            
-            // 混合兩者：安全區強制 2 度，航線區動態偏移
-            val targetOffset = (2f * safetyZoneWeight) + (dynamicCruiseOffset * (1f - safetyZoneWeight))
-            
-            // 雲台慣性濾波
-            state.observerTilt += (targetOffset - state.observerTilt) * 0.05f
+        if (System.currentTimeMillis() - state.lastManualTouchTime < 3000) {
+            // 手動覆蓋期間，僅進行基礎狀態同步，不執行自動運鏡
+            return
         }
         
-        state.observerTilt = state.observerTilt.coerceIn(-30f, 85f)
+        // 具體運算將在渲染循環中透過 CameraDirector.update() 執行
     }
 
     override fun onCleared() {

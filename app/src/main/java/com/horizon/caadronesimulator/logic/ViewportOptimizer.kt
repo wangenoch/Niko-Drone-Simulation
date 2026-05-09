@@ -14,51 +14,34 @@ object ViewportOptimizer {
         val tilt: Float
     )
 
-    /**
-     * 獲取基於當前狀態的最佳視覺參數
-     * 採用線性插值邏輯，確保高度變化時視覺平滑。
-     */
-    fun getOptimalParams(height: Float, cameraMode: String): ViewportParams {
-        val isTrack = cameraMode.contains("追蹤")
-        
+    fun getOptimalParams(observerHeight: Float, droneAltitude: Float, dronePosX: Float, dronePosZ: Float, cameraMode: String): ViewportParams {
+        val d = kotlin.math.sqrt(dronePosX * dronePosX + dronePosZ * dronePosZ)
+        val h = droneAltitude
+
+        // [v1.5.7] 終極簡化模式
         return when {
-            // 情況 A: 1.6m 站位 (模擬真人站立高度)
-            height <= 1.6f -> {
-                if (isTrack) ViewportParams(fov = 45f, zoom = 1.5f, tilt = 4f)
-                else ViewportParams(fov = 45f, zoom = 1.5f, tilt = -5f)
-            }
-            // 情況 B: 8.0m 以上高空站位 (考考監控位)
-            height >= 8.0f -> {
-                if (isTrack) ViewportParams(fov = 45f, zoom = 1.5f, tilt = 4f)
-                else ViewportParams(fov = 70f, zoom = 1.0f, tilt = 9f)
-            }
-            // 中間過渡地帶 (1.6m ~ 8.0m)
-            else -> {
-                val t = (height - 1.6f) / (8.0f - 1.6f)
-                if (isTrack) {
-                    // 追蹤模式下，大部份參數維持恆定
-                    ViewportParams(fov = 45f, zoom = 1.5f, tilt = 4f)
-                } else {
-                    // 固定模式下，從 (45, 1.5, -5) 過渡到 (70, 1.0, 9)
-                    ViewportParams(
-                        fov = 45f + (70f - 45f) * t,
-                        zoom = 1.5f + (1.0f - 1.5f) * t,
-                        tilt = -5f + (9f - (-5f)) * t
-                    )
-                }
-            }
+            // 1. 起槳保護 (H < 0.2m)
+            h < 0.2f -> ViewportParams(fov = 45f, zoom = 1.5f, tilt = 0f)
+
+            // 2. 垂直越頂鎖定 (D < 2.0m) - 鎖定 45 度以防畸變
+            d < 2.0f -> ViewportParams(fov = 45f, zoom = 1.5f, tilt = 4f)
+
+            // 3. 遠航/高空模式 (D > 20m 或 H > 15m)
+            h > 15f || d > 20f -> ViewportParams(fov = 85f, zoom = 1.0f, tilt = 10f)
+
+            // 4. 場內模式 (H < 15m)
+            else -> ViewportParams(fov = 55f, zoom = 1.3f, tilt = -5f)
         }
     }
 
     /**
-     * 執行自動校準應用 (用於重置或即時同步)
-     * @param smooth 是否使用平滑過渡 (如果是智慧觀察員每幀呼叫，建議設為 true)
+     * 執行自動校準應用 (全參數套用 0.02f 穩定插值)
      */
     fun applyOptimization(state: DroneState, smooth: Boolean = false) {
-        val target = getOptimalParams(state.observerHeight, state.cameraMode)
+        val target = getOptimalParams(state.observerHeight, state.altitude, state.posX, state.posZ, state.cameraMode)
         
         if (smooth) {
-            val lerpFactor = 0.05f // 平滑係數
+            val lerpFactor = 0.02f
             state.mainFOV += (target.fov - state.mainFOV) * lerpFactor
             state.zoomFactor += (target.zoom - state.zoomFactor) * lerpFactor
             state.observerTilt += (target.tilt - state.observerTilt) * lerpFactor
