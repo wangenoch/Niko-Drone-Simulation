@@ -32,3 +32,4 @@ google-services.json
 
 # Android Profiling
 *.hprof
+/app/src/main/java/com/horizon/caadronesimulator/generated/ReleaseContent.kt
