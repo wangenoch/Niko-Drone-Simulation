@@ -1,18 +1,59 @@
 package com.horizon.caadronesimulator.model
 
+import com.horizon.caadronesimulator.drones.*
+
 /**
- * [v1.5.0] 機種類型列舉
+ * [v1.5.1] 機種類型列舉
  */
 enum class DroneCategory {
-    MULTI_ROTOR, // 多旋翼 (如 T4, 小練習機)
-    HELI,        // 直昇機 (支援熄火開關與自轉物理)
-    FIXED_WING   // 固定翼 (預留)
+    MULTI_ROTOR, // 多旋翼
+    HELI,        // 直昇機
+    FIXED_WING   // 固定翼
 }
+
+/**
+ * [v1.5.1] 專業機型標準分類
+ */
+enum class DroneType {
+    MR,   // Multi-rotor
+    SRH,  // Single-rotor Helicopter
+    FW,   // Fixed-wing
+    VTOL  // Vertical Take-off and Landing
+}
+
+/**
+ * [v1.5.1] 硬體規格數據結構
+ */
+data class ModelHardwareSpecs(
+    val type: DroneType,
+    val wheelbaseMm: Int = 0,         
+    val propDiameterInch: Int = 0,    
+    val propPitchInch: Int = 0,       
+    val motorKv: Int = 0,            
+    val takeoffWeightKg: Float = 0f,  
+    val payloadKg: Float = 0f,        
+    val flightTimeMin: Int = 0,       
+    val description: String = ""       
+)
+
+/**
+ * [v1.5.3] 幾何零件數據結構
+ */
+data class DronePart(
+    val tx: Float = 0f, val ty: Float = 0f, val tz: Float = 0f,
+    val w: Float = 0.1f, val h: Float = 0.1f, val d: Float = 0.1f,
+    val color: FloatArray = floatArrayOf(0.12f, 0.12f, 0.12f, 1f),
+    val ry: Float = 0f, val rx: Float = 0f, val rz: Float = 0f,
+    val isPropeller: Boolean = false,
+    val isTailPropeller: Boolean = false,
+    val rotationDirection: Float = 1.0f,
+    val baseRpm: Float = 2000f
+)
 
 data class DroneSpecs(
     val id: String,
     val name: String,
-    val category: DroneCategory, // [v1.5.0] 類別定義
+    val category: DroneCategory, 
     val groundOffset: Float,  
     val visualOffset: Float,  
     val collisionRadius: Float,
@@ -20,67 +61,66 @@ data class DroneSpecs(
     val shadowSizeBase: Float,
     val icon: String,
     
-    // 物理特性 (開啟開關時套用)
     val physicsMass: Float,
     val physicsPower: Float,
     val physicsDamping: Float,
     
-    // [v1.5.0] 功能支援標記
-    val isHoldSupported: Boolean = false 
+    // [v1.5.3] 擴展屬性
+    val fpvFov: Float,
+    val cameraVisualOffset: Float,
+    val isHoldSupported: Boolean = false,
+    val maxLandingSpeed: Float,
+    val flightTimeMin: Int,
+    
+    val baseRate: Float = 1.0f,
+    val baseExpo: Float = 0.0f
 )
 
 object DroneRegistry {
-    private val SPECS = mapOf(
-        "QUAD_STANDARD" to DroneSpecs(
-            id = "QUAD_STANDARD",
-            name = "小型無人機",
-            category = DroneCategory.MULTI_ROTOR,
-            groundOffset = 0.08f,   
-            visualOffset = 0.0f,    
-            collisionRadius = 0.6f,
-            scale = 0.7f,
-            shadowSizeBase = 0.5f,
-            icon = "🚁",
-            physicsMass = 0.8f,
-            physicsPower = 24.0f,
-            physicsDamping = 0.90f
-        ),
-        "HEAVY_LIFT" to DroneSpecs(
-            id = "HEAVY_LIFT",
-            name = "JoyFlight T4",
-            category = DroneCategory.MULTI_ROTOR,
-            groundOffset = 0.45f,   
-            visualOffset = -0.07f, 
-            collisionRadius = 0.83f,
-            scale = 0.6875f,       
-            shadowSizeBase = 0.55f,
-            icon = "🏗️",
-            physicsMass = 2.8f,
-            physicsPower = 13.5f,
-            physicsDamping = 0.98f
-        ),
-        "HELI_900" to DroneSpecs(
-            id = "HELI_900",
-            name = "重型直昇機",
-            category = DroneCategory.HELI, // 標記為直昇機
-            groundOffset = 0.25f,   
-            visualOffset = -0.05f, 
-            collisionRadius = 0.75f,
-            scale = 0.5625f,
-            shadowSizeBase = 0.52f,
-            icon = "🚁",
-            physicsMass = 2.2f,
-            physicsPower = 17.5f,
-            physicsDamping = 0.95f,
-            isHoldSupported = true // 僅直昇機支援熄火開關
-        )
+    private val MODELS: List<DroneModule> = listOf(
+        StandardDrone,
+        T4HeavyLift,
+        Heli900
     )
+
+    private val SPECS: Map<String, DroneSpecs> = MODELS.associate { it.id to DroneSpecs(
+        id = it.id,
+        name = it.name,
+        category = when(it.hardwareSpecs.type) {
+            DroneType.SRH -> DroneCategory.HELI
+            else -> DroneCategory.MULTI_ROTOR
+        },
+        groundOffset = it.groundOffset,
+        visualOffset = it.visualOffset,
+        collisionRadius = it.collisionRadius,
+        scale = it.scale,
+        shadowSizeBase = it.shadowSizeBase,
+        icon = it.icon,
+        physicsMass = it.physicsMass,
+        physicsPower = it.physicsPower,
+        physicsDamping = it.physicsDamping,
+        fpvFov = it.fpvFov,
+        cameraVisualOffset = it.cameraVisualOffset,
+        isHoldSupported = it.isHoldSupported,
+        maxLandingSpeed = it.maxLandingSpeed,
+        flightTimeMin = it.hardwareSpecs.flightTimeMin,
+        baseRate = it.baseRate,
+        baseExpo = it.baseExpo
+    ) }
     
     private val NEUTRAL_MASS = 1.0f
     private val NEUTRAL_POWER = 18.0f
     private val NEUTRAL_DAMPING = 0.92f
 
-    fun getSpec(id: String) = SPECS[id] ?: SPECS["QUAD_STANDARD"]!!
+    fun getAllSpecs(): List<DroneSpecs> = SPECS.values.toList()
+    fun getSpec(id: String): DroneSpecs = SPECS[id] ?: run {
+        val it = MODELS.find { m -> m.id == StandardDrone.id } ?: StandardDrone
+        DroneSpecs(
+            it.id, it.name, DroneCategory.MULTI_ROTOR, it.groundOffset, it.visualOffset, it.collisionRadius, it.scale, it.shadowSizeBase, it.icon, 
+            it.physicsMass, it.physicsPower, it.physicsDamping, it.fpvFov, it.cameraVisualOffset, it.isHoldSupported, it.maxLandingSpeed, it.hardwareSpecs.flightTimeMin, it.baseRate, it.baseExpo
+        )
+    }
+    fun getModule(id: String): DroneModule = MODELS.find { it.id == id } ?: StandardDrone
 
     fun getActiveMass(id: String, applyCustom: Boolean) = if (applyCustom) getSpec(id).physicsMass else NEUTRAL_MASS
     fun getActivePower(id: String, applyCustom: Boolean) = if (applyCustom) getSpec(id).physicsPower else NEUTRAL_POWER

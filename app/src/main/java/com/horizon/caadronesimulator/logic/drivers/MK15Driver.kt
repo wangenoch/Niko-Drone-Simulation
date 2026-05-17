@@ -14,6 +14,12 @@ class MK15Driver : InternalDeviceDriver {
     override val minPacketSize = 25 // 假設為標準 S.Bus 封包長度
     override val defaultPort = "/dev/ttyHS0"
     override val factoryAppPackage = "com.siyi.transmitter"
+
+    // [v1.5.2] Industrial Logic 2.0: 驅動主導權
+    override val isMappingProtected = true
+    override val isAutoPromptEnabled = true
+    override val recommendedBaudRate = 115200
+    override val protectionWarning = "SIYI MK15 專業協議已鎖定，確保 S.Bus 通訊穩定。"
     
     // MK15 標定數值
     private val MIN_VAL = 1050f

@@ -13,6 +13,12 @@ interface InternalDeviceDriver {
     val defaultPort: String
     val factoryAppPackage: String?
 
+    // [v1.5.2] Industrial Logic 2.0: 驅動主權政策
+    val isMappingProtected: Boolean get() = false      // 是否鎖定映射表
+    val isAutoPromptEnabled: Boolean get() = true       // 偵測到時是否跳出詢問
+    val recommendedBaudRate: Int get() = 115200         // 建議波特率
+    val protectionWarning: String get() = "專業協議保護中" // 警告顯示文字
+
     /**
      * 物理偏移解析：將原始 Buffer 轉為 LSV, LSH, RSV, RSH
      */

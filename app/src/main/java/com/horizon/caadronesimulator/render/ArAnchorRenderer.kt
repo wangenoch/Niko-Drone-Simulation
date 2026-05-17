@@ -44,7 +44,8 @@ object ArAnchorRenderer {
         GLES20.glDrawArrays(GLES20.GL_LINES, 0, 2)
 
         // 2. 繪製地面定位環 (使用現成的 RenderUtils)
+        // [v1.5.2 修正] 提升高度至 0.02f，解決被 H 坪標線 (0.015f) 遮擋之 Z-Fighting 問題
         val anchorColor = floatArrayOf(0f, 1f, 1f, 0.6f) // 青色
-        RenderUtils.drawCircleOutline(posH, colorH, mvpH, mvpMatrix, posX, groundY + 0.01f, posZ, 0.6f, anchorColor)
+        RenderUtils.drawCircleOutline(posH, colorH, mvpH, mvpMatrix, posX, groundY + 0.02f, posZ, 0.6f, anchorColor)
     }
 }

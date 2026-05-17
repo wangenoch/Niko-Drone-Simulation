@@ -1,17 +1,16 @@
 package com.horizon.caadronesimulator.logic
 
+import com.horizon.caadronesimulator.model.DroneState
 import kotlin.math.*
 
 /**
- * [v1.3.9] 獨立風力物理管理組件
- * 負責計算風力向量、隨機偏擺與各項大氣模型運算。
+ * [v1.7.5] 大氣物理管理組件 (Centralized Atmosphere Engine)
+ * 負責計算風力向量、陣風、以及雲層的大氣位移。
  */
 object WindManager {
 
     /**
      * 計算當前風力受力向量
-     * 支援 v1.3.7 氣象學定義修正：
-     * 北風(0°): 往南(0, -1), 南風(180°): 往北(0, 1), 東風(-90°): 往西(-1, 0), 西風(90°): 往東(1, 0)
      */
     fun calculateWindVector(
         level: Int,
@@ -23,11 +22,8 @@ object WindManager {
     ): FloatArray {
         if (level <= 0 || direction == "無") return floatArrayOf(0f, 0f)
 
-        // 全風向隨機偏擺擴充 (±45°)
         val jitterScale = (dirVariation / 5f) * 45f 
-        val jitterAngle = if (dirVariation > 0) {
-            sin(flightTime * 1.5f) * jitterScale
-        } else 0f
+        val jitterAngle = if (dirVariation > 0) sin(flightTime * 1.5f) * jitterScale else 0f
 
         return if (direction == "隨機") {
             floatArrayOf(sin(randomDirAngle), cos(randomDirAngle))
@@ -45,29 +41,24 @@ object WindManager {
     }
 
     /**
-     * 計算陣風強度 (Gust)
+     * [歸位] 計算雲層在大氣中的位移 (U/V 滾動)
+     * 渲染器應只負責繪製，位移邏輯屬於大氣物理。
      */
-    fun calculateGust(
-        variation: Int,
-        randomWindPhase: Float,
-        flightTime: Float,
-        level: Int,
-        useHardcore: Boolean
-    ): Float {
+    fun updateCloudDrift(state: DroneState, dt: Float) {
+        val wVec = calculateWindVector(state.windLevel, state.windDirection, 0, 0, 0f, 0f)
+        state.env.cloudU -= wVec[0] * 0.003f * (dt / 0.016f)
+        state.env.cloudV -= wVec[1] * 0.003f * (dt / 0.016f)
+    }
+
+    fun calculateGust(variation: Int, randomWindPhase: Float, flightTime: Float, level: Int, useHardcore: Boolean): Float {
         var gust = 1.0f + (variation * 0.35f) * (sin(randomWindPhase) * 0.6f + sin(randomWindPhase * 2.2f) * 0.4f)
-        if (useHardcore && level > 0) {
-            val turbulence = (sin(flightTime * 15f) * 0.1f).toFloat() // 15Hz 高頻顫震
-            gust += turbulence * level
-        }
+        if (useHardcore && level > 0) gust += (sin(flightTime * 15f) * 0.1f).toFloat() * level
         return gust
     }
 
-    /**
-     * 計算高度感應風切變係數
-     */
     fun calculateHeightFactor(altitude: Float, groundY: Float): Float {
-        val h = max(0.1f, altitude - groundY)
-        // 近地 0.05m 風力為 10%，10m 處達到 100%
-        return (ln(h / 0.05f) / ln(10f / 0.05f)).coerceIn(0.1f, 1.3f)
+        val h = (altitude - groundY).coerceAtLeast(0f)
+        if (h <= 0.01f) return 0f // 離地 1cm 以下風力係數為 0
+        return (ln(max(0.01f, h) / 0.05f) / ln(10f / 0.05f)).coerceIn(0f, 1.3f)
     }
 }

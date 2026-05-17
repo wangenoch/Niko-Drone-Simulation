@@ -17,6 +17,7 @@ class DroneSoundManager {
     @Volatile private var currentFreq = 100f
     @Volatile private var volume = 0f
     @Volatile private var windVolume = 0f
+    private var lastUpdateTime = 0L
 
     // Project C: 預建立樣本緩衝區，避免在迴圈中重複配置
     private var cachedSamples: ShortArray? = null
@@ -84,27 +85,32 @@ class DroneSoundManager {
     }
 
     /**
-     * 更新音效參數 (Project C: 內部頻率節流)
+     * [v1.5.3] 自驅動更新：音效引擎直接觀察 DroneState
      */
-    private var lastUpdateTime = 0L
-    fun update(isLocked: Boolean, throttle: Float, speed: Float, windLevel: Int, isMuted: Boolean, distance: Float = 0f) {
+    fun updateSelfDriven(state: com.horizon.caadronesimulator.model.DroneState, stickInput: com.horizon.caadronesimulator.model.StickInputState) {
         val now = System.currentTimeMillis()
-        if (now - lastUpdateTime < 32 && !isLocked && !isMuted) return // 約 30fps 更新率，節省 CPU
+        if (now - lastUpdateTime < 32 && !state.isMotorLocked && !state.isMuted) return 
         lastUpdateTime = now
 
-        if (isMuted || isLocked) {
+        if (state.isMuted || state.isMotorLocked) {
             volume = 0f
             targetFreq = 100f
             windVolume = 0f
         } else {
+            val throttle = stickInput.stickThrottle(state)
             val throttleFactor = (throttle + 1f) / 2f
-            val baseVolume = (0.25f + throttleFactor * 0.25f + (speed * 0.005f)).coerceAtMost(0.6f)
+            
+            // 計算與觀察者的 3D 距離 (用於音量衰減)
+            val dx = state.posX.toDouble(); val dy = (state.altitude - 1.6f).toDouble(); val dz = (state.posZ - (-6.0f)).toDouble()
+            val distance = kotlin.math.sqrt(dx*dx + dy*dy + dz*dz).toFloat()
+            
+            val baseVolume = (0.25f + throttleFactor * 0.25f + (state.speed * 0.005f)).coerceAtMost(0.6f)
             val falloff = 1.0f / (1.0f + (distance.coerceAtLeast(2.0f) - 2.0f) * 0.15f)
             volume = (baseVolume * falloff).coerceIn(0.05f, 0.6f)
             
             val freqLoss = (distance * 0.2f).coerceAtMost(20f)
-            targetFreq = (150f + throttleFactor * 120f + (speed * 2f)) - freqLoss
-            windVolume = (windLevel * 0.03f + speed * 0.005f).coerceAtMost(0.2f)
+            targetFreq = (150f + throttleFactor * 120f + (state.speed * 2f)) - freqLoss
+            windVolume = (state.windLevel * 0.03f + state.speed * 0.005f).coerceAtMost(0.2f)
         }
     }
 

@@ -19,6 +19,9 @@ data class HardwareProfile(
 )
 
 object HardwareRegistry {
+    // [v1.5.2] 全域主控開關：開發者除錯用 (設為 true 則全量解鎖所有保護)
+    var debugForceUnlockAll = false
+
     private val profiles = listOf(
         HardwareProfile(
             id = "RM_AX12",
@@ -31,6 +34,18 @@ object HardwareRegistry {
             isProfessionalRemote = true,
             factoryAppPackage = "com.Flyshark.RadioMasterAX",
             driver = com.horizon.caadronesimulator.logic.drivers.AX12Driver()
+        ),
+        HardwareProfile(
+            id = "RM_AX12_ENHANCED",
+            brandName = "RadioMaster AX-Enhanced",
+            identificationTags = listOf("ax-enhanced"),
+            probeSignature = 0xA6.toByte(),
+            defaultBaudRate = 460800,
+            minPacketSize = 87,
+            defaultInternalPort = "/dev/ttyS0",
+            isProfessionalRemote = true,
+            factoryAppPackage = "com.Flyshark.RadioMasterAX",
+            driver = com.horizon.caadronesimulator.logic.drivers.AX12_2Driver()
         ),
         HardwareProfile(
             id = "QUALCOMM MK15",

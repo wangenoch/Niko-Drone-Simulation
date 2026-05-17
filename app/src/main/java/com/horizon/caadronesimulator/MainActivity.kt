@@ -1,57 +1,35 @@
 package com.horizon.caadronesimulator
 
-// Android 系統與硬體支援
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import android.hardware.usb.UsbDevice
-import android.hardware.usb.UsbManager
 import android.hardware.input.InputManager
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.InputDevice
 import android.view.MotionEvent
 import android.Manifest
 import android.content.pm.PackageManager
-import java.io.File
-import kotlin.math.*
-
-// AndroidX 與 Lifecycle
+import com.horizon.caadronesimulator.util.SystemUiHelper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
-import androidx.core.content.IntentCompat
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
-
-// Compose 狀態管理
 import androidx.compose.runtime.*
-
-// 內部邏輯與數據模型
 import com.horizon.caadronesimulator.audio.DroneSoundManager
 import com.horizon.caadronesimulator.model.DroneState
-import com.horizon.caadronesimulator.model.SettingsManager
+import com.horizon.caadronesimulator.logic.storage.ConfigurationStore
 import com.horizon.caadronesimulator.render.DroneSimulationRenderer
-import com.horizon.caadronesimulator.mission.MissionManager
 import com.horizon.caadronesimulator.logic.UsbSerialManager
-import com.horizon.caadronesimulator.logic.PhysicsEngine
-
-// UI 統籌層
+import com.horizon.caadronesimulator.logic.InputCoordinator
+import com.horizon.caadronesimulator.util.LogExporter
 import com.horizon.caadronesimulator.ui.MainAppScreen
-
-// 協程
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * [v1.2.86] 模擬器主入口
+ * [v1.7.7] 模擬器主入口 - 效能極致優化版
+ * 職責：管理組件生命週期與高頻渲染回調。
  */
 class MainActivity : ComponentActivity() {
     private val requestPermissionLauncher = registerForActivityResult(
@@ -61,668 +39,179 @@ class MainActivity : ComponentActivity() {
         else droneState.systemMessage = "Permission required for export"
     }
 
-    private val droneState = DroneState()
+    private val droneState = DroneState.getInstance()
     private val viewModel: com.horizon.caadronesimulator.logic.DroneViewModel by viewModels()
     private var stickInputState = com.horizon.caadronesimulator.model.StickInputState() 
     private var showSplash by mutableStateOf(value = true)
     private lateinit var renderer: DroneSimulationRenderer
     private lateinit var soundManager: DroneSoundManager
-    private lateinit var settingsManager: SettingsManager
+    private lateinit var configStore: ConfigurationStore
     private lateinit var usbSerialManager: UsbSerialManager
-    private lateinit var networkStreamManager: com.horizon.caadronesimulator.logic.NetworkStreamManager
-    private val uiHandler = Handler(Looper.getMainLooper())
-    private val axisSnapshots = mutableMapOf<Int, Float>()
-    private var lastResetTime = 0L
-    private var lastStabilityCheckTime = 0L
-    private var lastSerialUpdateTime = 0L
-    private var lastUiUpdateTime = 0L
-    private var lastUsbDialogTime = 0L
-    private var isProcessingExternal = false 
-
-    private val usbEventReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            val usbManager = context.getSystemService(USB_SERVICE) as UsbManager
-            val device = IntentCompat.getParcelableExtra(intent, UsbManager.EXTRA_DEVICE, UsbDevice::class.java)
-            when (intent.action) {
-                UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
-                    val now = System.currentTimeMillis()
-                    if (now - lastUsbDialogTime < 3000) return
-                    if (!UsbSerialManager.isRelevantDevice(device)) return
-                    lastUsbDialogTime = now
-                    
-                    device?.let { dev ->
-                        if (!usbManager.hasPermission(dev)) {
-                            val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                                android.app.PendingIntent.FLAG_MUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT
-                            } else {
-                                android.app.PendingIntent.FLAG_UPDATE_CURRENT
-                            }
-                            val intentAction = "com.horizon.caadronesimulator.USB_PERMISSION"
-                            val permissionIntent = android.app.PendingIntent.getBroadcast(context, 0, Intent(intentAction), flags)
-                            usbManager.requestPermission(dev, permissionIntent)
-                        }
-                    }
-                    settingsManager.loadSettings(droneState)
-                    droneState.showUsbSelectionDialog = true
-                }
-                UsbManager.ACTION_USB_DEVICE_DETACHED -> {
-                    settingsManager.loadSettings(droneState)
-                    if (droneState.inputMode == 0 && isHidJoystick(device)) handleControllerLoss()
-                }
-            }
-        }
-    }
-
-    private fun isHidJoystick(device: UsbDevice?): Boolean {
-        if (device == null) return false
-        for (i in 0 until device.interfaceCount) {
-            if (device.getInterface(i).interfaceClass == 3) return true
-        }
-        return false
-    }
-
-    private fun hasAnyHidJoystick(): Boolean {
-        val inputManager = getSystemService(INPUT_SERVICE) as InputManager
-        return inputManager.inputDeviceIds.any { id ->
-            val dev = inputManager.getInputDevice(id)
-            dev != null && (dev.sources and InputDevice.SOURCE_JOYSTICK) != 0
-        }
-    }
-
-    private fun handleControllerLoss() {
-        if (droneState.isHardwareController) {
-            droneState.inputMode = 1; droneState.systemMessage = "外接手把已中斷，自動切換回內置系統"; usbSerialManager.scanAndConnect()
-        } else {
-            droneState.inputMode = -1; droneState.showVirtualJoysticks = true; droneState.systemMessage = "外接手把已中斷，已開啟虛擬搖桿"
-        }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        hideSystemUI()
-        lifecycleScope.launch {
-            delay(500) 
-            val hidAvailable = hasAnyHidJoystick()
-            
-            if (droneState.isProbing && !droneState.isHardwareVerified && droneState.probeAttempts < 3) {
-                droneState.probeAttempts++; droneState.systemMessage = "⏳ 正在驗證 RadioMaster 硬體 (${droneState.probeAttempts}/3)..."
-                settingsManager.saveSettings(droneState); usbSerialManager.scanAndConnect()
-                lifecycleScope.launch {
-                    delay(10000)
-                    if (!droneState.isHardwareVerified && droneState.isProbing) {
-                        droneState.isProbing = false
-                        if (droneState.probeAttempts >= 3) droneState.systemMessage = "⚠️ 已嘗試偵測 3 次失敗，切換至靜默模式"
-                        else droneState.systemMessage = "驗證超時，本次將以手機模式執行"
-                        usbSerialManager.stopAll()
-                    }
-                }
-            } else if (droneState.inputMode == 1 && droneState.wasInternalSuccess && !usbSerialManager.isUserStoppedManually()) {
-                // [v1.3.6] 簡化生命週期恢復：僅在斷線時發起一次基礎掃描，後續由 UsbSerialManager 的 RX 監聽接管自癒
-                if (!droneState.usbSerialConnected) {
-                    usbSerialManager.scanAndConnect()
-                }
-            } else if (hidAvailable) {
-                droneState.inputMode = 0
-            } else {
-                if (droneState.inputMode == 0) { 
-                    droneState.systemMessage = "未偵測到外接手把，已切換至虛擬搖桿"; droneState.inputMode = -1; droneState.showVirtualJoysticks = true 
-                } else if (droneState.inputMode == -1) {
-                    if (!droneState.showVirtualJoysticks) droneState.showVirtualJoysticks = true
-                }
-            }
-        }
-    }
-
-    override fun onStop() { super.onStop(); try { unregisterReceiver(usbEventReceiver) } catch (_: Exception) {}; usbSerialManager.stopAll(); soundManager.stop() }
-
-    override fun onWindowFocusChanged(hasFocus: Boolean) { super.onWindowFocusChanged(hasFocus); if (hasFocus) hideSystemUI() }
-
-    private fun updateSystemUI() { if (droneState.showStatusBar) showSystemUI() else hideSystemUI() }
-
-    private fun hideSystemUI() {
-        val controller = WindowCompat.getInsetsController(window, window.decorView)
-        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        controller.hide(WindowInsetsCompat.Type.systemBars())
-    }
-
-    private fun showSystemUI() {
-        val controller = WindowCompat.getInsetsController(window, window.decorView)
-        controller.show(WindowInsetsCompat.Type.systemBars())
-    }
-
-    private fun saveDiagnosticLog() {
-        if (!droneState.isLogcatEnabled) { droneState.systemMessage = "📋 請先開啟 [即時監測 Logcat] 以收集診斷數據"; return }
-        droneState.localSettingsMessage = "正在匯出日誌..."
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            val permission = Manifest.permission.WRITE_EXTERNAL_STORAGE
-            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) { requestPermissionLauncher.launch(permission); return }
-        }
-        try {
-            val physicalLog = usbSerialManager.getFullLog()
-            if (physicalLog.isEmpty()) { droneState.systemMessage = "⏳ 正在收集初始數據，請操作搖桿幾秒後再試"; return }
-            val combinedLog = buildString {
-                append("=== NIKO DRONE SIMULATOR DIAGNOSTIC REPORT ===\n")
-                append("Device: ${Build.MANUFACTURER} ${Build.MODEL}\n")
-                append("Profile: ${droneState.hardwareProfile?.id ?: "Generic"}\n\n")
-                append("=== SYSTEM LOG (LOGCAT) ===\n")
-                append(droneState.logcatContent.takeLast(5000))
-                append("\n\n=== PHYSICAL STATE SNAPSHOTS ===\n")
-                append(physicalLog)
-            }
-            val fileName = "Niko_FullDiag_${System.currentTimeMillis()}.txt"
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val contentValues = android.content.ContentValues().apply {
-                    put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                    put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "text/plain")
-                    put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
-                }
-                contentResolver.insert(android.provider.MediaStore.Files.getContentUri("external"), contentValues)?.let { uri ->
-                    contentResolver.openOutputStream(uri)?.use { it.write(combinedLog.toByteArray()) }
-                    droneState.localSettingsMessage = "✅ 日誌已儲存至 Download 資料夾"
-                }
-            } else {
-                val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
-                if (!downloadsDir.exists()) downloadsDir.mkdirs()
-                val file = File(downloadsDir, fileName)
-                java.io.FileOutputStream(file).use { it.write(combinedLog.toByteArray()) }
-                android.media.MediaScannerConnection.scanFile(this, arrayOf(file.absolutePath), null) { _, _ -> }
-                droneState.localSettingsMessage = "✅ 日誌已儲存至 Download 資料夾"
-            }
-        } catch (e: Exception) { droneState.localSettingsMessage = "❌ 匯出失敗: ${e.message}" }
-    }
-
-    private fun resetFlight() {
-        lastResetTime = System.currentTimeMillis()
-        renderer.resetFlight()
-        
-        // 1. 基礎物理與狀態還原
-        droneState.isCollision = false
-        droneState.isMotorLocked = true
-        droneState.flightPath = emptyList()
-        droneState.observerHeight = 6.0f // 恢復預設站位高度
-        
-        // 2. [v1.4.2] 任務系統還原
-        droneState.spotTimerSuccess = false
-        droneState.spotTimerSeconds = 5.0f
-        droneState.spotTimerInZone = false
-        droneState.spotTimerStable = false
-        droneState.spotTimerMessage = if (droneState.isSpotTimerEnabled) "請重新起飛" else null
-        
-        // 3. [v1.4.2] 視覺參數自動優化校準
-        com.horizon.caadronesimulator.logic.ViewportOptimizer.applyOptimization(droneState)
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        settingsManager = SettingsManager(this)
-        
-        // [v1.2.86] 關鍵修正：先載入設定，再執行硬體識別，確保 isHardwareVerified 標記生效
-        val isFirstLaunch = settingsManager.isFirstLaunch()
-        settingsManager.loadSettings(droneState)
-        
-        // [v1.5.1] 初始啟動模式感知安全性釋放
-        if (droneState.inputMode != 1) {
-            droneState.isSafetyStartupPassed = true
-            droneState.isThrottleHoldActive = false
-        }
-        
-        // [v1.2.95] 初次啟動設備自動識別：手機/平板自動開啟虛擬搖桿以確保可操作性
-        if (isFirstLaunch) {
-            val hasTouchScreen = packageManager.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)
-            if (hasTouchScreen) {
-                droneState.showVirtualJoysticks = true 
-                // [v1.6.4] 自動套用專為觸控螢幕設計的「手感黃金預設值」
-                // 提供絕佳的初始操控感，使用者後續仍可隨時於設定中修改
-                droneState.globalRate = 1.2f
-                droneState.globalExpo = 0.4f
-                droneState.joystickDeadzone = 0.05f
-                settingsManager.saveSettings(droneState)
-            }
-        }
-
+        configStore = ConfigurationStore(this)
+        configStore.loadSettings(droneState)
         updateSystemUI()
 
-        val hintProfile = com.horizon.caadronesimulator.logic.HardwareRegistry.detectHardwareHint()
-        val finalProfile = when {
-            droneState.isHardwareVerified -> hintProfile ?: com.horizon.caadronesimulator.logic.HardwareRegistry.detectHardware()
-            hintProfile != null && droneState.probeAttempts < 3 -> { droneState.isProbing = true; hintProfile }
-            else -> com.horizon.caadronesimulator.logic.HardwareRegistry.getGenericProfile()
-        }
-        droneState.hardwareProfile = finalProfile
-        droneState.isHardwareController = finalProfile.isProfessionalRemote
-        val filter = IntentFilter().apply { addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED); addAction(UsbManager.ACTION_USB_DEVICE_DETACHED) }
-        registerReceiver(usbEventReceiver, filter)
-
         usbSerialManager = UsbSerialManager(this, 
-            onStatusUpdate = { connected, message -> uiHandler.post { droneState.usbSerialConnected = connected; droneState.systemMessage = message; if (connected) { droneState.inputMode = 1; droneState.wasInternalSuccess = true } } },
+            onStatusUpdate = { connected, message -> 
+                droneState.usbSerialConnected = connected
+                if (message.isNotEmpty()) droneState.systemMessage = message
+                if (connected) droneState.wasInternalSuccess = true 
+            },
             onDataReceived = { lsv, lsh, rsv, rsh ->
-                if (isProcessingExternal || droneState.inputMode == 0) return@UsbSerialManager
-                uiHandler.post { stickInputState.updateRaw(lsv, lsh, rsv, rsh) }
+                if (droneState.inputMode == 0) return@UsbSerialManager
+                stickInputState.updateRaw(lsv, lsh, rsv, rsh)
                 stickInputState.serialByteCount++
-                val now = System.currentTimeMillis()
-                if (now - lastSerialUpdateTime > 16 || droneState.setupWizardStep > 0) {
-                    lastSerialUpdateTime = now
-                    uiHandler.post { if (!droneState.isCollision && !droneState.controllerConnected) droneState.controllerConnected = true }
-                }
             },
             onRawChannelsReceived = { channels ->
-                if (isProcessingExternal) return@UsbSerialManager
-                // [v1.2.86] 總清理：移除 ProtocolStandardizer，直接使用驅動標定數據
-                stickInputState.rawChannels = channels
-                uiHandler.post {
-                    if (droneState.isCalibrating) {
-                        fun updateCalib(m: com.horizon.caadronesimulator.model.ChannelMapping, axisIdx: Int, isSerial: Boolean): com.horizon.caadronesimulator.model.ChannelMapping {
-                            val targetAxis = if (isSerial) axisIdx + 101 else axisIdx
-                            if (m.axis != targetAxis) return m
-                            val v = channels.getOrNull(axisIdx) ?: 0f
-                            return when(droneState.calibrationStep) { 1 -> m.copy(center = v, min = v, max = v); 2 -> m.copy(min = min(v, m.min), max = max(v, m.max)); else -> m }
-                        }
-                        droneState.mappingLY = updateCalib(droneState.mappingLY, droneState.mappingLY.axis - 101, true)
-                        droneState.mappingLX = updateCalib(droneState.mappingLX, droneState.mappingLX.axis - 101, true)
-                        droneState.mappingRY = updateCalib(droneState.mappingRY, droneState.mappingRY.axis - 101, true)
-                        droneState.mappingRX = updateCalib(droneState.mappingRX, droneState.mappingRX.axis - 101, true)
-                        
-                        // [v1.5.0] 輔助開關同步校準
-                        droneState.mappingHold = updateCalib(droneState.mappingHold, droneState.mappingHold.axis - 101, true)
-                        droneState.mappingArm = updateCalib(droneState.mappingArm, droneState.mappingArm.axis - 101, true)
-                        droneState.mappingObsHeight = updateCalib(droneState.mappingObsHeight, droneState.mappingObsHeight.axis - 101, true)
-                        droneState.mappingObsTilt = updateCalib(droneState.mappingObsTilt, droneState.mappingObsTilt.axis - 101, true)
-                        droneState.mappingFpvTilt = updateCalib(droneState.mappingFpvTilt, droneState.mappingFpvTilt.axis - 101, true)
-                    }
-
-                    // [v1.5.0] 處理輔助控制輸入邏輯
-                    if (!droneState.showSettings && !droneState.isCollision) {
-                        fun getAuxVal(m: com.horizon.caadronesimulator.model.ChannelMapping): Float? {
-                            if (m.axis < 101) return null
-                            val raw = channels.getOrNull(m.axis - 101) ?: return null
-                            // 這裡使用簡化的線性映射，未來可考慮進階校準
-                            val v = (raw - m.center) / (if(raw >= m.center) (m.max - m.center).coerceAtLeast(0.01f) else (m.center - m.min).coerceAtLeast(0.01f))
-                            return if (m.inverted) -v.coerceIn(-1f, 1f) else v.coerceIn(-1f, 1f)
-                        }
-
-                        // 1. 解鎖開關邏輯 (Arming)
-                        val armVal = getAuxVal(droneState.mappingArm)
-                        if (armVal != null) {
-                            val isArmedRequested = armVal > 0.5f 
-                            if (!droneState.isSafetyStartupPassed) {
-                                if (!isArmedRequested) {
-                                    droneState.isSafetyStartupPassed = true
-                                    droneState.systemMessage = "✅ 系統檢查通過，準備就緒"
-                                } else {
-                                    droneState.systemMessage = "⚠️ 安全警告：請先將解鎖開關撥至 OFF"
-                                    return@post
-                                }
-                            }
-                            if (isArmedRequested != !droneState.isMotorLocked) {
-                                droneState.isMotorLocked = !isArmedRequested
-                            }
-                        }
-
-                        // 1b. 熄火開關邏輯 (Throttle Hold - 僅限直昇機)
-                        val spec = com.horizon.caadronesimulator.model.DroneRegistry.getSpec(droneState.droneType)
-                        if (spec.category == com.horizon.caadronesimulator.model.DroneCategory.HELI) {
-                            val holdVal = getAuxVal(droneState.mappingHold)
-                            if (holdVal != null) {
-                                val isHoldRequested = holdVal < 0.5f 
-                                if (!droneState.isSafetyStartupPassed && !isHoldRequested) {
-                                    droneState.systemMessage = "⚠️ 安全警告：請先將熄火開關撥至 HOLD"
-                                    return@post
-                                }
-                                if (isHoldRequested != droneState.isThrottleHoldActive) {
-                                    droneState.isThrottleHoldActive = isHoldRequested
-                                }
-                            } else {
-                                // [2% 優化] 若未映射實體熄火開關，自動隨解鎖按鈕同步
-                                droneState.isThrottleHoldActive = droneState.isMotorLocked
-                            }
-                        } else {
-                            droneState.isThrottleHoldActive = false
-                        }
-
-                        // 2. 站位高度 (1.6m ~ 25m)
-                        getAuxVal(droneState.mappingObsHeight)?.let { v ->
-                            val norm = (v + 1f) / 2f 
-                            val targetH = 1.6f + norm * (25f - 1.6f)
-                            if (abs(targetH - droneState.observerHeight) > 0.1f) {
-                                droneState.observerHeight = targetH
-                                droneState.lastManualTouchTime = System.currentTimeMillis() // 觸發手動覆蓋
-                            }
-                        }
-
-                        // 3. 抬頭角度 (-30 ~ 85)
-                        getAuxVal(droneState.mappingObsTilt)?.let { v ->
-                            val targetT = v * 50f + 25f 
-                            if (abs(targetT - droneState.observerTilt) > 1.0f) {
-                                droneState.observerTilt = targetT.coerceIn(-30f, 85f)
-                                droneState.lastManualTouchTime = System.currentTimeMillis()
-                            }
-                        }
-
-                        // 4. [Phase 4] FPV 雲台角度 (0 ~ -90)
-                        getAuxVal(droneState.mappingFpvTilt)?.let { v ->
-                            val targetTilt = -( (v + 1f) / 2f * 90f )
-                            if (abs(targetTilt - droneState.cameraTilt) > 1.0f) {
-                                droneState.cameraTilt = targetTilt.coerceIn(-90f, 0f)
-                            }
-                        }
-                    }
-
-                    if (droneState.inputMode == 1 && droneState.isAutoBinding != null) {
-                        var trig = -1; var mv = 0f; channels.forEachIndexed { i, v -> if (abs(v) > 0.85f) { trig = i; mv = v } }
-                        if (trig != -1) {
-                            val key = droneState.isAutoBinding
-                            val label = "Serial CH${trig + 1}"
-                            val m = com.horizon.caadronesimulator.model.ChannelMapping(axis = trig + 101, inverted = false, label = label)
-                            
-                            val labels = when(droneState.joystickMode) {
-                                1 -> listOf("俯仰 Pitch", "航向 Yaw", "油門 Throttle", "橫滾 Roll")
-                                3 -> listOf("油門 Throttle", "橫滾 Roll", "俯仰 Pitch", "航向 Yaw")
-                                4 -> listOf("俯仰 Pitch", "橫滾 Roll", "油門 Throttle", "航向 Yaw")
-                                else -> listOf("油門 Throttle", "航向 Yaw", "俯仰 Pitch", "橫滾 Roll")
-                            }
-                            
-                            when(key) { 
-                                "ly" -> droneState.mappingLY = m.copy(label = labels[0], inverted = mv < 0)
-                                "lx" -> droneState.mappingLX = m.copy(label = labels[1], inverted = mv < 0)
-                                "ry" -> droneState.mappingRY = m.copy(label = labels[2], inverted = mv < 0)
-                                "rx" -> droneState.mappingRX = m.copy(label = labels[3], inverted = mv < 0)
-                                // [v1.5.0] 輔助開關映射
-                                "hold" -> droneState.mappingHold = m.copy(label = "熄火開關")
-                                "arm" -> droneState.mappingArm = m.copy(label = "解鎖開關")
-                                "obsHeight" -> droneState.mappingObsHeight = m.copy(label = "站位高度")
-                                "obsTilt" -> droneState.mappingObsTilt = m.copy(label = "抬頭角度")
-                                "fpvTilt" -> droneState.mappingFpvTilt = m.copy(label = "FPV 雲台")
-                            }
-                            droneState.isAutoBinding = null
-                        }
-                    }
-                }
+                InputCoordinator.processSerialInput(channels, droneState, stickInputState, usbSerialManager)
             },
-            onDiagnosticUpdate = { log, path, _, extra ->
-                uiHandler.post {
-                    stickInputState.packetsPerSecond = (extra["pps"] as? Int) ?: stickInputState.packetsPerSecond
-                    stickInputState.isSignalActive = (extra["is_signal_active"] as? Boolean) ?: stickInputState.isSignalActive
-                    droneState.diagnosticLog = log; if (path != "%SAME%") droneState.activeSerialPath = path
-                    (extra["linkType"] as? String)?.let { droneState.linkType = it }; (extra["baud"] as? Int)?.let { droneState.baudRate = it }
-                    (extra["protocol"] as? String)?.let { droneState.detectedProtocol = it }; (extra["conflict"] as? Boolean)?.let { droneState.isSerialConflict = it }
-                    (extra["raw_bytes_count"] as? Int)?.let { droneState.rawBytesCount = it }; (extra["buffer_usage"] as? String)?.let { droneState.bufferUsage = it }
-                }
+            onDiagnosticUpdate = { status, path, log, extra ->
+                stickInputState.packetsPerSecond = (extra["pps"] as? Int) ?: stickInputState.packetsPerSecond
+                stickInputState.isSignalActive = (extra["is_signal_active"] as? Boolean) ?: stickInputState.isSignalActive
+                droneState.diagnosticLog = log; if (path != "%SAME%") droneState.activeSerialPath = path
+                (extra["linkType"] as? String)?.let { droneState.linkType = it }
+                (extra["baud"] as? Int)?.let { droneState.baudRate = it }
+                (extra["protocol"] as? String)?.let { droneState.detectedProtocol = it }
+                (extra["conflict"] as? Boolean)?.let { droneState.isSerialConflict = it }
+                (extra["raw_bytes_count"] as? Int)?.let { droneState.rawBytesCount = it }
+                (extra["buffer_usage"] as? String)?.let { droneState.bufferUsage = it }
+                (extra["jitter"] as? String)?.let { droneState.jitter = it }
+                (extra["stability"] as? String)?.let { droneState.stability = it }
             },
-            onProtocolDetected = { p -> 
-                uiHandler.post { 
-                    droneState.lockedProtocol = p 
-                    if (p == "AX12(UMBUS)") {
-                        droneState.baudRate = 921600
-                        usbSerialManager.setBaudRate(921600)
-                        settingsManager.saveSettings(droneState)
-                    }
-                } 
-            },
+            onProtocolDetected = { p -> droneState.lockedProtocol = p },
             onHandshakeStatus = { active, msg -> 
-                uiHandler.post { 
-                    droneState.isHandshaking = active
-                    if (msg == "TIMEOUT_60S") { if (!droneState.showTroubleshootingHint && !droneState.usbSerialConnected) droneState.showTroubleshootingHint = true }
-                    else if (msg.isNotEmpty()) droneState.systemMessage = msg
-                } 
+                droneState.isHandshaking = active
+                if (msg == "TIMEOUT_60S") { if (!droneState.showTroubleshootingHint && !droneState.usbSerialConnected) droneState.showTroubleshootingHint = true }
+                else if (msg.isNotEmpty()) droneState.systemMessage = msg
             },
-            onConnectionStatusUpdate = { status -> uiHandler.post { droneState.connectionStatus = status } },
+            onConnectionStatusUpdate = { status -> droneState.connectionStatus = status },
             onIdentityVerified = {
                 if (!droneState.isHardwareVerified) {
-                    uiHandler.post {
-                        droneState.isHardwareVerified = true; droneState.isProbing = false; droneState.probeAttempts = 0; droneState.systemMessage = "✅ 已認證 RadioMaster 硬體"; settingsManager.saveSettings(droneState)
-                    }
+                    droneState.isHardwareVerified = true; droneState.isProbing = false; droneState.probeAttempts = 0
+                    droneState.systemMessage = "✅ 已認證 RadioMaster 硬體"; configStore.saveSettings(droneState)
                 }
             }
         )
         usbSerialManager.setBaudRate(droneState.baudRate)
-
-        networkStreamManager = com.horizon.caadronesimulator.logic.NetworkStreamManager(
-            onDataReceived = { data ->
-                if (droneState.inputMode == 2) {
-                    // [v1.3.9] 智慧網路解析
-                    // 模式 A: 96 Bytes 原始 Float 池 (24通道)
-                    if (data.size == 96) {
-                        val buffer = java.nio.ByteBuffer.wrap(data).order(java.nio.ByteOrder.LITTLE_ENDIAN)
-                        val channels = List(24) { buffer.float }
-                        uiHandler.post { 
-                            stickInputState.rawChannels = channels
-                            stickInputState.updateRaw(channels[0], channels[1], channels[2], channels[3])
-                        }
-                    } 
-                    // 模式 B: MAVLink RC_CHANNELS_OVERRIDE (封包通常約 18-30 bytes)
-                    // 這裡實施針對 MK15 的 1050~1950 特殊解析
-                    else if (data.size >= 18) {
-                        // 簡單掃描 1000~2000 範圍的 Short 數據 (MAVLink 格式常態)
-                        val buffer = java.nio.ByteBuffer.wrap(data).order(java.nio.ByteOrder.LITTLE_ENDIAN)
-                        val channels = mutableListOf<Float>()
-                        val mk15Driver = com.horizon.caadronesimulator.logic.drivers.MK15Driver()
-                        
-                        // 假設前 8 個 Short 是通道數據 (MAVLink 標準偏移)
-                        try {
-                            for (i in 0 until 8) {
-                                if (buffer.remaining() >= 2) {
-                                    val rawVal = buffer.getShort().toFloat()
-                                    // 套用 MK15 標定規一化
-                                    channels.add(mk15Driver.normalizeMK15Value(rawVal))
-                                }
-                            }
-                            if (channels.size >= 4) {
-                                uiHandler.post {
-                                    stickInputState.rawChannels = channels + List(24-channels.size){0f}
-                                    // MK15 預設順序: Roll, Pitch, Thr, Yaw -> 轉為內部標準
-                                    stickInputState.updateRaw(channels[2], channels[3], channels[1], channels[0])
-                                }
-                            }
-                        } catch(e: Exception) {}
-                    }
-                }
-            },
-            onStatusUpdate = { active, msg ->
-                uiHandler.post {
-                    droneState.isNetworkConnected = active
-                    droneState.systemMessage = msg
-                }
-            }
-        )
-
+        usbSerialManager.register(this)
         soundManager = DroneSoundManager(); soundManager.start()
 
-        renderer = DroneSimulationRenderer { alt, x, z, yaw, pitch, roll, speed, isImpact, volt, perc, titlePos, smH, smT, smZ, smF ->
-            // [v1.4.2] 特殊標題位置必須零延遲更新，不參與 UI Throttling
-            uiHandler.post { 
-                droneState.specialTitleScreenPos = titlePos 
-                // [v1.6.0] 視覺參數自動還原寫回
-                if (smH != null) {
-                    val isOverrideActive = (System.currentTimeMillis() - droneState.lastManualTouchTime < 3000)
-                    if (droneState.useSmartObserver && !isOverrideActive && droneState.cameraMode.contains("站位視角")) {
-                        droneState.observerHeight = smH
-                        droneState.observerTilt = smT ?: droneState.observerTilt
-                        droneState.zoomFactor = smZ ?: droneState.zoomFactor
-                        droneState.mainFOV = smF ?: droneState.mainFOV
-                    }
-                }
-            }
-
-            val now = System.currentTimeMillis()
-            if (now - lastUiUpdateTime < 32 && !isImpact) return@DroneSimulationRenderer
-            lastUiUpdateTime = now
-            uiHandler.post {
-                val cur = droneState; val isProtecting = (System.currentTimeMillis() - lastResetTime < 500)
-                if ((cur.showSettings || cur.isCollision) && !isProtecting) return@post
+        // [優化] 零分配回調：減少每秒 60 次的對象建立
+        renderer = DroneSimulationRenderer { alt, x, z, yaw, pitch, roll, speed, isImpact, volt, perc, titlePos, _, _, _, _ ->
+            droneState.specialTitleScreenPos = titlePos 
+            
+            // 直接從物理引擎讀取當前幀結果，不再進行中轉對象封裝
+            com.horizon.caadronesimulator.logic.PhysicsEngine.stepResult?.let { res ->
+                droneState.motorRpmFactor = res.motorRpm
+                renderer.motorRpmFactor = res.motorRpm
                 
-                // 更新電池狀態
-                cur.batteryVoltage = volt
-                cur.batteryPercent = perc
-                
-                if (cur.useFlightLimit && perc <= 30 && perc > 0 && cur.systemMessage == null) {
-                    cur.systemMessage = "⚠️ 低電壓請降落"
-                }
-
-                if (isImpact || PhysicsEngine.checkCollision(cur.droneType, alt, x, z, pitch, roll) || (cur.useFlightLimit && perc <= 0)) {
-                    cur.isCollision = true
-                    cur.isMotorLocked = true
-                    cur.systemMessage = if (cur.useFlightLimit && perc <= 0) "⚠️ 電量耗盡，無人機已墜落" else "已撞毀"
-                }
-                else {
-                    val spec = com.horizon.caadronesimulator.model.DroneRegistry.getSpec(cur.droneType)
-                    val relAlt = alt - spec.groundOffset
-                    if (relAlt >= 29.99f && cur.systemMessage == null) {
-                        cur.systemMessage = "已達限高 30m"
-                    } else if (relAlt < 29.5f && cur.systemMessage == "已達限高 30m") {
-                        cur.systemMessage = null
-                    }
-                    cur.altitude = alt; cur.posX = x; cur.posZ = z; cur.lastYaw = cur.yaw; cur.yaw = yaw; cur.pitch = pitch; cur.roll = roll; cur.speed = speed
-                    if (cur.isLogcatEnabled && now % 1000 < 33) {
-                        val sticks = "T:%.2f Y:%.2f P:%.2f R:%.2f".format(stickInputState.stickThrottle(cur), stickInputState.stickYaw(cur), stickInputState.stickPitch(cur), stickInputState.stickRoll(cur))
-                        val raws = stickInputState.rawChannels.asSequence().take(4).joinToString(",") { "%.2f".format(it) }
-                        val mapInfo = "M1:%d,M2:%d,M3:%d,M4:%d".format(cur.mappingLY.axis, cur.mappingLX.axis, cur.mappingRY.axis, cur.mappingRX.axis)
-                        usbSerialManager.injectLog("DEBUG | MODEL:${cur.droneType} | MODE:${cur.joystickMode} | RAW:[$raws] | MAP:($mapInfo) | FINAL:[$sticks]")
-                    }
-                    val stabilityNow = System.currentTimeMillis(); val dt = if (lastStabilityCheckTime == 0L) 0f else (stabilityNow - lastStabilityCheckTime) / 1000f
-                    lastStabilityCheckTime = stabilityNow; MissionManager.update(cur, dt, spec)
-                    if (cur.showFlightPath && !cur.isMotorLocked) {
-                        val path = cur.flightPath; val pos = androidx.compose.ui.geometry.Offset(x, z); val last = path.lastOrNull()
-                        if (last == null || sqrt((pos.x - last.x).pow(2) + (pos.y - last.y).pow(2)) > 0.15f) cur.flightPath = (path + pos).takeLast(5400)
-                    } else if (!cur.showFlightPath && cur.flightPath.isNotEmpty()) cur.flightPath = emptyList()
-                }
+                // 同步至全域狀態與任務系統
+                viewModel.syncFlightData(
+                    droneState, alt, x, z, yaw, pitch, roll, speed, isImpact, volt, perc, res
+                )
             }
         }
 
         setContent {
-            // [v1.2.86] 終極割接：徹底解決 ComposableFunction0 類型推導衝突
             MainAppScreen(
-                droneState = droneState, 
-                stickInputState = stickInputState, 
-                renderer = renderer, 
-                soundManager = soundManager, 
-                usbSerialManager = usbSerialManager, 
-                settingsManager = settingsManager,
-                viewModel = viewModel, 
-                showSplash = showSplash, 
+                droneState = droneState, stickInputState = stickInputState, renderer = renderer, 
+                soundManager = soundManager, usbSerialManager = usbSerialManager, configStore = configStore,
+                viewModel = viewModel, showSplash = showSplash, 
                 onCloseSplash = { showSplash = false }, 
-                onResetFlight = { resetFlight() }, 
+                onResetFlight = { viewModel.resetFlight(droneState, renderer) }, 
                 onExportLog = { saveDiagnosticLog() }, 
-                onUpdateBaudRate = { b -> 
-                    droneState.baudRate = b
-                    usbSerialManager.setBaudRate(b)
-                    settingsManager.saveSettings(droneState)
-                },
+                onUpdateBaudRate = { b -> droneState.baudRate = b; usbSerialManager.setBaudRate(b); configStore.saveSettings(droneState) },
                 onUpdateInputMode = { m ->
                     if (droneState.isInteractionLocked) return@MainAppScreen
                     if (droneState.inputMode != m) {
-                        droneState.isInteractionLocked = true
-                        settingsManager.saveSettings(droneState)
-                        droneState.inputMode = m
-                        settingsManager.loadSettings(droneState)
+                        droneState.isInteractionLocked = true; droneState.inputMode = m; configStore.saveSettings(droneState)
                         
-                        // 停止所有現有連線
+                        // [v1.8.36] 手動切換邏輯：使用者手動點擊模式後，解除 USB 主權鎖定
+                        droneState.isUsbStickyActive = false
+                        
                         usbSerialManager.stopAll()
-                        networkStreamManager.stopAll()
-                        
-                        // [v1.5.1] 模式切換安全性自適應
-                        if (m == -1 || m == 2) {
-                            droneState.isSafetyStartupPassed = true
-                            droneState.isThrottleHoldActive = false
-                        } else {
-                            droneState.isSafetyStartupPassed = false
-                        }
-
-                        when (m) {
-                            1 -> uiHandler.postDelayed({ usbSerialManager.scanAndConnect() }, 300)
-                            2 -> {
-                                // 開啟網路監聽
-                                if (droneState.networkProtocol == "UDP") {
-                                    networkStreamManager.startUdpListener(droneState.networkHost, droneState.networkPort)
-                                }
-                            }
-                        }
-                        lifecycleScope.launch { delay(1500); droneState.isInteractionLocked = false }
+                        if (m == -1 || m == 2) { droneState.isArmSafetyPassed = true; droneState.isHoldSafetyPassed = true; droneState.isThrottleHoldActive = false } 
+                        else { droneState.isArmSafetyPassed = false; droneState.isHoldSafetyPassed = false }
+                        if (m == 1) lifecycleScope.launch { delay(300); usbSerialManager.scanAndConnect() }
+                        lifecycleScope.launch { delay(1000); droneState.isInteractionLocked = false }
                     }
+                },
+                onToggleNetworkConnection = { active ->
+                    if (active) { usbSerialManager.setLockedPath("NETWORK"); usbSerialManager.scanAndConnect() } 
+                    else { usbSerialManager.stopAll() }
                 },
                 onUpdateSystemUI = { updateSystemUI() }
             )
         }
     }
 
-    override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean { if ((event.source and InputDevice.SOURCE_CLASS_JOYSTICK) != 0) return onGenericMotionEvent(event); return super.dispatchGenericMotionEvent(event) }
+    override fun onResume() {
+        super.onResume()
+        updateSystemUI()
+        
+        // [v1.8.36] 冷啟動自動感知：檢查當前是否已插入 AX12 或 HID 設備
+        lifecycleScope.launch {
+            delay(300)
+            val usbManager = getSystemService(USB_SERVICE) as android.hardware.usb.UsbManager
+            usbManager.deviceList.values.any { dev ->
+                if (deviceMatchesExpertOrHid(dev)) {
+                    if (!droneState.isUsbStickyActive) {
+                        droneState.inputMode = 0
+                        droneState.isUsbStickyActive = true
+                        usbSerialManager.stopAll()
+                        droneState.systemMessage = "🔗 偵測到已連接的硬體，已自動設為外接模式"
+                    }
+                    true
+                } else false
+            }
+            
+            delay(200) 
+            val inputManager = getSystemService(INPUT_SERVICE) as InputManager
+            val hidAvailable = inputManager.inputDeviceIds.any { id ->
+                val dev = inputManager.getInputDevice(id)
+                dev != null && (dev.sources and InputDevice.SOURCE_JOYSTICK) != 0
+            }
+            if (droneState.inputMode == 1 && !droneState.usbSerialConnected) usbSerialManager.scanAndConnect()
+            else if (droneState.isAutoConnectEnabled && !droneState.usbSerialConnected) usbSerialManager.scanAndConnect()
+            if (hidAvailable && droneState.inputMode == -1) droneState.inputMode = 0
+            else if (!hidAvailable && droneState.inputMode == 0) {
+                droneState.systemMessage = "未偵測到外接手把，已切換至虛擬搖桿"
+                droneState.inputMode = -1; droneState.showVirtualJoysticks = true 
+            }
+            if (droneState.inputMode == -1 || droneState.inputMode == 2) { droneState.isArmSafetyPassed = true; droneState.isHoldSafetyPassed = true }
+        }
+    }
+
+    override fun onStop() { super.onStop(); soundManager.stop(); usbSerialManager.stopAll() }
+    override fun onWindowFocusChanged(hasFocus: Boolean) { super.onWindowFocusChanged(hasFocus); if (hasFocus) updateSystemUI() }
+    private fun updateSystemUI() { SystemUiHelper.toggleImmersiveMode(window, droneState.hideStatusBar) }
+
+    private fun saveDiagnosticLog() {
+        if (!droneState.isLogcatEnabled) { droneState.systemMessage = "📋 請先開啟 [即時監測 Logcat] 以收集診斷數據"; return }
+        val physicalLog = usbSerialManager.getFullLog()
+        if (physicalLog.isEmpty()) { droneState.systemMessage = "⏳ 正在收集初始數據，請操作搖桿幾秒後再試"; return }
+        LogExporter.exportDiagnosticLog(this, droneState, physicalLog, onSuccess = { droneState.systemMessage = it }, onError = { droneState.systemMessage = it })
+    }
+
     override fun onGenericMotionEvent(event: MotionEvent): Boolean {
-        if ((event.source and InputDevice.SOURCE_CLASS_JOYSTICK) == 0 || droneState.inputMode == 1) return false
-        if (event.action == MotionEvent.ACTION_MOVE) {
-            isProcessingExternal = true
-            if (droneState.isAutoBinding != null) {
-                var trig = -1; var mv = 0f; for (i in 0..28) { val v = event.getAxisValue(i); if (abs(v) > 0.85f) { trig = i; mv = v; break } }
-                if (trig != -1) {
-                    val key = droneState.isAutoBinding; val isY = (key == "ly" || key == "ry")
-                    val m = com.horizon.caadronesimulator.model.ChannelMapping(axis = trig, inverted = (if (isY) -mv else mv) < 0, label = "Axis $trig")
-                    when(key) { 
-                        "ly" -> droneState.mappingLY = m; "lx" -> droneState.mappingLX = m; "ry" -> droneState.mappingRY = m; "rx" -> droneState.mappingRX = m 
-                        "hold" -> droneState.mappingHold = m
-                        "arm" -> droneState.mappingArm = m
-                        "obsHeight" -> droneState.mappingObsHeight = m
-                        "obsTilt" -> droneState.mappingObsTilt = m
-                        "fpvTilt" -> droneState.mappingFpvTilt = m
-                    }
-                    droneState.isAutoBinding = null; isProcessingExternal = false; return true
-                }
-            }
-            if (droneState.setupWizardStep > 0 && !droneState.wizardWaitingForNeutral) {
-                // ...原有引導邏輯...
-            } else {
-                fun gV(m: com.horizon.caadronesimulator.model.ChannelMapping, d: Int, y: Boolean = false): Float { val r = event.getAxisValue(if (m.axis != -1 && m.axis < 100) m.axis else d); return (if (y) -r else r).coerceIn(-1f, 1f) }
-                stickInputState.updateRaw(gV(droneState.mappingLY, MotionEvent.AXIS_Y, true), gV(droneState.mappingLX, MotionEvent.AXIS_X), gV(droneState.mappingRY, MotionEvent.AXIS_RZ, true), gV(droneState.mappingRX, MotionEvent.AXIS_Z))
-                
-                // [v1.5.1] HID 輔助控制實時讀取邏輯 (排除 Serial 映射)
-                if (!droneState.showSettings && !droneState.isCollision) {
-                    fun getHidAux(m: com.horizon.caadronesimulator.model.ChannelMapping): Float? {
-                        if (m.axis == -1 || m.axis >= 100) return null
-                        val v = event.getAxisValue(m.axis)
-                        return if (m.inverted) -v else v
-                    }
+        return InputCoordinator.handleJoystickEvent(event, droneState, stickInputState, usbSerialManager)
+    }
 
-                    // 1. 解鎖
-                    getHidAux(droneState.mappingArm)?.let { v -> 
-                        val isReq = v > 0.5f
-                        if (!droneState.isSafetyStartupPassed) {
-                            if (!isReq) droneState.isSafetyStartupPassed = true else { droneState.systemMessage = "⚠️ 安全警告：請先將解鎖開關撥至 OFF"; return@let }
-                        }
-                        if (isReq != !droneState.isMotorLocked) droneState.isMotorLocked = !isReq
-                    }
-                    // 1b. 熄火 (僅限直昇機)
-                    val spec = com.horizon.caadronesimulator.model.DroneRegistry.getSpec(droneState.droneType)
-                    if (spec.category == com.horizon.caadronesimulator.model.DroneCategory.HELI) {
-                        val hVal = getHidAux(droneState.mappingHold)
-                        if (hVal != null) {
-                            val isReq = hVal < 0.5f
-                            if (isReq != droneState.isThrottleHoldActive) droneState.isThrottleHoldActive = isReq
-                        } else { droneState.isThrottleHoldActive = droneState.isMotorLocked }
-                    }
-                    // 2. 高度
-                    getHidAux(droneState.mappingObsHeight)?.let { v -> 
-                        val targetH = 1.6f + ((v + 1f) / 2f) * (25f - 1.6f)
-                        if (abs(targetH - droneState.observerHeight) > 0.1f) { droneState.observerHeight = targetH; droneState.lastManualTouchTime = System.currentTimeMillis() }
-                    }
-                    // 3. 抬頭
-                    getHidAux(droneState.mappingObsTilt)?.let { v -> 
-                        val targetT = v * 50f + 25f
-                        if (abs(targetT - droneState.observerTilt) > 1.0f) { droneState.observerTilt = targetT.coerceIn(-30f, 85f); droneState.lastManualTouchTime = System.currentTimeMillis() }
-                    }
-                    // 4. FPV 雲台
-                    getHidAux(droneState.mappingFpvTilt)?.let { v -> 
-                        val targetTilt = -((v + 1f) / 2f * 90f)
-                        if (abs(targetTilt - droneState.cameraTilt) > 1.0f) droneState.cameraTilt = targetTilt.coerceIn(-90f, 0f)
-                    }
-                }
-
-                if (droneState.isCalibrating) {
-                    fun uC(m: com.horizon.caadronesimulator.model.ChannelMapping, d: Int): com.horizon.caadronesimulator.model.ChannelMapping { val v = event.getAxisValue(if (m.axis != -1) m.axis else d); return when(droneState.calibrationStep) { 1 -> m.copy(center = v, min = v, max = v); 2 -> m.copy(min = min(v, m.min), max = max(v, m.max)); else -> m } }
-                    droneState.mappingLY = uC(droneState.mappingLY, MotionEvent.AXIS_Y); droneState.mappingLX = uC(droneState.mappingLX, MotionEvent.AXIS_X); droneState.mappingRY = uC(droneState.mappingRY, MotionEvent.AXIS_RZ); droneState.mappingRX = uC(droneState.mappingRX, MotionEvent.AXIS_Z)
-                }
-                if (!droneState.controllerConnected) droneState.controllerConnected = true
-            }
-            isProcessingExternal = false; return true
+    private fun deviceMatchesExpertOrHid(device: android.hardware.usb.UsbDevice): Boolean {
+        if (device.vendorId == 0x2E3C) return true
+        for (i in 0 until device.interfaceCount) {
+            if (device.getInterface(i).interfaceClass == 3) return true
         }
         return false
     }
-    override fun onDestroy() { super.onDestroy(); if (::soundManager.isInitialized) soundManager.stop(); if (::usbSerialManager.isInitialized) usbSerialManager.unregister() }
+
+    override fun onDestroy() { 
+        super.onDestroy()
+        if (::soundManager.isInitialized) soundManager.stop()
+        if (::usbSerialManager.isInitialized) usbSerialManager.unregister(this) 
+    }
 }

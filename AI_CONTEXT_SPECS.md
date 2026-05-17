@@ -112,6 +112,27 @@
 - **用途定義**：上述內容僅視為開發者的私人註解、歷史備份或未來可能的備選方案，不代表目前的系統現況或指令。
 - **禁止調用**：除非開發者明確要求「恢復 [REFERENCE_ONLY] 中的邏輯」，否則不得將其作為代碼實作的依據。
 
+### 5.5 UI Engineering & Layout Integrity (UI 佈局穩定性規範)
+為了防止在現代佈局引擎下發生測量死鎖或內容塌陷，所有 UI 開發必須遵守以下「防呆」標準：
+
+1. **繪製與排版隔離 (Drawing vs Layout Separation)**：
+    - **規則**：所有裝飾性、提示性功能（如：捲動箭頭、邊框發光、背景漸層）**嚴禁**使用 `Box`、`Column`、`Text` 等實體元件實現。
+    - **標準做法**：必須使用 **`Modifier.drawWithContent { ... }`** 直接在 Canvas 層繪製。
+    - **目的**：確保提示效果不參與 Compose 的 Layout 測量階段，100% 捍衛佈局穩定。
+
+2. **徹底杜絕「嵌套權重死結」 (Nested Weight Audit)**：
+    - **規則**：當外部容器具備無限延伸屬性（如 `verticalScroll`）時，內層子元件**絕對禁止**使用 `Modifier.weight()`。
+    - **標準做法**：使用 **`fillMaxWidth()`** (寬度固定) 與 **`wrapContentHeight()`**。若需比例對齊，改用 **`fillMaxWidth(0.5f)`** 等顯式比例，或 **`height(IntrinsicSize.Min)`**。
+    - **目的**：防止測量引擎因高度無限而導致權重計算歸零（畫面消失）。
+
+3. **全自動溢出感應範式 (Automatic Overflow Detection)**：
+    - **規則**：禁止手動硬編碼「是否顯示捲動提示」。
+    - **標準做法**：統一監測 **`scrollState.maxValue > 0`** 作為判斷內容是否溢出的唯一金標準。
+
+4. **交互層級的「零攔截」保證 (Non-blocking Interaction)**：
+    - **規則**：裝飾提示層絕不能影響底層按鈕、滑桿的核心操作。
+    - **標準做法**：裝飾層必須透過 **`DrawScope`** 實現，或顯式標記 **`pointerInput(Unit) {}`** (不攔截點擊)。
+
 **成效指標：**
 若符合以下情況，代表這些準則運作良好：
 * 差異比對（Diffs）中不必要的變動變少。
