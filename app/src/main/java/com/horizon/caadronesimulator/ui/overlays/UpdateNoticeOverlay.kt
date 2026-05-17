@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.horizon.caadronesimulator.model.AppConfig
 import com.horizon.caadronesimulator.util.ReadmeParser
 
 @Composable
@@ -103,8 +104,10 @@ fun UpdateNoticeOverlay(
                             }
                         }
 
-                        // 5. 特別感謝
-                        if (updateData.specialThanks.isNotEmpty()) {
+                        // 5. 特別感謝 (合併 README內容與 AppConfig 全域清單)
+                        val allSpecialThanks = (updateData.specialThanks + AppConfig.SPECIAL_THANKS).distinct()
+                        
+                        if (allSpecialThanks.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(24.dp))
                             Text(
                                 text = "🎁 特別感謝 (Special Thanks)",
@@ -113,7 +116,7 @@ fun UpdateNoticeOverlay(
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(bottom = 12.dp)
                             )
-                            updateData.specialThanks.forEach { thanks ->
+                            allSpecialThanks.forEach { thanks ->
                                 Text(
                                     text = thanks,
                                     color = Color.LightGray,
