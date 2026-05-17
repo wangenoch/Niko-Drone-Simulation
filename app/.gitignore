@@ -1,1 +1,28 @@
 /build
+# === macOS 系統暫存檔（最核心要擋掉的） ===
+.DS_Store
+**/.DS_Store
+.AppleDouble
+.LSOverride
+
+# === Android Studio 與 Gradle 暫存檔 ===
+.gradle/
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+local.properties
+
+# === IntelliJ / Android Studio 專案私有配置 ===
+# 阻擋特定的 IDE 規劃模式暫存，避免 AI 代理或本地配置干擾
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/gradle.xml
+.idea/assetWizard.settings.xml
+.idea/dictionaries
+.idea/libraries/
+.idea/caches/
+.idea/planningMode.xml
+
+# === 編譯與日誌輸出 ===
+*.log
