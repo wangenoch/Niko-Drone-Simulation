@@ -14,9 +14,9 @@ import java.io.InputStreamReader
 import kotlin.math.*
 
 /**
- * [v1.7.6] 模擬器業務中樞 (Detoxified Logic Hub)
- * 修正：實施最後狀態鎖定，集中距離與縮放判定，移除冗餘 UI 計算。
- * 已對接：ConfigurationStore (v1.7.5)
+ * [v1.6.1] 模擬器業務中樞 (Detoxified Logic Hub)
+ * 修正：實施最後狀態鎖定，集中距離與縮放判定，新增「恢復原廠設定」邏輯。
+ * 已對接：ConfigurationStore (v1.5.9)
  */
 class DroneViewModel : ViewModel() {
     private var logcatJob: Job? = null
@@ -52,7 +52,8 @@ class DroneViewModel : ViewModel() {
             isCollision = false
             isMotorLocked = true
             flightPath = emptyList()
-            observerHeight = 6.0f 
+            // [v1.6.1] 飛行重置時，根據當前模式動態還原高度
+            applyCameraModeDefaults(this, cameraMode)
             isArmSafetyPassed = false
             isHoldSafetyPassed = false
             
@@ -67,6 +68,112 @@ class DroneViewModel : ViewModel() {
         }
         
         ViewportOptimizer.applyOptimization(state)
+    }
+
+    /** [v1.6.1] 恢復原廠設定：邏輯執行層 */
+    fun restoreFactorySettings(state: DroneState, renderer: DroneSimulationRenderer) {
+        // 1. 先執行基礎飛行重置
+        resetFlight(state, renderer)
+
+        // 2. 還原全域設定
+        state.apply {
+            // 手感還原
+            globalRate = com.horizon.caadronesimulator.model.AppConfig.JoystickDefaults.RATE
+            globalExpo = com.horizon.caadronesimulator.model.AppConfig.JoystickDefaults.EXPO
+            joystickDeadzone = com.horizon.caadronesimulator.model.AppConfig.JoystickDefaults.DEADZONE
+            useGlobalRates = true
+            showIndividualRates = false
+            
+            // 各別軸向還原
+            rateT = com.horizon.caadronesimulator.model.AppConfig.JoystickDefaults.RATE
+            expoT = com.horizon.caadronesimulator.model.AppConfig.JoystickDefaults.EXPO
+            rateY = com.horizon.caadronesimulator.model.AppConfig.JoystickDefaults.RATE
+            expoY = com.horizon.caadronesimulator.model.AppConfig.JoystickDefaults.EXPO
+            rateP = com.horizon.caadronesimulator.model.AppConfig.JoystickDefaults.RATE
+            expoP = com.horizon.caadronesimulator.model.AppConfig.JoystickDefaults.EXPO
+            rateR = com.horizon.caadronesimulator.model.AppConfig.JoystickDefaults.RATE
+            expoR = com.horizon.caadronesimulator.model.AppConfig.JoystickDefaults.EXPO
+
+            // 環境還原
+            windLevel = com.horizon.caadronesimulator.model.AppConfig.EnvironmentDefaults.WIND_LEVEL
+            windDirection = com.horizon.caadronesimulator.model.AppConfig.EnvironmentDefaults.WIND_DIRECTION
+            isSunSimEnabled = com.horizon.caadronesimulator.model.AppConfig.EnvironmentDefaults.SUN_ENABLED
+            sunPosition = com.horizon.caadronesimulator.model.AppConfig.EnvironmentDefaults.SUN_POSITION
+            shadowIntensity = com.horizon.caadronesimulator.model.AppConfig.EnvironmentDefaults.SHADOW_INTENSITY
+            cloudDensity = com.horizon.caadronesimulator.model.AppConfig.EnvironmentDefaults.CLOUD_DENSITY
+            weatherMode = com.horizon.caadronesimulator.model.AppConfig.EnvironmentDefaults.WEATHER_MODE
+            showClouds = com.horizon.caadronesimulator.model.AppConfig.EnvironmentDefaults.SHOW_CLOUDS
+            showMountains = com.horizon.caadronesimulator.model.AppConfig.EnvironmentDefaults.SHOW_MOUNTAINS
+            useHardcorePhysics = com.horizon.caadronesimulator.model.AppConfig.EnvironmentDefaults.HARDCORE_PHYSICS
+
+            // 視覺還原
+            mainFOV = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.MAIN_FOV
+            // 視覺還原 (依照 AppConfig 預設初始模式進行對接)
+            cameraMode = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.CAMERA_MODE
+            mainFOV = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.MAIN_FOV
+            
+            if (cameraMode == "站位視角 (固定)") {
+                observerHeight = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.OBSERVER_HEIGHT
+                observerTilt = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.OBSERVER_TILT
+                zoomFactor = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.ZOOM_FACTOR_FIXED
+            } else {
+                observerHeight = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.OBSERVER_HEIGHT_TRACKING
+                observerTilt = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.OBSERVER_TILT_TRACKING
+                zoomFactor = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.ZOOM_FACTOR_TRACKING
+            }
+
+            showGroundAnchor = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.SHOW_GROUND_ANCHOR
+            autoPiPRelocate = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.AUTO_PIP_RELOCATE
+            enableZoomAssistant = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.ENABLE_ZOOM_ASSISTANT
+            showFlightPath = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.SHOW_FLIGHT_PATH
+
+            // 安全還原
+            useFlightLimit = com.horizon.caadronesimulator.model.AppConfig.SystemDefaults.USE_FLIGHT_LIMIT
+            useStrictLanding = com.horizon.caadronesimulator.model.AppConfig.SystemDefaults.USE_STRICT_LANDING
+            applyPhysicalSpecs = com.horizon.caadronesimulator.model.AppConfig.SystemDefaults.APPLY_PHYSICAL_SPECS
+            isThrottleHoldActive = com.horizon.caadronesimulator.model.AppConfig.SystemDefaults.IS_THROTTLE_HOLD_ACTIVE
+            
+            // 系統與介面還原
+            isMuted = com.horizon.caadronesimulator.model.AppConfig.SystemDefaults.IS_MUTED
+            showShadow = com.horizon.caadronesimulator.model.AppConfig.SystemDefaults.SHOW_SHADOW
+            showObstacles = com.horizon.caadronesimulator.model.AppConfig.SystemDefaults.SHOW_OBSTACLES
+            hideStatusBar = com.horizon.caadronesimulator.model.AppConfig.SystemDefaults.HIDE_STATUS_BAR
+            pauseInSettings = com.horizon.caadronesimulator.model.AppConfig.SystemDefaults.PAUSE_IN_SETTINGS
+            isAutoConnectEnabled = com.horizon.caadronesimulator.model.AppConfig.SystemDefaults.AUTO_CONNECT_ENABLED
+            isExpertModeLocked = com.horizon.caadronesimulator.model.AppConfig.SystemDefaults.IS_EXPERT_MODE_LOCKED
+            hudMode = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.HUD_MODE
+            radarZoomMode = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.RADAR_ZOOM_MODE
+            
+            // 任務評測還原
+            isSpotTimerEnabled = com.horizon.caadronesimulator.model.AppConfig.SystemDefaults.IS_SPOT_TIMER_ENABLED
+            spotTimerSeconds = com.horizon.caadronesimulator.model.AppConfig.SystemDefaults.SPOT_TIMER_SECONDS
+
+            // 介面細節還原
+            showSpecialTitle = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.SHOW_SPECIAL_TITLE
+            showSideSliders = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.SHOW_SPECIAL_TITLE // 使用同一基準
+            showSideRulers = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.SHOW_SIDE_RULERS
+            reverseSliderSides = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.REVERSE_SLIDERS
+
+            systemMessage = "已恢復原廠預設值"
+        }
+    }
+
+    /** [v1.6.1] 視角模式切換自動歸位邏輯 */
+    fun applyCameraModeDefaults(state: DroneState, mode: String) {
+        state.apply {
+            when (mode) {
+                "站位視角 (固定)" -> {
+                    observerHeight = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.OBSERVER_HEIGHT
+                    observerTilt = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.OBSERVER_TILT
+                    zoomFactor = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.ZOOM_FACTOR_FIXED
+                }
+                "站位視角 (追蹤)" -> {
+                    observerHeight = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.OBSERVER_HEIGHT_TRACKING
+                    observerTilt = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.OBSERVER_TILT_TRACKING
+                    zoomFactor = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.ZOOM_FACTOR_TRACKING
+                }
+            }
+        }
     }
 
     fun syncFlightData(
@@ -92,7 +199,7 @@ class DroneViewModel : ViewModel() {
             this.pitch = pitch
             this.roll = roll
             
-            // [v1.8.19] 撞擊速度保留
+            // [v1.5.9] 撞擊速度保留
             this.speed = if (isImpact && physicsResult != null) physicsResult.impactSpeed else speed
             this.horizontalDist = sqrt(x.pow(2) + z.pow(2))
             
@@ -100,7 +207,7 @@ class DroneViewModel : ViewModel() {
             this.lastInZoomZone = distToAnchor > 10.0f && cameraMode != "FPV 視角" && cameraMode != "跟隨視角"
         }
 
-        // [v1.8.25] 統一消息翻譯層：防止 UI 消息阻塞控制邏輯
+        // [v1.5.9] 統一消息翻譯層：防止 UI 消息阻塞控制邏輯
         if (!state.isCollision && physicsResult?.systemMessage != null) {
             val msg = when(physicsResult.systemMessage) {
                 "CRASH_EXTREME" -> "❌ 嚴重撞擊損毀 (速度: %.1f m/s)".format(physicsResult.impactSpeed)
@@ -114,7 +221,7 @@ class DroneViewModel : ViewModel() {
             state.isCollision = true
             state.isMotorLocked = true
         } else {
-            // [v1.8.25] 分級落地警告優化：確保不覆蓋關鍵停槳條件
+            // [v1.5.9] 分級落地警告優化：確保不覆蓋關鍵停槳條件
             val spec = DroneRegistry.getSpec(state.droneType)
             if (state.useStrictLanding && alt <= spec.groundOffset + 0.05f && physicsResult != null) {
                 val impactV = physicsResult.impactSpeed

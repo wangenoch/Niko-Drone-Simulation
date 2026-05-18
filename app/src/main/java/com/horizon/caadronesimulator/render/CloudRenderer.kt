@@ -7,7 +7,7 @@ import java.nio.ByteOrder
 import java.nio.FloatBuffer
 
 /**
- * [v1.7.2] 專業穹頂雲層渲染器 - 視覺修復版
+ * [v1.5.9] 專業穹頂雲層渲染器 - 視覺修復版
  * 修正：移除錯誤的 UV 邊緣遮罩，改用高度漸變 (vHeight)，徹底解決雲層消失與接縫問題。
  */
 class CloudRenderer {

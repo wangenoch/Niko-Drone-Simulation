@@ -27,7 +27,7 @@ enum class CommDecisionState {
 }
 
 /**
- * [v1.7.5] 域化狀態架構 (Detoxified Edition)
+ * [v1.5.9] 域化狀態架構 (Detoxified Edition)
  * 已移除殭屍變數：cloudOffsetX, cloudOffsetZ, localSettingsMessage, isThrottleHoldEnabled
  */
 class DroneState {
@@ -54,7 +54,7 @@ class DroneState {
         var inputMode by mutableIntStateOf(-1); var connectionStatus by mutableStateOf(ConnectionStatus.IDLE); var commDecisionState by mutableStateOf(CommDecisionState.IDLE)
         var detectedProtocol by mutableStateOf("未知"); var activeSerialPath by mutableStateOf("None"); var usbSerialConnected by mutableStateOf(false)
         var controllerConnected by mutableStateOf(false); var activeHidName by mutableStateOf("通用手把"); var activeAxisLabel by mutableStateOf("NONE")
-        var packetsPerSecond by mutableIntStateOf(0); var isSignalActive by mutableStateOf(false); var isAutoConnectEnabled by mutableStateOf(false)
+        var packetsPerSecond by mutableIntStateOf(0); var isSignalActive by mutableStateOf(false); var isAutoConnectEnabled by mutableStateOf(AppConfig.SystemDefaults.AUTO_CONNECT_ENABLED)
         var newHardwareDetected: android.hardware.usb.UsbDevice? by mutableStateOf(null); var isHardwareController by mutableStateOf(false)
         var rawBytesCount by mutableIntStateOf(0); var bufferUsage by mutableStateOf("0/512"); var jitter by mutableStateOf("0.0 ms")
         var stability by mutableStateOf("100%"); var isHandshaking by mutableStateOf(false); var lockedProtocol by mutableStateOf("")
@@ -64,43 +64,48 @@ class DroneState {
         var rawHexData by mutableStateOf(""); var networkHost by mutableStateOf("127.0.0.1"); var networkPort by mutableIntStateOf(14550)
         var networkProtocol by mutableStateOf("UDP"); var isNetworkConnected by mutableStateOf(false); var showNetworkSettingsDialog by mutableStateOf(false)
         var hardwareProfile: HardwareProfile? by mutableStateOf(null)
+        var optimizationPromptIgnored by mutableStateOf(false)
     }
     val hardware = HardwareDomain()
 
     // --- 3. 視覺導演域 ---
     class CameraDomain {
-        var cameraMode by mutableStateOf("站位視角 (追蹤)"); var mainFOV by mutableFloatStateOf(45f); var zoomFactor by mutableFloatStateOf(1.5f); var cameraTilt by mutableFloatStateOf(0f)
-        var observerHeight by mutableFloatStateOf(6.0f); var observerTilt by mutableFloatStateOf(0f); var enableZoomAssistant by mutableStateOf(true); var showGroundAnchor by mutableStateOf(false)
+        var cameraMode by mutableStateOf(AppConfig.VisualDefaults.CAMERA_MODE); var mainFOV by mutableFloatStateOf(AppConfig.VisualDefaults.MAIN_FOV); var zoomFactor by mutableFloatStateOf(AppConfig.VisualDefaults.ZOOM_FACTOR); var cameraTilt by mutableFloatStateOf(0f)
+        var observerHeight by mutableFloatStateOf(AppConfig.VisualDefaults.OBSERVER_HEIGHT); var observerTilt by mutableFloatStateOf(AppConfig.VisualDefaults.OBSERVER_TILT); var enableZoomAssistant by mutableStateOf(true); var showGroundAnchor by mutableStateOf(AppConfig.VisualDefaults.SHOW_GROUND_ANCHOR)
         var lastManualTouchTime by mutableLongStateOf(0L); var specialTitleScreenPos by mutableStateOf<Offset?>(null); var useSmartObserver by mutableStateOf(false)
-        var radarZoomMode by mutableIntStateOf(0); var hudMode by mutableIntStateOf(0)
+        var radarZoomMode by mutableIntStateOf(AppConfig.VisualDefaults.RADAR_ZOOM_MODE); var hudMode by mutableIntStateOf(AppConfig.VisualDefaults.HUD_MODE)
     }
     val camera = CameraDomain()
 
     // --- 4. 安全保護域 ---
     class SafetyDomain {
         var isArmSafetyPassed by mutableStateOf(false); var isHoldSafetyPassed by mutableStateOf(false); var lastInteractionTime by mutableLongStateOf(0L)
-        var isThrottleHoldEnabled by mutableStateOf(false) // 補回：供 DroneSelectionScreen 使用
-        var isThrottleHoldActive by mutableStateOf(true)
+        var isThrottleHoldEnabled by mutableStateOf(false) 
+        var isThrottleHoldActive by mutableStateOf(AppConfig.SystemDefaults.IS_THROTTLE_HOLD_ACTIVE)
     }
     val safety = SafetyDomain()
 
     // --- 5. 環境配置域 ---
     class EnvironmentDomain {
-        var windLevel by mutableIntStateOf(0); var windDirection by mutableStateOf("無"); var windVariation by mutableIntStateOf(0); var windDirVariation by mutableIntStateOf(0)
-        var enableVerticalDraft by mutableStateOf(false); var timeOfDay by mutableStateOf("中午"); var isSunSimEnabled by mutableStateOf(false); var sunPosition by mutableFloatStateOf(0.5f)
-        var useHardcorePhysics by mutableStateOf(false); var showClouds by mutableStateOf(true); var cloudDensity by mutableFloatStateOf(0.5f); var showMountains by mutableStateOf(true)
-        var weatherMode by mutableIntStateOf(1)
-        var cloudU by mutableFloatStateOf(0f); var cloudV by mutableFloatStateOf(0f) // 歸位：環境域專屬
+        var windLevel by mutableIntStateOf(AppConfig.EnvironmentDefaults.WIND_LEVEL); var windDirection by mutableStateOf(AppConfig.EnvironmentDefaults.WIND_DIRECTION); var windVariation by mutableIntStateOf(0); var windDirVariation by mutableIntStateOf(0)
+        var enableVerticalDraft by mutableStateOf(false); var timeOfDay by mutableStateOf("中午"); var isSunSimEnabled by mutableStateOf(AppConfig.EnvironmentDefaults.SUN_ENABLED); var sunPosition by mutableFloatStateOf(AppConfig.EnvironmentDefaults.SUN_POSITION)
+        var useHardcorePhysics by mutableStateOf(AppConfig.EnvironmentDefaults.HARDCORE_PHYSICS); var showClouds by mutableStateOf(AppConfig.EnvironmentDefaults.SHOW_CLOUDS); var cloudDensity by mutableFloatStateOf(AppConfig.EnvironmentDefaults.CLOUD_DENSITY); var showMountains by mutableStateOf(AppConfig.EnvironmentDefaults.SHOW_MOUNTAINS)
+        var weatherMode by mutableIntStateOf(AppConfig.EnvironmentDefaults.WEATHER_MODE)
+        var cloudU by mutableFloatStateOf(0f); var cloudV by mutableFloatStateOf(0f) 
+        /** [v1.6.1] 實時物理風向角 (度)，由物理引擎每幀更新 */
+        var currentWindAngle by mutableFloatStateOf(0f)
+        /** [v1.6.1] 隨機模式專屬的基準方位角 (0-360) */
+        var randomWindAngle by mutableFloatStateOf(0f)
     }
     val env = EnvironmentDomain()
 
     // --- 配置與全局狀態 ---
-    var droneType by mutableStateOf("QUAD_STANDARD"); var joystickMode by mutableIntStateOf(2); var isMuted by mutableStateOf(true); var showShadow by mutableStateOf(true); var shadowIntensity by mutableFloatStateOf(0.5f)
-    var showObstacles by mutableStateOf(false); var hideStatusBar by mutableStateOf(true); var pauseInSettings by mutableStateOf(true); var applyPhysicalSpecs by mutableStateOf(true); var useFlightLimit by mutableStateOf(true)
-    var useSimplifiedMarkers by mutableStateOf(true); var showSpecialTitle by mutableStateOf(true); var customTitle by mutableStateOf(""); var settingsTab by mutableStateOf(SettingsTab.CONTROLLER); var showSettings by mutableStateOf(false)
+    var droneType by mutableStateOf("QUAD_STANDARD"); var joystickMode by mutableIntStateOf(2); var isMuted by mutableStateOf(AppConfig.SystemDefaults.IS_MUTED); var showShadow by mutableStateOf(AppConfig.SystemDefaults.SHOW_SHADOW); var shadowIntensity by mutableFloatStateOf(AppConfig.EnvironmentDefaults.SHADOW_INTENSITY)
+    var showObstacles by mutableStateOf(AppConfig.SystemDefaults.SHOW_OBSTACLES); var hideStatusBar by mutableStateOf(AppConfig.SystemDefaults.HIDE_STATUS_BAR); var pauseInSettings by mutableStateOf(AppConfig.SystemDefaults.PAUSE_IN_SETTINGS); var applyPhysicalSpecs by mutableStateOf(AppConfig.SystemDefaults.APPLY_PHYSICAL_SPECS); var useFlightLimit by mutableStateOf(AppConfig.SystemDefaults.USE_FLIGHT_LIMIT)
+    var useSimplifiedMarkers by mutableStateOf(true); var showSpecialTitle by mutableStateOf(AppConfig.VisualDefaults.SHOW_SPECIAL_TITLE); var customTitle by mutableStateOf(""); var settingsTab by mutableStateOf(SettingsTab.CONTROLLER); var showSettings by mutableStateOf(false)
     var showHardwareMonitor by mutableStateOf(false); var isInteractionLocked by mutableStateOf(false)
-    var useStrictLanding by mutableStateOf(true) // [v1.8.24] 專業考核降落安全標準開關
-    var isUsbStickyActive by mutableStateOf(false) // [v1.8.36] USB 外接主權鎖定，防止背景掃描干擾
+    var useStrictLanding by mutableStateOf(AppConfig.SystemDefaults.USE_STRICT_LANDING) // [v1.5.9] 專業考核降落安全標準開關
+    var isUsbStickyActive by mutableStateOf(false) // [v1.5.9] USB 外接主權鎖定，防止背景掃描干擾
     var systemMessage by mutableStateOf<String?>(null); var localSettingsMessage by mutableStateOf<String?>(null); var diagnosticLog by mutableStateOf("等待啟動...")
 
     // --- [向下相容代理] ---
@@ -128,6 +133,7 @@ class DroneState {
     var usbSerialConnected: Boolean get() = hardware.usbSerialConnected; set(v) { hardware.usbSerialConnected = v }
     var controllerConnected: Boolean get() = hardware.controllerConnected; set(v) { hardware.controllerConnected = v }
     var activeHidName: String get() = hardware.activeHidName; set(v) { hardware.activeHidName = v }
+    var optimizationPromptIgnored: Boolean get() = hardware.optimizationPromptIgnored; set(v) { hardware.optimizationPromptIgnored = v }
     var activeAxisLabel: String get() = hardware.activeAxisLabel; set(v) { hardware.activeAxisLabel = v }
     var packetsPerSecond: Int get() = hardware.packetsPerSecond; set(v) { hardware.packetsPerSecond = v }
     var isSignalActive: Boolean get() = hardware.isSignalActive; set(v) { hardware.isSignalActive = v }
@@ -193,22 +199,22 @@ class DroneState {
     var cloudU: Float get() = env.cloudU; set(v) { env.cloudU = v }
     var cloudV: Float get() = env.cloudV; set(v) { env.cloudV = v }
 
-    var reverseSliderSides by mutableStateOf(true); var autoPiPRelocate by mutableStateOf(true); var showSideRulers by mutableStateOf(true); var showSideSliders by mutableStateOf(true)
+    var reverseSliderSides by mutableStateOf(AppConfig.VisualDefaults.REVERSE_SLIDERS); var autoPiPRelocate by mutableStateOf(AppConfig.VisualDefaults.AUTO_PIP_RELOCATE); var showSideRulers by mutableStateOf(AppConfig.VisualDefaults.SHOW_SIDE_RULERS); var showSideSliders by mutableStateOf(AppConfig.VisualDefaults.SHOW_SIDE_SLIDERS)
     var showTutorial by mutableStateOf(true); var showJoystickTutorial by mutableStateOf(false); var showClimateTutorial by mutableStateOf(false); var hasShownJoystickTutorial by mutableStateOf(false); var hasShownClimateTutorial by mutableStateOf(false); var showVirtualJoysticks by mutableStateOf(false)
     var isMenuExpanded by mutableStateOf(false); var showFlightPath by mutableStateOf(false); var showUpdateNotice by mutableStateOf(false); var isNearBoundary by mutableStateOf(false); var showAuxMappingOverlay by mutableStateOf(false); var showTroubleshootingHint by mutableStateOf(false)
     var showModelConfigConfirm by mutableStateOf<String?>(null); var showModelMappingOverlay by mutableStateOf<String?>(null); var isCalibrating by mutableStateOf(false); var calibrationStep by mutableIntStateOf(0)
     var isAutoBinding by mutableStateOf<String?>(null); var setupWizardStep by mutableIntStateOf(0); var wizardWaitingForNeutral by mutableStateOf(false); var wizardCountdown by mutableIntStateOf(0)
-    var halfThrottle by mutableStateOf(false); var joystickDeadzone by mutableFloatStateOf(0.15f); var isSettingsLoaded by mutableStateOf(false); var isLogcatEnabled by mutableStateOf(false); var logcatContent by mutableStateOf("")
-    var isSpotTimerEnabled: Boolean by mutableStateOf(false); var spotTimerSeconds: Float by mutableFloatStateOf(5.0f); var spotTimerTargetId: Int by mutableIntStateOf(-1); var spotTimerMessage: String? by mutableStateOf(null); var spotTimerSuccess: Boolean by mutableStateOf(false); var spotTimerInZone: Boolean by mutableStateOf(false); var spotTimerStable: Boolean by mutableStateOf(false); var spotTimerLastYaw: Float by mutableFloatStateOf(0f); var spotTimerMessageTimer: Float by mutableFloatStateOf(0f)
-    var useGlobalRates by mutableStateOf(true); var showIndividualRates by mutableStateOf(false); var globalRate by mutableFloatStateOf(1.0f); var globalExpo by mutableFloatStateOf(0.0f); var isExpertModeLocked by mutableStateOf(false); var isMappingUnlocked by mutableStateOf(false)
+    var halfThrottle by mutableStateOf(false); var joystickDeadzone by mutableFloatStateOf(AppConfig.JoystickDefaults.DEADZONE); var isSettingsLoaded by mutableStateOf(false); var isLogcatEnabled by mutableStateOf(false); var logcatContent by mutableStateOf("")
+    var isSpotTimerEnabled: Boolean by mutableStateOf(AppConfig.SystemDefaults.IS_SPOT_TIMER_ENABLED); var spotTimerSeconds: Float by mutableFloatStateOf(AppConfig.SystemDefaults.SPOT_TIMER_SECONDS); var spotTimerTargetId: Int by mutableIntStateOf(-1); var spotTimerMessage: String? by mutableStateOf(null); var spotTimerSuccess: Boolean by mutableStateOf(false); var spotTimerInZone: Boolean by mutableStateOf(false); var spotTimerStable: Boolean by mutableStateOf(false); var spotTimerLastYaw: Float by mutableFloatStateOf(0f); var spotTimerMessageTimer: Float by mutableFloatStateOf(0f)
+    var useGlobalRates by mutableStateOf(true); var showIndividualRates by mutableStateOf(false); var globalRate by mutableFloatStateOf(AppConfig.JoystickDefaults.RATE); var globalExpo by mutableFloatStateOf(AppConfig.JoystickDefaults.EXPO); var isExpertModeLocked by mutableStateOf(AppConfig.SystemDefaults.IS_EXPERT_MODE_LOCKED); var isMappingUnlocked by mutableStateOf(false)
     var lastInZoomZone by mutableStateOf(false); var lastYaw by mutableFloatStateOf(0f)
 
-    // --- [v1.8.20] 攝影機模式切換緩衝 ---
+    // --- [v1.5.9] 攝影機模式切換緩衝 ---
     var isSwitchingMode by mutableStateOf(false)
     var switchProgress by mutableFloatStateOf(0f)
     var switchMessage by mutableStateOf("")
 
-    // --- [v1.7.1] 雙層手感架構的核心定義 ---
+    // --- [v1.5.9] 雙層手感架構的核心定義 ---
 
     class ModelGene {
         var rateT_Up by mutableFloatStateOf(1.0f); var rateT_Down by mutableFloatStateOf(1.0f)

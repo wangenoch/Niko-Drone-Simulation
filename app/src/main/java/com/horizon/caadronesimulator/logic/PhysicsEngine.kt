@@ -5,7 +5,7 @@ import com.horizon.caadronesimulator.model.DroneRegistry
 import kotlin.math.*
 
 /**
- * [v1.8.14] 模擬器物理核心 - Git 憲法級 1:1 還原版
+ * [v1.5.9] 模擬器物理核心 - Git 憲法級 1:1 還原版
  * 修正：完全復刻 b02b6fd 動力公式，保全天氣系統，徹底對齊視覺低頭與物理前進。
  */
 object PhysicsEngine {
@@ -78,7 +78,7 @@ object PhysicsEngine {
         val accX = (cosY * rollInput - sinY * pitchInput) * power
         val accZ = (-sinY * rollInput - cosY * pitchInput) * power
         
-        // [v1.8.16] 地面摩擦鎖定：僅在離地後應用水平加速度，防止地面爬行
+        // [v1.5.9] 地面摩擦鎖定：僅在離地後應用水平加速度，防止地面爬行
         if (state.posY > spec.groundOffset + 0.01f) {
             state.velX += accX * dt
             state.velZ += accZ * dt
@@ -91,10 +91,10 @@ object PhysicsEngine {
         state.velX *= (1.0f - (1.0f - damping) * 60f * dt).coerceIn(0f, 1f)
         state.velZ *= (1.0f - (1.0f - damping) * 60f * dt).coerceIn(0f, 1f)
         
-        // [v1.8.21] 正確邏輯順序：先計算預期位置與衝擊速度快照，再執行地面約束
+        // [v1.5.9] 正確邏輯順序：先計算預期位置與衝擊速度快照，再執行地面約束
         val nextX = state.posX + state.velX * dt
         val nextZ = state.posZ + state.velZ * dt
-        // [v1.8.22] 衝擊動量預存：在地面歸零前計算總合速度
+        // [v1.5.9] 衝擊動量預存：在地面歸零前計算總合速度
         val preImpactTotalSpeed = sqrt(state.velX.pow(2) + state.velY.pow(2) + state.velZ.pow(2))
 
         // --- 7. [1:1 Git] 碰撞與地面處理 ---
@@ -103,7 +103,7 @@ object PhysicsEngine {
         
         var isHardLanding = false
         if (nextY <= spec.groundOffset + 0.001f) {
-            // [v1.8.27] 真正的完全關閉：若關閉專業標準，則徹底跳過硬著陸判定
+            // [v1.5.9] 真正的完全關閉：若關閉專業標準，則徹底跳過硬著陸判定
             if (atmos.useStrictLanding) {
                 if (preImpactTotalSpeed > 2.2f) {
                     isHardLanding = true
@@ -121,7 +121,7 @@ object PhysicsEngine {
 
         val isImpact = collisionImpact || isHardLanding
         
-        // [v1.8.25] 移除物理層硬編碼的消息生成，改由 ViewModel 統一決定顯示邏輯
+        // [v1.5.9] 移除物理層硬編碼的消息生成，改由 ViewModel 統一決定顯示邏輯
         if (isHardLanding && systemMsg == null) {
             systemMsg = if (preImpactTotalSpeed > 3.5f) "CRASH_EXTREME" else "CRASH_STRUCTURAL"
         }
@@ -138,7 +138,7 @@ object PhysicsEngine {
     }
 
     private fun applyWind(dt: Float, state: DronePhysicsState, atmos: AtmosConfig, mass: Float, groundOffset: Float) {
-        // [v1.8.15] 地面效應與高度風切：未起飛或低空時風力衰減
+        // [v1.5.9] 地面效應與高度風切：未起飛或低空時風力衰減
         // 增加起飛門檻：高度低於 1cm 視為未起飛，完全封鎖風力受力，防止地面爬行
         if (state.posY <= groundOffset + 0.01f) return
 
@@ -146,10 +146,10 @@ object PhysicsEngine {
             WindManager.calculateHeightFactor(state.posY, groundOffset)
         } else 1.0f
 
-        val wVec = WindManager.calculateWindVector(atmos.windLevel, atmos.windDirection, atmos.windVariation, atmos.windDirVariation, state.flightTime, atmos.randomDirAngle)
+        val wVec = WindManager.calculateWindVector(atmos.windLevel, atmos.windDirection, atmos.windVariation, atmos.windDirVariation, state.flightTime, com.horizon.caadronesimulator.model.DroneState.getInstance())
         val gust = WindManager.calculateGust(atmos.windVariation, atmos.randomWindPhase, state.flightTime, atmos.windLevel, atmos.useHardcore)
         
-        // [v1.8.35] 精確修正：僅對飛機進行 X 軸風力受力反轉，修正東風往東飄的問題。
+        // [v1.5.9] 精確修正：僅對飛機進行 X 軸風力受力反轉，修正東風往東飄的問題。
         // 保持 wVec[0] 原樣以維護雲層等其它組件的正確性。
         val windAccX = (-wVec[0] * atmos.windLevel * 0.8f * gust * heightFactor) / mass
         val windAccZ = (wVec[1] * atmos.windLevel * 0.8f * gust * heightFactor) / mass
@@ -175,7 +175,7 @@ object PhysicsEngine {
         val spec = DroneRegistry.getSpec(type)
         val mt = max(abs(p), abs(r))
 
-        // 1. [v1.8.37] 實體障礙物碰撞偵測 (僅在開啟時激活)
+        // 1. [v1.5.9] 實體障礙物碰撞偵測 (僅在開啟時激活)
         if (showObstacles) {
             for (obs in com.horizon.caadronesimulator.model.Constants.OBSTACLES) {
                 val obsX = obs[0]; val obsZ = obs[1]; val obsH = obs[2]; val obsR = obs[4]
@@ -187,7 +187,7 @@ object PhysicsEngine {
             }
         }
 
-        // --- [v1.8.27] 姿態感應碰撞判定：若關閉專業標準，則忽略地面傾角損毀 ---
+        // --- [v1.5.9] 姿態感應碰撞判定：若關閉專業標準，則忽略地面傾角損毀 ---
         if (useStrict) {
             val tiltRad = mt * (PI.toFloat() / 180f)
             val tiltOffset = spec.collisionRadius * sin(tiltRad)

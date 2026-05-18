@@ -28,7 +28,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * [v1.7.7] 模擬器主入口 - 效能極致優化版
+ * [v1.5.9] 模擬器主入口 - 效能極致優化版
  * 職責：管理組件生命週期與高頻渲染回調。
  */
 class MainActivity : ComponentActivity() {
@@ -123,6 +123,16 @@ class MainActivity : ComponentActivity() {
                 viewModel = viewModel, showSplash = showSplash, 
                 onCloseSplash = { showSplash = false }, 
                 onResetFlight = { viewModel.resetFlight(droneState, renderer) }, 
+                onRerollWind = { renderer.rerollWindDirection() },
+                onRestoreDefaults = { 
+                    // [v1.6.1] 恢復原廠設定：中央協調層
+                    viewModel.restoreFactorySettings(droneState, renderer)
+                    configStore.wipeAllSettings()
+                    configStore.saveSettings(droneState) // 抹除後立刻寫入當前預設值
+                    updateSystemUI()
+                    usbSerialManager.stopAll()
+                    droneState.inputMode = -1 // 回歸手選模式
+                },
                 onExportLog = { saveDiagnosticLog() }, 
                 onUpdateBaudRate = { b -> droneState.baudRate = b; usbSerialManager.setBaudRate(b); configStore.saveSettings(droneState) },
                 onUpdateInputMode = { m ->
@@ -130,7 +140,7 @@ class MainActivity : ComponentActivity() {
                     if (droneState.inputMode != m) {
                         droneState.isInteractionLocked = true; droneState.inputMode = m; configStore.saveSettings(droneState)
                         
-                        // [v1.8.36] 手動切換邏輯：使用者手動點擊模式後，解除 USB 主權鎖定
+                        // [v1.5.9] 手動切換邏輯：使用者手動點擊模式後，解除 USB 主權鎖定
                         droneState.isUsbStickyActive = false
                         
                         usbSerialManager.stopAll()
@@ -153,7 +163,7 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         updateSystemUI()
         
-        // [v1.8.36] 冷啟動自動感知：檢查當前是否已插入 AX12 或 HID 設備
+        // [v1.5.9] 冷啟動自動感知：檢查當前是否已插入 AX12 或 HID 設備
         lifecycleScope.launch {
             delay(300)
             val usbManager = getSystemService(USB_SERVICE) as android.hardware.usb.UsbManager

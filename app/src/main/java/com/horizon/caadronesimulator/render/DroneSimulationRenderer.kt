@@ -11,7 +11,7 @@ import javax.microedition.khronos.opengles.GL10
 import kotlin.math.*
 
 /**
- * [v1.8.4] 模擬器渲染主引擎 - 科學氣候修復版
+ * [v1.5.9] 模擬器渲染主引擎 - 科學氣候修復版
  * 修正：徹底解決 U/V 捲動接縫與層雲可見度問題。
  */
 class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Float, Float, Float, Float, Float, Boolean, Float, Int, androidx.compose.ui.geometry.Offset?, Float?, Float?, Float?, Float?) -> Unit) : GLSurfaceView.Renderer {
@@ -35,8 +35,8 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
     var pipRect: android.graphics.Rect? = null; var zoomPipRect: android.graphics.Rect? = null
     private var randomWindPhase = 0f; private var turbulencePhase = 0f; private var specialTitleScreenPos: androidx.compose.ui.geometry.Offset? = null
     private var titleTextureId = -1; private var texH = -1; private var texCoordH = -1; private var useTexH = -1
-    private var randomDirAngle = 0f; private var flagVisualAngle = 0f; private var cloudTextureId = -1; private var mountainTextureId = -1
-    var weatherMode = 1; private var lastWeatherMode = -1; private var lastDensity = -1f; var cloudU = 0f; var cloudV = 0f 
+    private var flagVisualAngle = 0f; private var cloudTextureId = -1; private var mountainTextureId = -1
+    var weatherMode = 0; private var lastWeatherMode = -1; private var lastDensity = -1f; var cloudU = 0f; var cloudV = 0f
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         val vShader = "attribute vec4 vPosition; attribute vec2 aTexCoord; uniform mat4 uMVPMatrix; varying vec2 vTexCoord; void main() { gl_Position = uMVPMatrix * vPosition; vTexCoord = aTexCoord; }".trimIndent()
@@ -62,10 +62,10 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
         val dt = ((now - lastFrameTime) / 1_000_000_000f).coerceIn(0.001f, 0.05f); lastFrameTime = now
         if (!isPaused) {
             randomWindPhase += dt * (1.2f + windVariation * 0.6f); turbulencePhase += dt * (0.8f + windVariation * 0.4f)
-            val atmos = PhysicsEngine.AtmosConfig(windLevel, windDirection, windVariation.toInt(), windDirVariation.toInt(), enableVerticalDraft, useFlightLimit, randomWindPhase, turbulencePhase, randomDirAngle, applyPhysicalSpecs, isMotorLocked, useHardcorePhysics, com.horizon.caadronesimulator.model.DroneState.getInstance().useStrictLanding, showObstacles)
+            val atmos = PhysicsEngine.AtmosConfig(windLevel, windDirection, windVariation.toInt(), windDirVariation.toInt(), enableVerticalDraft, useFlightLimit, randomWindPhase, turbulencePhase, 0f, applyPhysicalSpecs, isMotorLocked, useHardcorePhysics, com.horizon.caadronesimulator.model.DroneState.getInstance().useStrictLanding, showObstacles)
             val result = PhysicsEngine.step(dt, physicsState, PhysicsEngine.ControlInput(ctrlThrottle, ctrlYaw, ctrlPitch, ctrlRoll), atmos, droneType)
             com.horizon.caadronesimulator.logic.CameraDirector.update(physicsState.posX, physicsState.posY - getGroundY(), physicsState.posZ, observerHeight, observerTilt, zoomFactor, mainFOV, cameraMode, lastManualTouchTime, droneType, dt, com.horizon.caadronesimulator.model.DroneState.getInstance())
-            // [v1.8.21] 終極修正：直接透傳 PhysicsEngine 返回的 impactSpeed。
+            // [v1.5.9] 終極修正：直接透傳 PhysicsEngine 返回的 impactSpeed。
             // 禁止在 Renderer 重新計算速度，因為此時物理引擎可能已經為了地面摩擦而將 velocity 歸零。
             onFlightDataUpdate(physicsState.posY, physicsState.posX, physicsState.posZ, physicsState.yaw, physicsState.visPitch, physicsState.visRoll, result.impactSpeed, result.isImpact, physicsState.batteryVoltage, physicsState.batteryPercent, specialTitleScreenPos, com.horizon.caadronesimulator.logic.CameraDirector.smoothedHeight, com.horizon.caadronesimulator.logic.CameraDirector.smoothedTilt, com.horizon.caadronesimulator.logic.CameraDirector.smoothedZoom, com.horizon.caadronesimulator.logic.CameraDirector.smoothedFov)
         }
@@ -103,6 +103,13 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
 
     fun updateControls(yaw: Float, throttle: Float, roll: Float, pitch: Float) { ctrlYaw = yaw; ctrlThrottle = throttle; ctrlRoll = roll; ctrlPitch = pitch }
     private fun getGroundY(): Float = DroneRegistry.getSpec(droneType).groundOffset
+    
+    /** [v1.6.1] 重新擲骰子：生成新的隨機風向基準角並存入全域狀態 */
+    fun rerollWindDirection() {
+        val ds = com.horizon.caadronesimulator.model.DroneState.getInstance()
+        ds.env.randomWindAngle = (java.util.Random().nextFloat() * 360f)
+    }
+
     fun resetFlight() { physicsState.reset(getGroundY(), 0f); onFlightDataUpdate(physicsState.posY, 0f, 0f, 0f, 0f, 0f, 0f, false, 4.2f, 100, null, null, null, null, null) }
     private fun calculateProjectedTitlePos() { if (!showSpecialTitle) { specialTitleScreenPos = null; return }; val worldPos = floatArrayOf(0f, 0.015f, 3.0f, 1.0f); val mvp = FloatArray(16); Matrix.multiplyMM(mvp, 0, mainPMatrix, 0, mainVMatrix, 0); val screenPos = FloatArray(4); Matrix.multiplyMV(screenPos, 0, mvp, 0, worldPos, 0); if (screenPos[3] > 0) { val ndcX = screenPos[0] / screenPos[3]; val ndcY = screenPos[1] / screenPos[3]; specialTitleScreenPos = androidx.compose.ui.geometry.Offset((ndcX + 1f) / 2f * viewWidth, (1f - ndcY) / 2f * viewHeight) } else { specialTitleScreenPos = null } }
 

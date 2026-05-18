@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.sp
 import java.util.Locale
 
 /**
- * [v1.8.32] 視訊導航與介面配置頁面
+ * [v1.5.9] 視訊導航與介面配置頁面
  * 互動優化：標題輸入改為彈出對話框模式。
  */
 @Composable
@@ -101,10 +101,22 @@ fun VisualNavigationScreen(
                         value = zoomFactor,
                         onValueChange = onUpdateZoom,
                         onValueChangeFinished = onSave,
-                        valueRange = 1.0f..4.0f,
+                        valueRange = 0.5f..4.0f,
                         modifier = Modifier.weight(2f).height(24.dp),
                         colors = SliderDefaults.colors(thumbColor = Color.Cyan)
                     )
+                }
+                
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("0.5x", "1.0x", "1.5x", "2.0x", "3.0x").forEach { label ->
+                        val valOf = label.replace("x", "").toFloat()
+                        FilterChip(
+                            selected = kotlin.math.abs(zoomFactor - valOf) < 0.1f,
+                            onClick = { onUpdateZoom(valOf); onSave() },
+                            label = { Text(label, fontSize = 10.sp) },
+                            modifier = Modifier.height(24.dp)
+                        )
+                    }
                 }
                 
                 Spacer(modifier = Modifier.height(10.dp))

@@ -89,6 +89,13 @@ object CameraDirector {
                 val verticalShift = if (isOverhead) 0f else tan(rad) * distH
                 Matrix.setLookAtM(vMatrix, 0, 0f, smoothedHeight, -9f, curX, curY + verticalShift, curZ, 0f, upY, upZ)
             }
+            mode == "站位視角 (固定)" -> {
+                // [v1.6.1] 站位視角 (固定)：視線基準為中心點 (0,0,0)，仰角拉桿控制抬頭
+                val rad = Math.toRadians(smoothedTilt.toDouble()).toFloat()
+                // 固定視距為 9.0m (從站位 -9 到中心 0)，根據角度計算垂直偏移量
+                val verticalTargetShift = tan(rad) * 9.0f
+                Matrix.setLookAtM(vMatrix, 0, 0f, smoothedHeight, -9f, 0f, verticalTargetShift, 0f, 0f, 1f, 0f)
+            }
             mode == "觀察員視角 (實驗性)" -> {
                 val isOverhead = distH < 2.0f
                 val upY = if (isOverhead) 0f else 1f

@@ -22,7 +22,7 @@ object Constants {
     const val FIELD_Z_BACK = -9f     // 飛手站位線 (相對於 H 點)
     const val WARNING_BUFFER = 5f
 
-    // [v1.8.37] 實體障礙物定義 [X, Z, 高度, 類型ID, 碰撞半徑]
+    // [v1.5.9] 實體障礙物定義 [X, Z, 高度, 類型ID, 碰撞半徑]
     val OBSTACLES = arrayOf(
         floatArrayOf(-32f, 16f, 13f, 0f, 2.5f), 
         floatArrayOf(-28f, 31f, 8f, 2f, 1.8f),

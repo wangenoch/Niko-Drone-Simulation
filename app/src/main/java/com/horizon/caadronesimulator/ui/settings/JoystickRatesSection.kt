@@ -28,7 +28,8 @@ import java.util.Locale
 import kotlin.math.*
 
 /**
- * [v1.5.5] 靈敏度控制區塊 - 極簡油門版
+ * [v1.6.1] 靈敏度控制區塊 - 極簡油門版
+ * 修正：為非對稱滑動條 (AsymmetricalSlider) 加入精確數值顯示。
  */
 @Composable
 fun JoystickRatesSection(
@@ -159,6 +160,8 @@ fun RateCard(
 fun AsymmetricalSlider(label: String, value: Float, onValueChange: (Float) -> Unit, isSmall: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(label, color = Color.Gray, fontSize = if(isSmall) 7.sp else 8.sp, modifier = Modifier.width(if(isSmall) 28.dp else 34.dp))
+        // [v1.6.1] 加入精確數值顯示，方便教官進行量化微調
+        Text("R:%.1f".format(java.util.Locale.US, value), color = Color.Cyan.copy(0.7f), fontSize = if(isSmall) 7.sp else 8.sp, modifier = Modifier.width(if(isSmall) 28.dp else 32.dp))
         Slider(value = value, onValueChange = onValueChange, valueRange = 0.1f..2.0f, modifier = Modifier.height(20.dp), colors = SliderDefaults.colors(thumbColor = Color.Cyan, activeTrackColor = Color.Cyan.copy(0.5f)))
     }
 }

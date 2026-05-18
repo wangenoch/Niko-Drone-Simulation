@@ -102,10 +102,15 @@ fun JoystickMappingScreen(
                     }
 
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        // [v1.8.34] 一鍵鎖定：教官調整完畢後可快速隱藏技術欄位
+                        // [v1.6.1] 一鍵鎖定：教官調整完畢後可快速隱藏技術欄位
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { state.isExpertModeLocked = true }) {
                             Text("快速鎖定", color = Color.Yellow.copy(0.6f), fontSize = 10.sp)
-                            Switch(checked = true, onCheckedChange = { state.isExpertModeLocked = true }, modifier = Modifier.scale(0.55f), colors = SwitchDefaults.colors(checkedThumbColor = Color.Yellow))
+                            Switch(
+                                checked = false, // 未鎖定狀態下，開關顯示為關閉，點擊後變為 true 並隱藏
+                                onCheckedChange = { state.isExpertModeLocked = true }, 
+                                modifier = Modifier.scale(0.55f), 
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.Yellow)
+                            )
                         }
                         
                         IconButton(
@@ -132,59 +137,6 @@ fun JoystickMappingScreen(
             )
         }
 
-        // [v1.5.2] Industrial Logic 2.0: 協議智慧套用詢問窗
-        if (state.commDecisionState == com.horizon.caadronesimulator.model.CommDecisionState.ENGAGED) {
-            Box(
-                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f)).clickable { /* 阻斷點擊 */ },
-                contentAlignment = Alignment.Center
-            ) {
-                Surface(
-                    color = Color(0xFF1B2535),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, Color.Cyan.copy(alpha = 0.5f)),
-                    modifier = Modifier.width(360.dp)
-                ) {
-                    Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.SettingsSuggest, null, tint = Color.Cyan, modifier = Modifier.size(48.dp))
-                        Spacer(Modifier.height(16.dp))
-                        Text("🚀 偵測到優化協議", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.height(8.dp))
-                        val profile = com.horizon.caadronesimulator.logic.HardwareRegistry.detectHardware()
-                        Text(
-                            text = "系統偵測到您目前使用的是 ${profile.brandName}。是否要自動套用優化後的傳輸協議與按鍵映射？",
-                            color = Color.White.copy(alpha = 0.8f),
-                            fontSize = 14.sp,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                        Spacer(Modifier.height(24.dp))
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            OutlinedButton(
-                                onClick = { 
-                                    // 拒絕：暫時忽略此裝置，回歸掃描
-                                    state.commDecisionState = com.horizon.caadronesimulator.model.CommDecisionState.SCANNING 
-                                },
-                                modifier = Modifier.weight(1f),
-                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f))
-                            ) {
-                                Text("忽略", color = Color.White)
-                            }
-                            Button(
-                                onClick = { 
-                                    // 接受：套用並鎖定
-                                    onUpdateLockedProtocol(profile.id)
-                                    onUpdateBaudRate(profile.driver?.recommendedBaudRate ?: 115200)
-                                    state.commDecisionState = com.horizon.caadronesimulator.model.CommDecisionState.LOCKED
-                                },
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.Cyan)
-                            ) {
-                                Text("立即套用", color = Color.Black, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
-            }
-        }
 
         // 3. 下方映射與靈敏度區塊 (對稱對齊版)
         Row(

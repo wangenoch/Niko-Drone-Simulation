@@ -6,7 +6,7 @@ import android.util.AttributeSet
 import com.horizon.caadronesimulator.render.DroneSimulationRenderer
 
 /**
- * [v1.7.2] 專屬 3D 渲染視圖組件
+ * [v1.5.9] 專屬 3D 渲染視圖組件
  * 提供穩定的 OpenGL ES 2.0 上下文與連續渲染模式。
  */
 class SimulationSurfaceView @JvmOverloads constructor(

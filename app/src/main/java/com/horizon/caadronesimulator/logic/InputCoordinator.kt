@@ -10,7 +10,8 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * [v1.5.3] 專業輸入協調中心 (Fixed Inversion Logic)
+ * [v1.6.1] 專業輸入協調中心 (Pure Physical Data Architecture)
+ * 修正：移除所有採集層的 Inversion 邏輯，確保 raw 數據為 100% 物理位移。
  */
 object InputCoordinator {
 
@@ -157,32 +158,10 @@ object InputCoordinator {
 
     private fun processMainJoystickInput(event: MotionEvent, state: DroneState, stickInput: StickInputState) {
         fun gV(m: ChannelMapping, d: Int, y: Boolean = false): Float { 
+            // [v1.6.1] 回歸純物理數據採集：移除所有 Inversion 與 Expo/Rate 運算
+            // 所有處理邏輯統一收口至 StickInputState 中執行
             val raw = event.getAxisValue(if (m.axis != -1 && m.axis < 100) m.axis else d)
-            val processed = if (m.inverted) -raw else raw
-            val posKey = when(d) {
-                MotionEvent.AXIS_Y -> "ly"; MotionEvent.AXIS_X -> "lx"
-                MotionEvent.AXIS_RZ -> "ry"; MotionEvent.AXIS_Z -> "rx"; else -> ""
-            }
-            
-            // [v1.8.17] 語義化功能映射：根據 Mode 1-4 將物理軸向轉換為飛行功能 (T/Y/P/R)
-            // 這確保了 (飛機特徵 => 專屬曲線 => 靈敏度) 流程能正確對接到對應的功能基因
-            val funcKey = when(state.joystickMode) {
-                1 -> when(posKey) { "ly" -> "P"; "lx" -> "Y"; "ry" -> "T"; "rx" -> "R"; else -> "" }
-                2 -> when(posKey) { "ly" -> "T"; "lx" -> "Y"; "ry" -> "P"; "rx" -> "R"; else -> "" }
-                3 -> when(posKey) { "ly" -> "T"; "lx" -> "R"; "ry" -> "P"; "rx" -> "Y"; else -> "" }
-                4 -> when(posKey) { "ly" -> "P"; "lx" -> "R"; "ry" -> "T"; "rx" -> "Y"; else -> "" }
-                else -> posKey
-            }
-            
-            val rate = state.getRate(funcKey, processed)
-            val expo = state.getExpo(funcKey)
-            
-            // 應用 Expo 曲線
-            val absV = abs(processed)
-            val curved = (expo * absV * absV * absV + (1f - expo) * absV) * rate
-            val finalVal = (if (processed < 0) -curved else curved).coerceIn(-1f, 1f)
-            
-            return if (y) -finalVal else finalVal
+            return if (y) -raw else raw
         }
 
         stickInput.updateRaw(

@@ -87,7 +87,7 @@ class UsbSerialManager(
             when (intent.action) {
                 UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
                     if (isRelevantDevice(device)) {
-                        // [v1.8.36] 智慧通訊主權：偵測到專業硬體或 HID 手把，自動切換至「外接」模式並鎖定主權
+                        // [v1.5.9] 智慧通訊主權：偵測到專業硬體或 HID 手把，自動切換至「外接」模式並鎖定主權
                         if (device?.vendorId == 0x2E3C || isHidJoystick(device)) {
                             droneState.inputMode = 0
                             droneState.isUsbStickyActive = true
@@ -193,7 +193,7 @@ class UsbSerialManager(
     fun scanAndConnect() {
         if (isUserStopped) return
         synchronized(this) {
-            // [v1.8.36] USB 主權保護：若 USB 外接鎖定中，則不啟動背景矩陣掃描
+            // [v1.5.9] USB 主權保護：若 USB 外接鎖定中，則不啟動背景矩陣掃描
             if (droneState.isUsbStickyActive && droneState.inputMode == 0) {
                 addLogEntry("USB 主權鎖定中，暫停背景自動掃描。")
                 return
@@ -312,8 +312,14 @@ class UsbSerialManager(
         if (consecutiveValidFrames >= 3) {
             if (droneState.commDecisionState == CommDecisionState.SCANNING) {
                 val profile = HardwareRegistry.detectHardware()
-                if (profile.id != "GENERIC_MOBILE" && profile.driver?.isAutoPromptEnabled == true) updateDecisionState(CommDecisionState.ENGAGED) 
-                else { detectedProtocolName = "✅ $proto"; onProtocolDetected(proto); updateDecisionState(CommDecisionState.LOCKED) }
+                // [重構優化] 優先權控制：若處於 USB HID 模式或已手動忽略，禁止跳出優化提示
+                if (droneState.inputMode == 0 || droneState.optimizationPromptIgnored) {
+                    detectedProtocolName = "✅ $proto"; onProtocolDetected(proto); updateDecisionState(CommDecisionState.LOCKED)
+                } else if (profile.id != "GENERIC_MOBILE" && profile.driver?.isAutoPromptEnabled == true) {
+                    updateDecisionState(CommDecisionState.ENGAGED)
+                } else { 
+                    detectedProtocolName = "✅ $proto"; onProtocolDetected(proto); updateDecisionState(CommDecisionState.LOCKED) 
+                }
             }
         }
     }

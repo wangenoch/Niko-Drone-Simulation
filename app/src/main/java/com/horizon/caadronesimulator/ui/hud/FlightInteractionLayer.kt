@@ -40,7 +40,7 @@ fun FlightInteractionLayer(
     Box(modifier = modifier.fillMaxSize()) {
         // --- 1. 著地安全控制 ---
         val spec = remember(state.droneType) { DroneRegistry.getSpec(state.droneType) }
-        // [v1.8.26] 提高地面判定寬容度至 0.5m，確保物理彈跳時下打油門仍能停槳
+        // [v1.5.9] 提高地面判定寬容度至 0.5m，確保物理彈跳時下打油門仍能停槳
         val isNearGround by remember(state.altitude) { derivedStateOf { state.altitude <= (spec.groundOffset + 0.5f) } }
         
         if (isNearGround) {
@@ -90,7 +90,7 @@ fun FlightInteractionLayer(
                         var cameraMenuExpanded by remember { mutableStateOf(false) }
                         Box {
                             InteractionBtn(Icons.Default.Visibility) { viewExpanded = true }
-                            // [v1.8.28] 樣式還原：1:1 復刻 Git 原始深色戰術選單
+                            // [v1.5.9] 樣式還原：1:1 復刻 Git 原始深色戰術選單
                             MaterialTheme(
                                 colorScheme = MaterialTheme.colorScheme.copy(surface = Color(0xEE111111)),
                                 shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(12.dp))
@@ -109,12 +109,24 @@ fun FlightInteractionLayer(
                                     DropdownMenuItem(
                                         text = { 
                                             val z = state.zoomFactor
-                                            val label = when { z < 1.25f -> "1.0X"; z < 1.75f -> "1.5X"; z < 2.5f -> "2.0X"; else -> "3.0X" }
+                                            val label = when { 
+                                                z < 0.75f -> "0.5X"
+                                                z < 1.25f -> "1.0X"
+                                                z < 1.75f -> "1.5X"
+                                                z < 2.5f -> "2.0X"
+                                                else -> "3.0X" 
+                                            }
                                             Text("視野倍率：$label (點擊切換)", color = Color.Cyan, fontSize = 13.sp) 
                                         }, 
                                         onClick = { 
                                             val current = state.zoomFactor
-                                            val next = when { current < 1.25f -> 1.5f; current < 1.75f -> 2.0f; current < 2.5f -> 3.0f; else -> 1.0f }
+                                            val next = when { 
+                                                current < 0.75f -> 1.0f
+                                                current < 1.25f -> 1.5f
+                                                current < 1.75f -> 2.0f
+                                                current < 2.5f -> 3.0f
+                                                else -> 0.5f 
+                                            }
                                             onUpdateState { zoomFactor = next } 
                                         }
                                     )

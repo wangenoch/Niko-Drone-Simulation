@@ -3,7 +3,15 @@ package com.horizon.caadronesimulator.logic
 import android.os.Build
 
 /**
- * [v1.2.82] 硬件裝置描述檔 (通用化識別版)
+ * [v1.6.1] 硬件裝置描述檔 (通用化識別版)
+ * 
+ * --- 狀況排除 SOP (供未來 Agent 參考) ---
+ * 如果發現遙控器油門或舵面方向相反：
+ * 1. 檢查物理數值：前往「硬體診斷面板」，查看原始數據。
+ *    - 物理標準：向上推/向右撥 必須為 正值 (+)。
+ * 2. 若物理數值相反：修改此處對應 Profile 的 getDefaultMapping 中的 inverted 屬性。
+ * 3. 核心規範：嚴禁在 InputCoordinator.kt 採集層進行反相處理，確保數據源純淨。
+ * -------------------------------------------
  */
 data class HardwareProfile(
     val id: String,

@@ -7,7 +7,7 @@ import java.nio.ByteOrder
 import java.nio.FloatBuffer
 
 /**
- * [v1.7.0] 靜態貼圖遠景渲染器 - 終極接縫終結版
+ * [v1.5.9] 靜態貼圖遠景渲染器 - 終極接縫終結版
  * 修正：實施「UV 縮進採樣 (Texture Gutter)」與「幾何硬閉合」，徹底消滅垂直光柱。
  */
 class BackdropRenderer {

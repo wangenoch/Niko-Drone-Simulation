@@ -29,7 +29,7 @@ import com.horizon.caadronesimulator.model.StickInputState
 import com.horizon.caadronesimulator.ui.overlays.ModelConfigConfirmDialog
 
 /**
- * [v1.8.33] 全球整合設定屏 - 底部空間最大化優化版
+ * [v1.5.9] 全球整合設定屏 - 底部空間最大化優化版
  */
 @Composable
 fun UnifiedSettingsScreen(
@@ -45,10 +45,12 @@ fun UnifiedSettingsScreen(
     onUpdateInputMode: (Int) -> Unit = {},
     onToggleNetworkConnection: (Boolean) -> Unit = {},
     onSaveSettings: () -> Unit = {},
+    onRerollWind: () -> Unit = {},
     onSaveModelSettings: (String) -> Unit = {},
     onLoadModelSettings: (String) -> Unit = {},
     onUpdateLockedPath: (String) -> Unit = {},
     onOpenNetworkSettings: () -> Unit = {},
+    onRestoreDefaults: () -> Unit = {},
     availablePorts: List<String> = emptyList(),
     onTargetPositioned: (String, Rect) -> Unit = { _, _ -> }
 ) {
@@ -99,6 +101,18 @@ fun UnifiedSettingsScreen(
                                 HeaderMiniJoystickWrapper("L", stickState.rawLX, stickState.rawLY)
                                 HeaderMiniJoystickWrapper("R", stickState.rawRX, stickState.rawRY)
                             }
+                        } else if (state.settingsTab == SettingsTab.DRONE_SELECTION) {
+                            // [v1.6.1] 恢復套用真實物理特性開關，置於關閉按鈕左側
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 8.dp)) {
+                                Text("套用機種真實物理特性", color = Color.White.copy(0.7f), fontSize = 11.sp)
+                                Spacer(Modifier.width(4.dp))
+                                Switch(
+                                    checked = state.applyPhysicalSpecs,
+                                    onCheckedChange = { onUpdateState { applyPhysicalSpecs = it } },
+                                    modifier = Modifier.scale(0.6f),
+                                    colors = SwitchDefaults.colors(checkedThumbColor = Color.Cyan)
+                                )
+                            }
                         }
                         Spacer(Modifier.width(16.dp))
                         IconButton(onClick = onClose, modifier = Modifier.size(36.dp).background(Color.White.copy(0.1f), CircleShape)) {
@@ -115,7 +129,8 @@ fun UnifiedSettingsScreen(
                                 SettingsTab.ENVIRONMENT -> ClimateSettingsScreen(
                                     windLevel = state.windLevel, windDirection = state.windDirection, windVariation = state.windVariation, windDirVariation = state.windDirVariation, timeOfDay = state.timeOfDay, shadowIntensity = state.shadowIntensity, enableVerticalDraft = state.enableVerticalDraft, useHardcorePhysics = state.useHardcorePhysics, isSunSimEnabled = state.isSunSimEnabled, sunPosition = state.sunPosition, showClouds = state.showClouds, cloudDensity = state.cloudDensity, weatherMode = state.weatherMode,
                                     onUpdateWindLevel = { onUpdateState { windLevel = it } }, onUpdateWindDirection = { onUpdateState { windDirection = it } }, onUpdateWindVariation = { onUpdateState { windVariation = it } }, onUpdateWindDirVariation = { onUpdateState { windDirVariation = it } }, onUpdateTimeOfDay = { onUpdateState { timeOfDay = it } }, onUpdateShadowIntensity = { onUpdateState { shadowIntensity = it } }, onToggleVerticalDraft = { onUpdateState { enableVerticalDraft = it } }, onToggleHardcorePhysics = { onUpdateState { useHardcorePhysics = it } }, onToggleSunSim = { onUpdateState { isSunSimEnabled = it } }, onUpdateSunPosition = { onUpdateState { sunPosition = it } }, onToggleClouds = { onUpdateState { showClouds = it } }, onUpdateCloudDensity = { onUpdateState { cloudDensity = it } }, onUpdateWeatherMode = { onUpdateState { weatherMode = it } },
-                                    showMountains = state.showMountains, onToggleMountains = { onUpdateState { showMountains = it } }, onSave = onSaveSettings, onTargetPositioned = onTargetPositioned
+                                    showMountains = state.showMountains, onToggleMountains = { onUpdateState { showMountains = it } }, onSave = onSaveSettings, onTargetPositioned = onTargetPositioned,
+                                    onRerollWind = onRerollWind
                                 )
                                 SettingsTab.CAMERA -> VisualNavigationScreen(
                                     cameraMode = state.cameraMode, mainFOV = state.mainFOV, zoomFactor = state.zoomFactor, showSpecialTitle = state.showSpecialTitle, customTitle = state.customTitle, showSideSliders = state.showSideSliders, showSideRulers = state.showSideRulers, reverseSliderSides = state.reverseSliderSides, showGroundAnchor = state.showGroundAnchor, autoPiPRelocate = state.autoPiPRelocate, enableZoomAssistant = state.enableZoomAssistant,
@@ -124,7 +139,7 @@ fun UnifiedSettingsScreen(
                                 SettingsTab.DRONE_SELECTION -> DroneSelectionScreen(currentType = state.droneType, onTypeSelected = { t -> onUpdateState { droneType = t }; onLoadModelSettings(t) }, onLongPressType = { t -> onUpdateState { showModelConfigConfirm = t } }, state = state)
                                 SettingsTab.CONTROLLER -> JoystickMappingScreen(
                                     mappingLY = state.mappingLY, mappingLX = state.mappingLX, mappingRY = state.mappingRY, mappingRX = state.mappingRX, isAutoBinding = state.isAutoBinding, halfThrottle = state.halfThrottle, joystickDeadzone = state.joystickDeadzone, activeAxis = state.activeAxisLabel, joystickMode = state.joystickMode, stickLX = stickState.rawLX, stickLY = stickState.rawLY, stickRX = stickState.rawRX, stickRY = stickState.rawRY, activeHidName = state.activeHidName, useGlobalRates = state.useGlobalRates, globalRate = state.globalRate, globalExpo = state.globalExpo, rateLY = state.rateT, expoLY = state.expoT, rateLX = state.rateY, expoLX = state.expoY, rateRY = state.rateP, expoRY = state.expoP, rateRX = state.rateR, expoRX = state.expoR, showIndividualRates = state.showIndividualRates, 
-                                    onStartCalibration = { onUpdateState { isCalibrating = true; calibrationStep = 1 } }, onStartWizard = { onUpdateState { setupWizardStep = 1; wizardWaitingForNeutral = false } }, onToggleHalfThrottle = { b -> onUpdateState { halfThrottle = b } }, onUpdateDeadzone = { f -> onUpdateState { joystickDeadzone = f } }, onStartBinding = { k -> onUpdateState { isAutoBinding = if (isAutoBinding == k) null else k.ifEmpty { null } } }, onToggleInvert = { k -> onUpdateState { when(k) { "ly" -> mappingLY = mappingLY.copy(inverted = !mappingLY.inverted); "lx" -> mappingLX = mappingLX.copy(inverted = !mappingLX.inverted); "ry" -> mappingRY = mappingRY.copy(inverted = !mappingRY.inverted); "rx" -> mappingRX = mappingRX.copy(inverted = !mappingRX.inverted) } } }, onManualBind = { k, a -> onUpdateState { val l = if (a >= 101) "Serial CH${a - 100}" else "Axis $a"; val m = ChannelMapping(a, false, l); when(k) { "ly" -> mappingLY = m; "lx" -> mappingLX = m; "ry" -> mappingRY = m; "rx" -> mappingRX = m } } }, onModeChange = { m -> onUpdateState { joystickMode = m } }, onToggleGlobalRates = { b -> onUpdateState { useGlobalRates = b } }, onUpdateGlobalRate = { r -> onUpdateState { globalRate = r } }, onUpdateGlobalExpo = { e -> onUpdateState { globalExpo = e } }, onUpdateIndividualRate = { k, r -> onUpdateState { when(k) { "T" -> rateT = r; "Y" -> rateY = r; "P" -> rateP = r; "R" -> rateR = r } } }, onUpdateIndividualExpo = { k, e -> onUpdateState { when(k) { "T" -> expoT = e; "Y" -> expoY = e; "P" -> expoP = e; "R" -> expoR = e } } }, onToggleShowIndividual = { b -> onUpdateState { showIndividualRates = b } }, onResetRates = { onUpdateState { globalRate = 1.2f; globalExpo = 0.4f; rateT = 1.2f; expoT = 0.4f; rateY = 1.2f; expoY = 0.4f; rateP = 1.2f; expoP = 0.4f; rateR = 1.2f; expoR = 0.4f; joystickDeadzone = 0.05f } }, inputMode = state.inputMode, rawChannels = stickState.rawChannels, onToggleMappingUnlock = { b -> onUpdateState { isMappingUnlocked = b } }, activeSerialPath = state.activeSerialPath, rawHexData = state.rawHexData, linkType = state.linkType, baudRate = state.baudRate, connectionStatus = state.connectionStatus, packetsPerSecond = stickState.packetsPerSecond, detectedProtocol = state.detectedProtocol, isSerialConflict = state.isSerialConflict, conflictPid = state.conflictPid, rawBytesCount = state.rawBytesCount, bufferUsage = state.bufferUsage, isSignalActive = stickState.isSignalActive, lockedProtocol = state.lockedProtocol, onUpdateLockedProtocol = { p -> onUpdateState { lockedProtocol = p } }, isLogcatEnabled = state.isLogcatEnabled, logcatContent = state.logcatContent, onToggleLogcat = { b -> onUpdateState { isLogcatEnabled = b } }, onClearLogcat = { onUpdateState { logcatContent = "" } }, isHardwareController = state.isHardwareController, onOpenAuxMapping = { onUpdateState { showAuxMappingOverlay = true } }, onUpdateInputMode = onUpdateInputMode, onScanUsb = onScanUsb, onUpdateBaudRate = onUpdateBaudRate, onUpdateLockedPath = onUpdateLockedPath, onOpenNetworkSettings = onOpenNetworkSettings, availablePorts = availablePorts, onExportLog = onExportLog, onToggleNetworkConnection = onToggleNetworkConnection, showHardwareMonitor = state.showHardwareMonitor, onToggleHardwareMonitor = { b -> onUpdateState { showHardwareMonitor = b } }, state = state, jitter = state.jitter, stability = state.stability, onTargetPositioned = onTargetPositioned, isMappingUnlocked = state.isMappingUnlocked, isInteractionLocked = state.isInteractionLocked, localSettingsMessage = state.localSettingsMessage, diagnosticLog = state.diagnosticLog
+                                    onStartCalibration = { onUpdateState { isCalibrating = true; calibrationStep = 1 } }, onStartWizard = { onUpdateState { setupWizardStep = 1; wizardWaitingForNeutral = false } }, onToggleHalfThrottle = { b -> onUpdateState { halfThrottle = b } }, onUpdateDeadzone = { f -> onUpdateState { joystickDeadzone = f } }, onStartBinding = { k -> onUpdateState { isAutoBinding = if (isAutoBinding == k) null else k.ifEmpty { null } } }, onToggleInvert = { k -> onUpdateState { when(k) { "ly" -> mappingLY = mappingLY.copy(inverted = !mappingLY.inverted); "lx" -> mappingLX = mappingLX.copy(inverted = !mappingLX.inverted); "ry" -> mappingRY = mappingRY.copy(inverted = !mappingRY.inverted); "rx" -> mappingRX = mappingRX.copy(inverted = !mappingRX.inverted) } } }, onManualBind = { k, a -> onUpdateState { val l = if (a >= 101) "Serial CH${a - 100}" else "Axis $a"; val m = ChannelMapping(a, false, l); when(k) { "ly" -> mappingLY = m; "lx" -> mappingLX = m; "ry" -> mappingRY = m; "rx" -> mappingRX = m } } }, onModeChange = { m -> onUpdateState { joystickMode = m } }, onToggleGlobalRates = { b -> onUpdateState { useGlobalRates = b } }, onUpdateGlobalRate = { r -> onUpdateState { globalRate = r } }, onUpdateGlobalExpo = { e -> onUpdateState { globalExpo = e } }, onUpdateIndividualRate = { k, r -> onUpdateState { when(k) { "T" -> rateT = r; "Y" -> rateY = r; "P" -> rateP = r; "R" -> rateR = r } } }, onUpdateIndividualExpo = { k, e -> onUpdateState { when(k) { "T" -> expoT = e; "Y" -> expoY = e; "P" -> expoP = e; "R" -> expoR = e } } }, onToggleShowIndividual = { b -> onUpdateState { showIndividualRates = b } }, onResetRates = { onUpdateState { globalRate = AppConfig.JoystickDefaults.RATE; globalExpo = AppConfig.JoystickDefaults.EXPO; rateT = AppConfig.JoystickDefaults.RATE; expoT = AppConfig.JoystickDefaults.EXPO; rateY = AppConfig.JoystickDefaults.RATE; expoY = AppConfig.JoystickDefaults.EXPO; rateP = AppConfig.JoystickDefaults.RATE; expoP = AppConfig.JoystickDefaults.EXPO; rateR = AppConfig.JoystickDefaults.RATE; expoR = AppConfig.JoystickDefaults.EXPO; joystickDeadzone = AppConfig.JoystickDefaults.DEADZONE } }, inputMode = state.inputMode, rawChannels = stickState.rawChannels, onToggleMappingUnlock = { b -> onUpdateState { isMappingUnlocked = b } }, activeSerialPath = state.activeSerialPath, rawHexData = state.rawHexData, linkType = state.linkType, baudRate = state.baudRate, connectionStatus = state.connectionStatus, packetsPerSecond = stickState.packetsPerSecond, detectedProtocol = state.detectedProtocol, isSerialConflict = state.isSerialConflict, conflictPid = state.conflictPid, rawBytesCount = state.rawBytesCount, bufferUsage = state.bufferUsage, isSignalActive = stickState.isSignalActive, lockedProtocol = state.lockedProtocol, onUpdateLockedProtocol = { p -> onUpdateState { lockedProtocol = p } }, isLogcatEnabled = state.isLogcatEnabled, logcatContent = state.logcatContent, onToggleLogcat = { b -> onUpdateState { isLogcatEnabled = b } }, onClearLogcat = { onUpdateState { logcatContent = "" } }, isHardwareController = state.isHardwareController, onOpenAuxMapping = { onUpdateState { showAuxMappingOverlay = true } }, onUpdateInputMode = onUpdateInputMode, onScanUsb = onScanUsb, onUpdateBaudRate = onUpdateBaudRate, onUpdateLockedPath = onUpdateLockedPath, onOpenNetworkSettings = onOpenNetworkSettings, availablePorts = availablePorts, onExportLog = onExportLog, onToggleNetworkConnection = onToggleNetworkConnection, showHardwareMonitor = state.showHardwareMonitor, onToggleHardwareMonitor = { b -> onUpdateState { showHardwareMonitor = b } }, state = state, jitter = state.jitter, stability = state.stability, onTargetPositioned = onTargetPositioned, isMappingUnlocked = state.isMappingUnlocked, isInteractionLocked = state.isInteractionLocked, localSettingsMessage = state.localSettingsMessage, diagnosticLog = state.diagnosticLog
                                 )
                                 SettingsTab.SYSTEM -> Column(modifier = Modifier.fillMaxWidth().padding(end = 4.dp)) {
                                     SystemSettingRow("啟動時自動偵測硬體", state.isAutoConnectEnabled, { onUpdateState { isAutoConnectEnabled = it } }, Color.Cyan)
@@ -164,7 +179,7 @@ fun UnifiedSettingsScreen(
                                             }
                                             
                                             Button(
-                                                onClick = onReset,
+                                                onClick = onRestoreDefaults,
                                                 modifier = Modifier.height(32.dp),
                                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F).copy(0.8f)),
                                                 shape = RoundedCornerShape(6.dp),
@@ -172,13 +187,13 @@ fun UnifiedSettingsScreen(
                                             ) {
                                                 Icon(Icons.Default.Refresh, null, modifier = Modifier.size(14.dp))
                                                 Spacer(Modifier.width(6.dp))
-                                                Text("重置", fontSize = 11.sp)
+                                                Text("恢復原廠設定", fontSize = 11.sp)
                                             }
                                         }
 
                                         Column(horizontalAlignment = Alignment.End) {
                                             var clickCount by remember { mutableIntStateOf(0) }
-                                            Text(text = "Developer: ${AppConfig.DEVELOPER}", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.clickable { clickCount++; if (clickCount >= 7) { if (state.isExpertModeLocked) showExpertUnlockDialog = true else state.systemMessage = "專家模式已在開啟狀態"; clickCount = 0 } })
+                                            Text(text = "Developer: ${com.horizon.caadronesimulator.model.AppConfig.DEVELOPER}", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.clickable { clickCount++; if (clickCount >= 7) { if (state.isExpertModeLocked) showExpertUnlockDialog = true else state.systemMessage = "專家模式已在開啟狀態"; clickCount = 0 } })
                                             Text(text = "Version: ${AppConfig.CURRENT_VERSION} (${AppConfig.RELEASE_DATE})", color = Color.Cyan.copy(alpha = 0.7f), fontSize = 10.sp, modifier = Modifier.clickable { onUpdateState { showUpdateNotice = true; showSettings = false } })
                                         }
                                     }
@@ -232,7 +247,7 @@ fun ExpertUnlockDialog(onDismiss: () -> Unit, onUnlock: () -> Unit) {
                 ) 
             } 
         }, 
-        confirmButton = { Button(onClick = { if (password == AppConfig.ADMIN_PASSWORD) { onUnlock(); onDismiss() } else { error = true } }) { Text("解鎖") } }, 
+        confirmButton = { Button(onClick = { if (password == com.horizon.caadronesimulator.model.AppConfig.SystemDefaults.ADMIN_PASSWORD) { onUnlock(); onDismiss() } else { error = true } }) { Text("解鎖") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } }, 
         containerColor = Color(0xFF222222)
     )

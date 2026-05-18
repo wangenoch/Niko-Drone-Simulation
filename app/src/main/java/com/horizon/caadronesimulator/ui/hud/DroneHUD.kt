@@ -25,7 +25,7 @@ import java.util.Locale
 import kotlin.math.*
 
 /**
- * [v1.8.12] 飛行抬頭顯示器 - Git 憲法還原版
+ * [v1.5.9] 飛行抬頭顯示器 - Git 憲法還原版
  * 修正：完全恢復 Git 原始的數據條組件與觸碰回調路徑，確保控制絕對同步。
  */
 @Composable
@@ -53,8 +53,8 @@ fun DroneHUD(
             Box(modifier = Modifier.fillMaxSize().padding(bottom = 40.dp)) {
                 Box(modifier = Modifier.align(Alignment.BottomStart).padding(start = 60.dp, bottom = 40.dp)) {
                     VirtualJoystick(
-                        stickX = stickState.touchLX,
-                        stickY = stickState.touchLY,
+                        stickX = stickState.stickLX(state),
+                        stickY = stickState.stickLY(state),
                         onDragStateChange = { isTouching -> 
                             stickState.isTouchingLeft = isTouching 
                             onUpdateState { lastInteractionTime = System.currentTimeMillis() }
@@ -67,8 +67,8 @@ fun DroneHUD(
                 }
                 Box(modifier = Modifier.align(Alignment.BottomEnd).padding(end = 60.dp, bottom = 40.dp)) {
                     VirtualJoystick(
-                        stickX = stickState.touchRX,
-                        stickY = stickState.touchRY,
+                        stickX = stickState.stickRX(state),
+                        stickY = stickState.stickRY(state),
                         onDragStateChange = { isTouching -> 
                             stickState.isTouchingRight = isTouching 
                             onUpdateState { lastInteractionTime = System.currentTimeMillis() }

@@ -8,7 +8,7 @@ import java.nio.FloatBuffer
 import kotlin.math.*
 
 /**
- * [v1.7.6] 太陽與耀光渲染器 (Performance Optimized)
+ * [v1.5.9] 太陽與耀光渲染器 (Performance Optimized)
  * 修正：加入智慧遮擋判定，當太陽不在視野內或被遮擋時停止耀光矩陣計算。
  */
 class SunRenderer {

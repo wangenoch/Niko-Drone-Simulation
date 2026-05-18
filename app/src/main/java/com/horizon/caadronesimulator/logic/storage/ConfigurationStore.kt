@@ -9,13 +9,21 @@ import com.horizon.caadronesimulator.model.ChannelMapping
 import com.horizon.caadronesimulator.model.DroneState
 
 /**
- * [v1.7.6] 全系統配置存儲庫 (Encapsulated Security Version)
- * 職責：落實數據隱藏 (Data Hiding)，僅透過公開方法讀寫配置。
+ * [v1.6.1] 全系統配置存儲庫 (Encapsulated Security Version)
+ * 職責：落實數據隱藏 (Data Hiding)，新增「記憶抹除 (Wipe)」功能。
  */
 class ConfigurationStore(private val context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("drone_settings", Context.MODE_PRIVATE)
     private val ax12Prefs: SharedPreferences = context.getSharedPreferences("ax12_settings", Context.MODE_PRIVATE)
     private val genericExternalPrefs: SharedPreferences = context.getSharedPreferences("external_settings", Context.MODE_PRIVATE)
+
+    /** [v1.6.1] 徹底抹除所有設定檔 (恢復原廠設定專用) */
+    fun wipeAllSettings() {
+        prefs.edit().clear().apply()
+        ax12Prefs.edit().clear().apply()
+        genericExternalPrefs.edit().clear().apply()
+        // 可選：若有針對不同 VID/PID 的檔案，由於目錄已知，可進階清理
+    }
 
     fun isFirstLaunch(): Boolean = !prefs.contains("lastSeenVersion")
 
@@ -38,7 +46,7 @@ class ConfigurationStore(private val context: Context) {
             putString("timeOfDay", state.timeOfDay); putFloat("shadowIntensity", state.shadowIntensity); putBoolean("useHardcorePhysics", state.useHardcorePhysics)
             putBoolean("isSunSimEnabled", state.isSunSimEnabled); putFloat("sunPosition", state.sunPosition)
             putBoolean("showClouds", state.showClouds); putFloat("cloudDensity", state.cloudDensity); putBoolean("showMountains", state.showMountains)
-            putBoolean("useStrictLanding", state.useStrictLanding)
+            putBoolean("useStrictLanding", state.useStrictLanding); putBoolean("optimizationPromptIgnored", state.optimizationPromptIgnored)
             apply()
         }
         
@@ -107,7 +115,7 @@ class ConfigurationStore(private val context: Context) {
             this.timeOfDay = prefs.getString("timeOfDay", "中午") ?: "中午"; this.useHardcorePhysics = prefs.getBoolean("useHardcorePhysics", false)
             this.isSunSimEnabled = prefs.getBoolean("isSunSimEnabled", false); this.sunPosition = prefs.getFloat("sunPosition", 0.5f)
             this.showClouds = prefs.getBoolean("showClouds", true); this.cloudDensity = prefs.getFloat("cloudDensity", 0.5f); this.showMountains = prefs.getBoolean("showMountains", true)
-            this.useStrictLanding = prefs.getBoolean("useStrictLanding", true)
+            this.useStrictLanding = prefs.getBoolean("useStrictLanding", true); this.optimizationPromptIgnored = prefs.getBoolean("optimizationPromptIgnored", false)
             
             this.rateT = targetPrefs.getFloat("rateT", 1.0f)
             this.rateY = targetPrefs.getFloat("rateY", 1.0f); this.rateP = targetPrefs.getFloat("rateP", 1.0f); this.rateR = targetPrefs.getFloat("rateR", 1.0f)
@@ -122,9 +130,26 @@ class ConfigurationStore(private val context: Context) {
     private fun performInitialSetup(state: DroneState) {
         val hasTouchScreen = context.packageManager.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)
         state.apply { 
-            if (hasTouchScreen) { showVirtualJoysticks = true; globalRate = 1.2f; globalExpo = 0.4f; joystickDeadzone = 0.05f }
-            useFlightLimit = true; showTutorial = true; isMuted = false
-            isExpertModeLocked = true // [v1.8.34] 初始安裝強制鎖定專家模式
+            if (hasTouchScreen) { 
+                showVirtualJoysticks = true
+                globalRate = AppConfig.JoystickDefaults.RATE
+                globalExpo = AppConfig.JoystickDefaults.EXPO
+                joystickDeadzone = AppConfig.JoystickDefaults.DEADZONE
+            }
+            
+            // [v1.6.1] 初始安裝強制同步 AppConfig
+            useFlightLimit = AppConfig.SystemDefaults.USE_FLIGHT_LIMIT
+            useStrictLanding = AppConfig.SystemDefaults.USE_STRICT_LANDING
+            isMuted = AppConfig.SystemDefaults.IS_MUTED
+            applyPhysicalSpecs = AppConfig.SystemDefaults.APPLY_PHYSICAL_SPECS
+            isExpertModeLocked = AppConfig.SystemDefaults.IS_EXPERT_MODE_LOCKED
+            
+            // 環境初始化
+            isSunSimEnabled = AppConfig.EnvironmentDefaults.SUN_ENABLED
+            sunPosition = AppConfig.EnvironmentDefaults.SUN_POSITION
+            weatherMode = AppConfig.EnvironmentDefaults.WEATHER_MODE
+            
+            showTutorial = true
         }; saveSettings(state)
     }
 

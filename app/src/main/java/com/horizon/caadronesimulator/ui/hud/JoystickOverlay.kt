@@ -38,7 +38,7 @@ fun JoystickOverlay(
 
 /**
  * 獨立的搖桿底層邏輯
- * [v1.7.3] 修正解鎖極性：對齊已翻轉的 Roll 軸，確保內八起槳。
+ * [v1.5.9] 修正解鎖極性：對齊已翻轉的 Roll 軸，確保內八起槳。
  */
 @Composable
 fun StickInteractionLogic(

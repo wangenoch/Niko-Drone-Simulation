@@ -23,7 +23,7 @@ import java.util.Locale
 import kotlin.math.*
 
 /**
- * [v1.8.36] 定點計時評測器 - 高精確度校準版
+ * [v1.5.9] 定點計時評測器 - 高精確度校準版
  * 修正：實施 1.0m~3.5m 高度門檻，收緊角錐偵測半徑至 1.3m。
  */
 class SpotTimerEvaluator : MissionEvaluator {
@@ -50,7 +50,7 @@ class SpotTimerEvaluator : MissionEvaluator {
         val yawRate = yawDiff / dt
         val isRotating = if (state.spotTimerStable) yawRate > 25.0f else yawRate > 15.0f 
 
-        // [v1.8.36] 空間精確校準
+        // [v1.5.9] 空間精確校準
         val relAlt = state.altitude - spec.groundOffset
         val isHeightOk = relAlt in 1.0f..3.5f
 

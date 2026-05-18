@@ -1,3 +1,4 @@
+Important: Always refer to .aierules for core development standards.
 # Niko Drone Simulator - AI 開發核心導航文件
 
 ## 1. 系統本質與定位

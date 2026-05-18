@@ -1,7 +1,7 @@
 package com.horizon.caadronesimulator.model
 
 /**
- * [v1.7.6] 物理運動狀態緩衝區 (Purified Edition)
+ * [v1.5.9] 物理運動狀態緩衝區 (Purified Edition)
  * 修正：移除殭屍變數 motorRpmFactor，數據真源已移至渲染器與 DroneState。
  */
 class DronePhysicsState(

@@ -53,9 +53,11 @@ object T4HeavyLift : DroneModule {
 
     override val baseRate = 0.8f
     override val baseExpo = 0.5f
-    override val baseRateT_Up = 0.9f
-    override val baseRateT_Down = 0.6f
-    override val baseRateY = 0.7f
+    override val baseRateT_Up = 0.3f
+    override val baseRateT_Down = 0.2f
+    override val baseRateY = 0.6f
+    override val baseRateP = 0.4f
+    override val baseRateR = 0.4f
 
     @androidx.compose.runtime.Composable
     override fun RenderIcon(modifier: androidx.compose.ui.Modifier, isSelected: Boolean) {

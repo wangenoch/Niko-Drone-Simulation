@@ -32,7 +32,7 @@ import java.util.Locale
 import kotlin.math.*
 
 /**
- * [v1.7.5] 獨立飛行儀表層 (Optimized Display)
+ * [v1.5.9] 獨立飛行儀表層 (Optimized Display)
  * 修正：移除冗餘運算，距離計算已集中至 DroneViewModel。
  */
 @Composable
@@ -45,7 +45,7 @@ fun InstrumentsLayer(
     val radarPad = if (state.showVirtualJoysticks) Modifier.padding(top = 16.dp, start = 16.dp) else Modifier.padding(bottom = 16.dp, start = 16.dp)
     
     Box(modifier = Modifier.fillMaxSize()) {
-        // [v1.8.6] 獨立化尺寸佈局：移除統一尺寸的父容器，由各組件自行宣告尺寸以防變形
+        // [v1.5.9] 獨立化尺寸佈局：移除統一尺寸的父容器，由各組件自行宣告尺寸以防變形
         Box(modifier = radarPad.align(radarAlign)) {
             when (state.hudMode) {
                 0 -> RadarHUD(state, modifier = Modifier.size(150.dp, 100.dp)) { onUpdateState { hudMode = 1 } }
@@ -60,7 +60,7 @@ fun InstrumentsLayer(
             }
         }
 
-        // [v1.8.5] 已移除冗餘高度標尺：為了避免與 SideNavInstruments (站位高度控制) 疊加衝突，
+        // [v1.5.9] 已移除冗餘高度標尺：為了避免與 SideNavInstruments (站位高度控制) 疊加衝突，
         // 飛行高度數據現在統一由底端狀態欄或 OSD 視窗顯示。
     }
 }

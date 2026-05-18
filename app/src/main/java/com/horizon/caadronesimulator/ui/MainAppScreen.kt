@@ -56,7 +56,7 @@ import kotlin.math.*
 
 /**
  * Niko Drone Simulator 主 UI 結構層
- * [v1.7.6] 全專案「最終淨化」三部曲完成版
+ * [v1.5.9] 全專案「最終淨化」三部曲完成版
  */
 @Composable
 fun MainAppScreen(
@@ -70,6 +70,8 @@ fun MainAppScreen(
     showSplash: Boolean,
     onCloseSplash: () -> Unit,
     onResetFlight: () -> Unit,
+    onRerollWind: () -> Unit,
+    onRestoreDefaults: () -> Unit,
     onExportLog: () -> Unit,
     onUpdateBaudRate: (Int) -> Unit,
     onUpdateInputMode: (Int) -> Unit,
@@ -156,10 +158,10 @@ fun MainAppScreen(
         if (droneState.lastInZoomZone) droneState.isMenuExpanded = false
     }
 
-    // [v1.8.20] 攝影機切換自動緩衝監聽
-    LaunchedEffect(droneState.cameraMode, droneState.zoomFactor) {
-        // 排除初始載入狀態
+    // [v1.6.1] 攝影機切換自動歸位與緩衝監聽
+    LaunchedEffect(droneState.cameraMode) {
         if (droneState.isSettingsLoaded) {
+            viewModel.applyCameraModeDefaults(droneState, droneState.cameraMode)
             viewModel.startSwitchBuffer(droneState, "視訊數據同步中...")
         }
     }
@@ -184,12 +186,19 @@ fun MainAppScreen(
                 if (renderer.cameraTilt != droneState.cameraTilt) renderer.cameraTilt = droneState.cameraTilt
                 if (renderer.observerHeight != droneState.observerHeight) renderer.observerHeight = droneState.observerHeight
                 if (renderer.isMotorLocked != droneState.isMotorLocked) renderer.isMotorLocked = droneState.isMotorLocked
+                if (renderer.applyPhysicalSpecs != droneState.applyPhysicalSpecs) renderer.applyPhysicalSpecs = droneState.applyPhysicalSpecs
                 
                 // 環境物理參數更新
                 renderer.windLevel = droneState.windLevel
                 renderer.windDirection = droneState.windDirection
                 renderer.windVariation = droneState.windVariation.toFloat()
                 renderer.windDirVariation = droneState.windDirVariation.toFloat()
+                
+                // [v1.6.1] 隨機模式冷啟動保險：若尚未擲骰子則強制刷新一次
+                if (droneState.windDirection == "隨機" && droneState.env.randomWindAngle == 0f) {
+                    renderer.rerollWindDirection()
+                }
+
                 renderer.timeOfDay = droneState.timeOfDay
                 renderer.showShadow = droneState.showShadow
                 renderer.shadowIntensity = droneState.shadowIntensity
@@ -198,7 +207,9 @@ fun MainAppScreen(
                 renderer.isSunSimEnabled = droneState.isSunSimEnabled
                 renderer.sunPosition = droneState.sunPosition
                 renderer.observerTilt = droneState.observerTilt
+                renderer.showClouds = droneState.showClouds
                 renderer.cloudDensity = droneState.cloudDensity
+                renderer.weatherMode = droneState.weatherMode
                 renderer.showMountains = droneState.showMountains
                 renderer.useSimplifiedMarkers = droneState.useSimplifiedMarkers
                 renderer.showSpecialTitle = droneState.showSpecialTitle
@@ -272,10 +283,12 @@ fun MainAppScreen(
                 onUpdateInputMode = onUpdateInputMode,
                 onToggleNetworkConnection = onToggleNetworkConnection,
                 onSaveSettings = { configStore.saveSettings(droneState) },
+                onRerollWind = onRerollWind,
                 onSaveModelSettings = { id -> configStore.saveModelSettings(id, droneState) },
                 onLoadModelSettings = { id -> configStore.loadModelSettings(id, droneState) },
                 onUpdateLockedPath = { path -> usbSerialManager.setLockedPath(path) },
                 onOpenNetworkSettings = { droneState.showNetworkSettingsDialog = true },
+                onRestoreDefaults = onRestoreDefaults,
                 availablePorts = usbSerialManager.listAvailableSerialPorts(),
                 onTargetPositioned = { name, rect -> tutorialTargets = tutorialTargets + (name to rect) }
             )
@@ -359,10 +372,27 @@ fun MainAppScreen(
 
         SystemStatusOverlay(droneState, stickInputState)
 
-        // [v1.8.7] 任務評測層：掛載計時器與任務進度提示 UI
+        // [v1.5.9] 協議優化引導對話框 (移至全域層級)
+        ProtocolOptimizationOverlay(
+            state = droneState,
+            onApply = { proto, baud ->
+                usbSerialManager.setLockedProtocol(proto)
+                onUpdateBaudRate(baud)
+                droneState.commDecisionState = com.horizon.caadronesimulator.model.CommDecisionState.LOCKED
+            },
+            onIgnore = { permanent ->
+                if (permanent) {
+                    droneState.optimizationPromptIgnored = true
+                    configStore.saveSettings(droneState)
+                }
+                droneState.commDecisionState = com.horizon.caadronesimulator.model.CommDecisionState.SCANNING
+            }
+        )
+
+        // [v1.5.9] 任務評測層：掛載計時器與任務進度提示 UI
         MissionManager.RenderOverlay(state = droneState, onUpdateState = { action -> droneState.action() })
 
-        // [v1.8.20] 攝影機切換鎖定環：當切換模式或 Zoom 時顯示進度條
+        // [v1.5.9] 攝影機切換鎖定環：當切換模式或 Zoom 時顯示進度條
         if (droneState.isSwitchingMode) {
             Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(0.1f)).clickable { /* 攔截點擊 */ }, contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
