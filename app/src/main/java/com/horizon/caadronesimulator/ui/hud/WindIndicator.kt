@@ -28,13 +28,12 @@ fun WindIndicator(
     modifier: Modifier = Modifier
 ) {
     val isNoWind = level == 0 || direction == "無"
-    // [v1.6.1] 物理驅動角度：直接從 state 讀取物理引擎計算出的真實角度
+    // [v1.6.1] 物理驅動角度：直接讀取流向角 (憲法基準)
     val physicalAngle = com.horizon.caadronesimulator.model.DroneState.getInstance().env.currentWindAngle
     
-    // 計算旋轉角度 (指向風吹去的方向)
     val rotationAngle by animateFloatAsState(
-        targetValue = if (!isNoWind) physicalAngle + 180f else 0f,
-        animationSpec = spring(dampingRatio = 0.6f),
+        targetValue = if (!isNoWind) physicalAngle else 0f,
+        animationSpec = tween(durationMillis = 500, easing = LinearOutSlowInEasing),
         label = "wind_rotate"
     )
 

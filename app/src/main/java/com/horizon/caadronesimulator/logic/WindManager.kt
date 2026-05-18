@@ -27,49 +27,35 @@ object WindManager {
         val jitterScale = (dirVariation / 5f) * 45f 
         val jitterAngle = if (dirVariation > 0) sin(flightTime * 1.5f) * jitterScale else 0f
 
-        val finalAngle = if (direction == "隨機") {
-            // [v1.6.1] 隨機風亂流邏輯：使用全域同步的 randomWindAngle 基準
-            val baseWander = (state.env.randomWindAngle + (flightTime * 5f)) % 360f 
-            val wander = sin(flightTime * 0.8f) * jitterScale 
-            
-            // 亂流判定：當風力與激烈度拉滿時加入高頻抖動
-            val isExtreme = level >= 4 && dirVariation >= 4
-            val turbulence = if (isExtreme) sin(flightTime * 25f) * 15f else 0f
-            
-            baseWander + wander + turbulence
+        // 1. 決定基礎風向角 (風的來源方位: 0=北, 90=東, 180=南, 270=西)
+        val baseFromAngle = if (direction == "隨機") {
+            (state.env.randomWindAngle + (flightTime * 2f)) % 360f 
         } else {
-            val baseAngle = when(direction) {
-                "北風" -> 0f
-                "東北風" -> -45f
-                "東風" -> -90f
-                "東南風" -> -135f
-                "南風" -> 180f
-                "西南風" -> 135f
-                "西風" -> 90f
-                "西北風" -> 45f
+            when(direction) {
+                "北風" -> 0f; "東北風" -> 45f; "東風" -> 90f; "東南風" -> 135f
+                "南風" -> 180f; "西南風" -> 225f; "西風" -> 270f; "西北風" -> 315f
                 else -> 0f
             }
-            baseAngle + jitterAngle
         }
 
-        // 同步回寫實時物理角，供 UI 指標與雲層位移使用
-        state.env.currentWindAngle = finalAngle
+        // 2. 計算流向角 (Flow Angle = From Angle + 180°) 並加入亂流
+        val isExtreme = level >= 4 && dirVariation >= 4
+        val turbulence = if (isExtreme) sin(flightTime * 25f) * 12f else 0f
+        val flowAngle = (baseFromAngle + 180f + jitterAngle + turbulence) % 360f
 
-        val finalRad = Math.toRadians(finalAngle.toDouble()).toFloat()
-        return floatArrayOf(sin(finalRad), -cos(finalRad))
+        // 同步回寫實時物理流向角，供 HUD 與 渲染器統一調用
+        state.env.currentWindAngle = flowAngle
+
+        // 3. 轉換為 3D 物理向量 (X=右, Z=深處)
+        val rad = Math.toRadians(flowAngle.toDouble()).toFloat()
+        return floatArrayOf(sin(rad), cos(rad))
     }
 
-    /**
-     * [v1.6.1] 修正：雲層位移現在直接引用當前物理風向
-     */
+    /** [v1.6.1] 雲層位移：直接同步物理流向 */
     fun updateCloudDrift(state: DroneState, dt: Float) {
-        // 取得當前真實受力向量 (已在物理循環中更新過角度)
         val rad = Math.toRadians(state.env.currentWindAngle.toDouble()).toFloat()
-        val wX = sin(rad)
-        val wV = -cos(rad)
-        
-        state.env.cloudU -= wX * 0.003f * (dt / 0.016f)
-        state.env.cloudV -= wV * 0.003f * (dt / 0.016f)
+        state.env.cloudU += sin(rad) * 0.003f * (dt / 0.016f)
+        state.env.cloudV += cos(rad) * 0.003f * (dt / 0.016f)
     }
 
     fun calculateGust(variation: Int, randomWindPhase: Float, flightTime: Float, level: Int, useHardcore: Boolean): Float {

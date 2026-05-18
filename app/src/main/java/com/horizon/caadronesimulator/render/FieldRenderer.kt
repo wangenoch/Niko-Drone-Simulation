@@ -109,7 +109,11 @@ object FieldRenderer {
         val z = 19f
         RenderUtils.drawBox(posH, colorH, mvpH, mvpMatrix, baseM, x, 1.5f, z, 0.1f, 3f, 0.1f, floatArrayOf(0.4f, 0.4f, 0.4f, 1f))
         if (windLevel > 0) {
-            val flagM = baseM.copyOf(); Matrix.translateM(flagM, 0, x, 2.8f, z); Matrix.rotateM(flagM, 0, -windAngleDeg, 0f, 1f, 0f)
+            val flagM = baseM.copyOf(); Matrix.translateM(flagM, 0, x, 2.8f, z)
+            // [v1.6.1] 旗子旋轉校準：旗子模型預設朝向 +X，物理流向角 0°(向南) 對應 +Z。
+            // 公式：(90 - 物理實時角) 使其 100% 跟隨風的吹向。
+            val currentFlowAngle = com.horizon.caadronesimulator.model.DroneState.getInstance().env.currentWindAngle
+            Matrix.rotateM(flagM, 0, 90f - currentFlowAngle, 0f, 1f, 0f)
             for (i in 0 until 4) {
                 val offX = i * 0.3f; val dip = (i * i * 0.05f) * (1f - windLevel * 0.15f)
                 val wobble = sin(flightTime * 5f + i) * 0.02f * windLevel; val size = 0.3f - i * 0.04f

@@ -149,10 +149,9 @@ object PhysicsEngine {
         val wVec = WindManager.calculateWindVector(atmos.windLevel, atmos.windDirection, atmos.windVariation, atmos.windDirVariation, state.flightTime, com.horizon.caadronesimulator.model.DroneState.getInstance())
         val gust = WindManager.calculateGust(atmos.windVariation, atmos.randomWindPhase, state.flightTime, atmos.windLevel, atmos.useHardcore)
         
-        // [v1.5.9] 精確修正：僅對飛機進行 X 軸風力受力反轉，修正東風往東飄的問題。
-        // 保持 wVec[0] 原樣以維護雲層等其它組件的正確性。
-        val windAccX = (-wVec[0] * atmos.windLevel * 0.8f * gust * heightFactor) / mass
-        val windAccZ = (wVec[1] * atmos.windLevel * 0.8f * gust * heightFactor) / mass
+        // [v1.6.1] 憲法級風力受力：移除所有手動負號補丁，直接使用物理流向向量
+        val windAccX = (wVec[0] * atmos.windLevel * 0.85f * gust * heightFactor) / mass
+        val windAccZ = (wVec[1] * atmos.windLevel * 0.85f * gust * heightFactor) / mass
         state.velX += windAccX * dt
         state.velZ += windAccZ * dt
     }
