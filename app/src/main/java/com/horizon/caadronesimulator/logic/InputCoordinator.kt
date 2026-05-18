@@ -10,8 +10,8 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * [v1.6.1] 專業輸入協調中心 (Pure Physical Data Architecture)
- * 修正：移除所有採集層的 Inversion 邏輯，確保 raw 數據為 100% 物理位移。
+ * [v1.6.3] 專業輸入協調中心 (Input Coordinator)
+ * 修正：支持 InternalCommManager。
  */
 object InputCoordinator {
 
@@ -19,7 +19,7 @@ object InputCoordinator {
         event: MotionEvent,
         state: DroneState,
         stickInput: StickInputState,
-        usbSerial: UsbSerialManager
+        commManager: InternalCommManager
     ): Boolean {
         if (state.isAutoBinding == null && ((event.source and InputDevice.SOURCE_CLASS_JOYSTICK) == 0 || state.inputMode == 1)) return false
         if (event.action != MotionEvent.ACTION_MOVE) return false
@@ -37,7 +37,7 @@ object InputCoordinator {
         processMainJoystickInput(event, state, stickInput)
         
         if (!state.showSettings && !state.isCollision && !state.isCalibrating && state.setupWizardStep <= 0) {
-            SafetyManager.processHidAux(event, state, stickInput) { usbSerial.injectLog(it) }
+            SafetyManager.processHidAux(event, state, stickInput) { commManager.injectLog(it) }
         }
 
         if (state.isCalibrating) {
@@ -52,7 +52,7 @@ object InputCoordinator {
         channels: List<Float>,
         state: DroneState,
         stickInput: StickInputState,
-        usbSerial: UsbSerialManager
+        commManager: InternalCommManager
     ) {
         stickInput.rawChannels = channels
         
@@ -76,7 +76,7 @@ object InputCoordinator {
         if (maxV > 0.15f) state.activeAxisLabel = "CH ${maxIdx + 101}" else if (maxV < 0.05f) state.activeAxisLabel = "NONE"
 
         if (!state.showSettings && !state.isCollision && !state.isCalibrating && state.setupWizardStep <= 0) {
-            SafetyManager.processSerialAux(channels, state, stickInput) { usbSerial.injectLog(it) }
+            SafetyManager.processSerialAux(channels, state, stickInput) { commManager.injectLog(it) }
         }
 
         if (state.inputMode == 1 && state.isAutoBinding != null) {

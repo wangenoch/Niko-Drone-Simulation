@@ -11,6 +11,11 @@ import kotlin.math.*
 object PhysicsEngine {
     var stepResult: PhysicsResult? = null
 
+    /** [v1.7.6] 重置引擎狀態：徹底清除上一次的運算結果，防止無限碰撞遞迴 */
+    fun clearState() {
+        stepResult = null
+    }
+
     data class AtmosConfig(
         val windLevel: Int,
         val windDirection: String,

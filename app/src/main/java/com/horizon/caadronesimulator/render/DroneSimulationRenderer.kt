@@ -18,7 +18,8 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
     private var program = 0
     private val vMatrix = FloatArray(16); private val pMatrix = FloatArray(16); private val mvpMatrix = FloatArray(16)
     private val mainVMatrix = FloatArray(16); private val mainPMatrix = FloatArray(16)
-    private var viewWidth = 0; private var viewHeight = 0; private var lastFrameTime = 0L
+    private var viewWidth = 0; private var viewHeight = 0
+    private var lastFrameTime = 0L // [v1.6.3] 僅保留渲染幀率統計，不再用於物理累加
     var physicsState = DronePhysicsState(posX = 0f, posZ = 0f)
     private val sunRenderer = SunRenderer(); private val cloudRenderer = CloudRenderer(); private val backdropRenderer = BackdropRenderer()
     
@@ -33,7 +34,9 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
     var useSimplifiedMarkers = false; var showSpecialTitle = false; var currentTitleText = ""; private var renderedTitleText = ""; var useFlightLimit = true; var mainFOV = 45f
     var showGroundAnchor = false; var isThrottleHoldActive = true; var lastManualTouchTime = 0L      
     var pipRect: android.graphics.Rect? = null; var zoomPipRect: android.graphics.Rect? = null
-    private var randomWindPhase = 0f; private var turbulencePhase = 0f; private var specialTitleScreenPos: androidx.compose.ui.geometry.Offset? = null
+    var randomWindPhase = 0f; var turbulencePhase = 0f // [v1.6.3] 改為由 ViewModel 外部同步，Renderer 僅讀取
+    private var specialTitleScreenPos: androidx.compose.ui.geometry.Offset? = null
+    var onTitlePosUpdate: ((androidx.compose.ui.geometry.Offset?) -> Unit)? = null // [v1.7.6] 專屬投影位置回調
     private var titleTextureId = -1; private var texH = -1; private var texCoordH = -1; private var useTexH = -1
     private var flagVisualAngle = 0f; private var cloudTextureId = -1; private var mountainTextureId = -1
     var weatherMode = 0; private var lastWeatherMode = -1; private var lastDensity = -1f; var cloudU = 0f; var cloudV = 0f
@@ -58,23 +61,57 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
             generateCloudTexture()
             lastWeatherMode = weatherMode; lastDensity = cloudDensity
         }
+
+        // [v1.7.4 撥亂反正]：心跳回歸 OpenGL 渲染線程
+        // 優點：保證「算一幀、畫一幀」，徹底消除微抖動。邏輯依然保留在外部組件中。
         val now = System.nanoTime(); if (lastFrameTime == 0L) lastFrameTime = now
         val dt = ((now - lastFrameTime) / 1_000_000_000f).coerceIn(0.001f, 0.05f); lastFrameTime = now
+        
         if (!isPaused) {
-            randomWindPhase += dt * (1.2f + windVariation * 0.6f); turbulencePhase += dt * (0.8f + windVariation * 0.4f)
-            val atmos = PhysicsEngine.AtmosConfig(windLevel, windDirection, windVariation.toInt(), windDirVariation.toInt(), enableVerticalDraft, useFlightLimit, randomWindPhase, turbulencePhase, 0f, applyPhysicalSpecs, isMotorLocked, useHardcorePhysics, com.horizon.caadronesimulator.model.DroneState.getInstance().useStrictLanding, showObstacles)
-            val result = PhysicsEngine.step(dt, physicsState, PhysicsEngine.ControlInput(ctrlThrottle, ctrlYaw, ctrlPitch, ctrlRoll), atmos, droneType)
-            com.horizon.caadronesimulator.logic.CameraDirector.update(physicsState.posX, physicsState.posY - getGroundY(), physicsState.posZ, observerHeight, observerTilt, zoomFactor, mainFOV, cameraMode, lastManualTouchTime, droneType, dt, com.horizon.caadronesimulator.model.DroneState.getInstance())
-            // [v1.5.9] 終極修正：直接透傳 PhysicsEngine 返回的 impactSpeed。
-            // 禁止在 Renderer 重新計算速度，因為此時物理引擎可能已經為了地面摩擦而將 velocity 歸零。
-            onFlightDataUpdate(physicsState.posY, physicsState.posX, physicsState.posZ, physicsState.yaw, physicsState.visPitch, physicsState.visRoll, result.impactSpeed, result.isImpact, physicsState.batteryVoltage, physicsState.batteryPercent, specialTitleScreenPos, com.horizon.caadronesimulator.logic.CameraDirector.smoothedHeight, com.horizon.caadronesimulator.logic.CameraDirector.smoothedTilt, com.horizon.caadronesimulator.logic.CameraDirector.smoothedZoom, com.horizon.caadronesimulator.logic.CameraDirector.smoothedFov)
+            // 1. 物理相位累加
+            randomWindPhase += dt * (1.2f + windVariation * 0.6f)
+            turbulencePhase += dt * (0.8f + windVariation * 0.4f)
+            
+            // 2. 調用外部物理引擎 (邏輯分離)
+            val atmos = com.horizon.caadronesimulator.logic.PhysicsEngine.AtmosConfig(
+                windLevel, windDirection, windVariation.toInt(), windDirVariation.toInt(),
+                enableVerticalDraft, useFlightLimit, randomWindPhase, turbulencePhase, 0f,
+                applyPhysicalSpecs, isMotorLocked, useHardcorePhysics, 
+                com.horizon.caadronesimulator.model.DroneState.getInstance().useStrictLanding, showObstacles
+            )
+            
+            // 獲取當前輸入 (由外部 ViewModel 更新至 Renderer 的屬性)
+            val result = com.horizon.caadronesimulator.logic.PhysicsEngine.step(
+                dt, physicsState, 
+                com.horizon.caadronesimulator.logic.PhysicsEngine.ControlInput(ctrlThrottle, ctrlYaw, ctrlPitch, ctrlRoll), 
+                atmos, droneType
+            )
+            
+            // 3. 更新相機導演與視覺反饋
+            com.horizon.caadronesimulator.logic.CameraDirector.update(
+                physicsState.posX, physicsState.posY - getGroundY(), physicsState.posZ, 
+                observerHeight, observerTilt, zoomFactor, mainFOV, cameraMode, 
+                lastManualTouchTime, droneType, dt, com.horizon.caadronesimulator.model.DroneState.getInstance()
+            )
+            
+            this.motorRpmFactor = result.motorRpm
+
+            // 4. [關鍵效能優化]：回報 UI 數據
+            // 注意：UI 頻率限制已在 ViewModel 的 syncFlightData 中實作
+            onFlightDataUpdate(physicsState.posY, physicsState.posX, physicsState.posZ, physicsState.yaw, physicsState.visPitch, physicsState.visRoll, result.impactSpeed, result.isImpact, physicsState.batteryVoltage, physicsState.batteryPercent, specialTitleScreenPos, null, null, null, null)
         }
+
         updateEnvironmentLighting(); GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
         GLES20.glViewport(0, 0, viewWidth, viewHeight)
         val spec = DroneRegistry.getSpec(droneType); val finalFov = if (cameraMode == "FPV 視角") spec.fpvFov else com.horizon.caadronesimulator.logic.CameraDirector.smoothedFov
         Matrix.perspectiveM(pMatrix, 0, finalFov / com.horizon.caadronesimulator.logic.CameraDirector.smoothedZoom, viewWidth.toFloat() / viewHeight, 1.0f, 6000f)
         com.horizon.caadronesimulator.logic.CameraDirector.computeMainViewMatrix(vMatrix, cameraMode, physicsState.posX, physicsState.posY, physicsState.posZ, physicsState.yaw, physicsState.posX + physicsState.velX * 0.12f, physicsState.posZ + physicsState.velZ * 0.12f, cameraTilt, droneType)
-        System.arraycopy(pMatrix, 0, mainPMatrix, 0, 16); System.arraycopy(vMatrix, 0, mainVMatrix, 0, 16); calculateProjectedTitlePos(); renderScene()
+        System.arraycopy(pMatrix, 0, mainPMatrix, 0, 16); System.arraycopy(vMatrix, 0, mainVMatrix, 0, 16); calculateProjectedTitlePos()
+        
+        // [v1.7.6] 專屬投影位置更新，移除原本會導致「零電量碰撞」的 dummy 回調
+        onTitlePosUpdate?.invoke(specialTitleScreenPos)
+        
+        renderScene()
         pipRect?.let { rect -> GLES20.glEnable(GLES20.GL_SCISSOR_TEST); val glY = viewHeight - rect.bottom; GLES20.glScissor(rect.left, glY, rect.width(), rect.height()); GLES20.glViewport(rect.left, glY, rect.width(), rect.height()); GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT); Matrix.perspectiveM(pMatrix, 0, spec.fpvFov, rect.width().toFloat() / rect.height(), 0.5f, 500f); com.horizon.caadronesimulator.logic.CameraDirector.computeMainViewMatrix(vMatrix, "FPV 視角", physicsState.posX, physicsState.posY, physicsState.posZ, physicsState.yaw, physicsState.posX + physicsState.velX * 0.12f, physicsState.posZ + physicsState.velZ * 0.12f, cameraTilt, droneType); renderScene(); GLES20.glDisable(GLES20.GL_SCISSOR_TEST) }
         zoomPipRect?.let { rect ->
             GLES20.glEnable(GLES20.GL_SCISSOR_TEST)
@@ -93,17 +130,16 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
     }
 
     private fun updateEnvironmentLighting() {
-        if (isSunSimEnabled) { val angle = Math.toRadians((sunPosition * 180f).toDouble()).toFloat(); val s = sin(angle); val r = (1.0f - (1.0f - 0.53f) * s).coerceIn(0.53f, 1.0f); val g = (0.6f + 0.21f * s).coerceIn(0.6f, 0.81f); val b = (0.3f + 0.62f * s).coerceIn(0.3f, 0.92f); GLES20.glClearColor(r, g, b, 1.0f) }
-        else { val skyR: Float; val skyG: Float; val skyB: Float; if (weatherMode == 3) { skyR = 0.4f; skyG = 0.45f; skyB = 0.5f } else { when(timeOfDay) { "早晨" -> { skyR = 1f; skyG = 0.7f; skyB = 0.5f }; "下午" -> { skyR = 1f; skyG = 0.6f; skyB = 0.3f }; else -> { skyR = 0.53f; skyG = 0.81f; skyB = 0.92f } } }
-        GLES20.glClearColor(skyR, skyG, skyB, 1.0f) }
+        val skyColor = com.horizon.caadronesimulator.logic.EnvironmentManager.getSkyClearColor(com.horizon.caadronesimulator.model.DroneState.getInstance())
+        GLES20.glClearColor(skyColor[0], skyColor[1], skyColor[2], skyColor[3])
     }
 
-    private fun renderScene() {
+    private fun renderScene(droneOnly: Boolean = false) {
         Matrix.multiplyMM(mvpMatrix, 0, pMatrix, 0, vMatrix, 0); GLES20.glUseProgram(program); val posH = GLES20.glGetAttribLocation(program, "vPosition"); val colorH = GLES20.glGetUniformLocation(program, "vColor"); val mvpH = GLES20.glGetUniformLocation(program, "uMVPMatrix"); GLES20.glUniform1i(useTexH, 0)
         sunRenderer.drawSun(pMatrix, vMatrix, sunPosition); GLES20.glUseProgram(program)
         if (showClouds) {
             val actualDensity = cloudDensity.coerceIn(0f, 1f)
-            val cColor = if (weatherMode == 3) floatArrayOf(0.7f, 0.7f, 0.75f, 0.85f) else floatArrayOf(1f, 1f, 1f, 0.7f)
+            val cColor = com.horizon.caadronesimulator.logic.EnvironmentManager.getCloudColor(com.horizon.caadronesimulator.model.DroneState.getInstance())
             cloudRenderer.draw(pMatrix, vMatrix, cloudTextureId, Pair(cloudU, cloudV), cColor, actualDensity); GLES20.glUseProgram(program)
         }
         if (showMountains) { backdropRenderer.draw(pMatrix, vMatrix, mountainTextureId, timeOfDay); GLES20.glUseProgram(program) }

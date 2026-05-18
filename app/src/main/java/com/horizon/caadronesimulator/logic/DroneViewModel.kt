@@ -4,10 +4,13 @@ import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.horizon.caadronesimulator.model.DroneState
+import com.horizon.caadronesimulator.model.StickInputState
 import com.horizon.caadronesimulator.logic.storage.ConfigurationStore
 import com.horizon.caadronesimulator.model.DroneRegistry
 import com.horizon.caadronesimulator.render.DroneSimulationRenderer
 import com.horizon.caadronesimulator.mission.MissionManager
+import com.horizon.caadronesimulator.logic.PhysicsEngine
+import com.horizon.caadronesimulator.logic.CameraDirector
 import kotlinx.coroutines.*
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -28,6 +31,32 @@ class DroneViewModel : ViewModel() {
 
     private var lastStabilityCheckTime = 0L
     private var lastResetTime = 0L
+    private var physicsJob: Job? = null
+
+    /** [v1.7.4] 物理主導權回歸 Renderer (心跳同步)，此處不再啟動高頻協程循環 */
+    fun startPhysicsLoop(
+        state: DroneState,
+        stickInput: StickInputState,
+        renderer: DroneSimulationRenderer,
+        soundManager: com.horizon.caadronesimulator.audio.DroneSoundManager
+    ) {
+        physicsJob?.cancel()
+        // [v1.7.4] 輸入橋接：僅保留 UI 輸入到 Renderer 變數的同步 (低頻即可)
+        physicsJob = viewModelScope.launch(Dispatchers.Default) {
+            while (isActive) {
+                // 每 16ms 將當前遙控/觸控指令同步給 Renderer
+                // Renderer 的 onDrawFrame 會在繪圖前讀取這些最新指令執行 Physics step
+                renderer.ctrlThrottle = stickInput.stickThrottle(state)
+                renderer.ctrlYaw = stickInput.stickYaw(state)
+                renderer.ctrlPitch = stickInput.stickPitch(state)
+                renderer.ctrlRoll = stickInput.stickRoll(state)
+                
+                // 背景線程音效驅動 (維持在背景，不佔用 UI)
+                soundManager.updateSelfDriven(state, stickInput)
+                delay(16)
+            }
+        }
+    }
 
     fun startSwitchBuffer(state: DroneState, message: String) {
         viewModelScope.launch {
@@ -46,6 +75,8 @@ class DroneViewModel : ViewModel() {
 
     fun resetFlight(state: DroneState, renderer: DroneSimulationRenderer) {
         lastResetTime = System.currentTimeMillis()
+        // [v1.7.6] 核心修復：強制清除物理引擎緩存狀態，防止無限碰撞
+        com.horizon.caadronesimulator.logic.PhysicsEngine.clearState()
         renderer.resetFlight()
         
         state.apply {
@@ -187,9 +218,13 @@ class DroneViewModel : ViewModel() {
         yaw: Float, pitch: Float, roll: Float,
         speed: Float, isImpact: Boolean,
         volt: Float, perc: Int,
-        physicsResult: PhysicsEngine.PhysicsResult?
+        physicsResult: com.horizon.caadronesimulator.logic.PhysicsEngine.PhysicsResult?
     ) {
+        // [v1.7.4] 深度效能優化：實施 20Hz (50ms) 降頻同步攔截
         val now = System.currentTimeMillis()
+        if (now - lastStabilityCheckTime < 50) return
+        lastStabilityCheckTime = now
+
         val isProtecting = (now - lastResetTime < 500)
         if ((state.showSettings || state.isCollision) && !isProtecting) return
 
