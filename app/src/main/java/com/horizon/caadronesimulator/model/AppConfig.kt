@@ -83,7 +83,7 @@ object AppConfig {
         /** 是否顯示高度與速度側邊標尺 */
         const val SHOW_SIDE_RULERS = true
         /** 側邊拉桿位置是否左右交換 (適合特殊操作習慣) */
-        const val REVERSE_SLIDERS = false
+        const val REVERSE_SLIDERS = true
         /** AR 輔助投影：在地面顯示飛機垂直投影點 (H 點) */
         const val SHOW_GROUND_ANCHOR = true
         /** 子畫面自動位移：當飛機飛近邊緣時，PiP 視窗會自動避讓 */

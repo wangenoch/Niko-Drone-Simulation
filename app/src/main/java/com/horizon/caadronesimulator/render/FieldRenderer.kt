@@ -38,7 +38,7 @@ object FieldRenderer {
                 }
             }
             // 帳篷位置復原 (Z=-15 ➔ Z=-9)
-            val tentColor = floatArrayOf(0.2f, 0.4f, 0.8f, 1f) 
+            val tentColor = floatArrayOf(0.2f, 0.4f, 0.8f, 1f)
             arrayOf(floatArrayOf(-2f, -9.6f), floatArrayOf(2f, -9.6f), floatArrayOf(-2f, -13.4f), floatArrayOf(2f, -13.4f)).forEach { p ->
                 RenderUtils.drawBox(posH, colorH, mvpH, mvpMatrix, baseM, p[0], 1.25f, p[1], 0.1f, 2.5f, 0.1f, floatArrayOf(0.7f, 0.7f, 0.7f, 1f))
             }
@@ -83,7 +83,7 @@ object FieldRenderer {
         RenderUtils.drawFilledCircle(posH, colorH, mvpH, mvpMatrix, 13.5f, lineY + 0.005f, 16.0f, 1.0f, solidRed)
 
         // 站位標線 (Z=-9)
-        RenderUtils.drawRect(posH, colorH, mvpH, mvpMatrix, 0f, lineY + 0.002f, -9f, 1.8f, 0.1f, colorWhite) 
+        RenderUtils.drawRect(posH, colorH, mvpH, mvpMatrix, 0f, lineY + 0.002f, -9f, 1.8f, 0.1f, colorWhite)
         RenderUtils.drawRect(posH, colorH, mvpH, mvpMatrix, 0f, lineY + 0.002f, -9.25f, 0.1f, 0.5f, colorWhite)
 
         // 標題文字 (位於 H 坪下方 3.0m 處)
