@@ -14,15 +14,16 @@ import com.horizon.caadronesimulator.model.DroneState
  */
 class ConfigurationStore(private val context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("drone_settings", Context.MODE_PRIVATE)
-    private val ax12Prefs: SharedPreferences = context.getSharedPreferences("ax12_settings", Context.MODE_PRIVATE)
+    private val ax12v1Prefs: SharedPreferences = context.getSharedPreferences("ax12_v1_settings", Context.MODE_PRIVATE)
+    private val ax12v2Prefs: SharedPreferences = context.getSharedPreferences("ax12_v2_settings", Context.MODE_PRIVATE)
     private val genericExternalPrefs: SharedPreferences = context.getSharedPreferences("external_settings", Context.MODE_PRIVATE)
 
-    /** [v1.6.1] 徹底抹除所有設定檔 (恢復原廠設定專用) */
+    /** [v1.6.3] 徹底抹除所有設定檔 (恢復原廠設定專用) */
     fun wipeAllSettings() {
         prefs.edit().clear().apply()
-        ax12Prefs.edit().clear().apply()
+        ax12v1Prefs.edit().clear().apply()
+        ax12v2Prefs.edit().clear().apply()
         genericExternalPrefs.edit().clear().apply()
-        // 可選：若有針對不同 VID/PID 的檔案，由於目錄已知，可進階清理
     }
 
     fun isFirstLaunch(): Boolean = !prefs.contains("lastSeenVersion")
@@ -50,7 +51,10 @@ class ConfigurationStore(private val context: Context) {
             apply()
         }
         
-        val targetPrefs = if (state.inputMode == 1) ax12Prefs else {
+        val targetPrefs = if (state.inputMode == 1) {
+            val proto = state.hardware.detectedProtocol
+            if (proto.contains("V2")) ax12v2Prefs else ax12v1Prefs
+        } else {
             val fingerprint = DeviceProfileManager.getActiveHidFingerprint(context)
             context.getSharedPreferences(fingerprint, Context.MODE_PRIVATE)
         }
@@ -79,7 +83,10 @@ class ConfigurationStore(private val context: Context) {
         val loadedProtocol = prefs.getString("lockedProtocol", state.lockedProtocol) ?: state.lockedProtocol
         val inputMode = if (state.inputMode != -1) state.inputMode else prefs.getInt("inputMode", 0)
         
-        val targetPrefs = if (inputMode == 1) ax12Prefs else {
+        val targetPrefs = if (inputMode == 1) {
+            val proto = state.hardware.detectedProtocol
+            if (proto.contains("V2")) ax12v2Prefs else ax12v1Prefs
+        } else {
             val fingerprint = DeviceProfileManager.getActiveHidFingerprint(context)
             val profile = context.getSharedPreferences(fingerprint, Context.MODE_PRIVATE)
             if (!profile.contains("ly_axis") && fingerprint != "external_settings") {

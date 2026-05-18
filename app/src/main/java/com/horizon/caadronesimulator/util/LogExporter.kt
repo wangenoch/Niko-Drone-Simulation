@@ -55,11 +55,23 @@ object LogExporter {
                 if (!downloadsDir.exists()) downloadsDir.mkdirs()
                 val file = File(downloadsDir, fileName)
                 FileOutputStream(file).use { it.write(combinedLog.toByteArray()) }
-                MediaScannerConnection.scanFile(context, arrayOf(file.absolutePath), null) { _, _ -> }
                 onSuccess("✅ 日誌已儲存至 Download 資料夾")
             }
         } catch (e: Exception) {
-            onError("❌ 匯出失敗: ${e.message}")
+            // [v1.6.3] 備援機制：若公共目錄權限受阻，嘗試寫入 App 私有外部空間
+            try {
+                val privateDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+                val fileName = "Niko_RescueLog_${System.currentTimeMillis()}.txt"
+                val file = File(privateDir, fileName)
+                FileOutputStream(file).use { it.write(buildString { 
+                    append("=== RESCUE LOG (Permission Fallback) ===\n")
+                    append("Original Error: ${e.message}\n\n")
+                    append(state.logcatContent.takeLast(10000))
+                }.toByteArray()) }
+                onSuccess("📋 公共空間權限受阻，日誌已存至 App 私有目錄：\n${file.name}")
+            } catch (e2: Exception) {
+                onError("❌ 匯出徹底失敗: ${e.message}")
+            }
         }
     }
 }

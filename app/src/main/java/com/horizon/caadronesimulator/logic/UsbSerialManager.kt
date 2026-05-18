@@ -76,6 +76,7 @@ class UsbSerialManager(
     
     private var consecutiveValidFrames = 0
     private var lastProbeMatchProtocol = ""
+    private var activeDriver: com.horizon.caadronesimulator.logic.drivers.InternalDeviceDriver? = null
     private val assemblyBuffer = ByteArray(4096) 
     private var assemblyPos = 0
     private var detectionStartTime = 0L
@@ -180,8 +181,22 @@ class UsbSerialManager(
 
     fun setLockedProtocol(protocol: String) {
         droneState.lockedProtocol = protocol
-        if (protocol.isEmpty()) { updateDecisionState(CommDecisionState.SCANNING); addLogEntry("重置為自動偵測模式") } 
-        else { updateDecisionState(CommDecisionState.LOCKED); detectedProtocolName = protocol; addLogEntry("手動鎖定協議: $protocol") }
+        if (protocol.isEmpty()) { 
+            updateDecisionState(CommDecisionState.SCANNING)
+            addLogEntry("重置為自動偵測模式") 
+        } else { 
+            updateDecisionState(CommDecisionState.LOCKED)
+            detectedProtocolName = protocol
+            addLogEntry("手動鎖定協議: $protocol") 
+            
+            // [v1.6.3] UMBUS 智慧連動：自動預填最優物理參數，但不鎖死修改權限
+            if (protocol.contains("UMBUS", ignoreCase = true)) {
+                this.currentBaudRate = 921600
+                droneState.lockedSerialPath = "/dev/ttyS0"
+                matrixPathIndex = matrixPaths.indexOf("/dev/ttyS0").coerceAtLeast(0)
+                addLogEntry("UMBUS 智慧連動：已預填 /dev/ttyS0 與 921600 波特率")
+            }
+        }
         if (!isUserStopped) scanAndConnect()
     }
 
@@ -265,16 +280,33 @@ class UsbSerialManager(
         internalSerialThread = Thread {
             var myFis: FileInputStream? = null
             try {
-                if (!file.canRead()) { Runtime.getRuntime().exec("chmod 666 $path").waitFor() }
-                if (!file.canRead()) { updateDecisionState(CommDecisionState.ERROR_PERMISSION); return@Thread }
-                Runtime.getRuntime().exec("stty -F $path $currentBaudRate raw -echo").waitFor(); Thread.sleep(100) 
-                myFis = FileInputStream(file); currentFis = myFis; activeLinkPath = path; updateConnectionStatus(ConnectionStatus.LINKED)
+                // [v1.6.3] 「真開啟」驗證邏輯：在進入循環前確認能否成功 open
+                try {
+                    myFis = FileInputStream(file)
+                    // 測試讀取能力，確保不是假性開啟
+                    if (myFis.fd == null || !myFis.fd.valid()) {
+                        throw java.io.IOException("Invalid FileDescriptor")
+                    }
+                } catch (e: Exception) {
+                    addLogEntry("❌ 物理層開啟失敗 ($path): ${e.message}")
+                    updateDecisionState(CommDecisionState.ERROR_PERMISSION)
+                    droneState.systemMessage = "無法存取 $path，請確認原廠 APP 已關閉並重新插拔"
+                    return@Thread
+                }
+
+                currentFis = myFis; activeLinkPath = path; updateConnectionStatus(ConnectionStatus.LINKED)
+                addLogEntry("✅ 物理層開啟成功: $path")
                 val buf = ByteArray(2048)
                 while (isRunning.get() && !Thread.currentThread().isInterrupted) {
                     val read = try { myFis.read(buf) } catch (e: Exception) { -1 }; if (read <= 0) break
                     handleRawIncoming(buf.copyOf(read), path)
                 }
-            } catch (e: Exception) { if (!isUserStopped) nextInMatrix() } finally { try { myFis?.close() } catch (_: Exception) {}; isRunning.set(false) }
+            } catch (e: Exception) { 
+                addLogEntry("⚠️ 讀取中斷: ${e.message}")
+                if (!isUserStopped) nextInMatrix() 
+            } finally { 
+                try { myFis?.close() } catch (_: Exception) {}; isRunning.set(false) 
+            }
         }.apply { name = "SerialEngine-V3"; priority = Thread.MAX_PRIORITY; start() }
     }
 
@@ -290,9 +322,37 @@ class UsbSerialManager(
                 val canDetectCRSF = droneState.lockedProtocol.isEmpty() || droneState.lockedProtocol == "CRSF"
                 val canDetectUMBUS = droneState.lockedProtocol.isEmpty() || droneState.lockedProtocol.contains("UMBUS")
                 if (u == 0xA6 && canDetectUMBUS) { 
-                    if (i + 1 < assemblyPos) {
-                        val type = assemblyBuffer[i+1].toInt() and 0xFF; val label = if (type == 0x55 || type == 0xAA) "AX-Enhanced" else "AX12(UMBUS)"
-                        val len = if (label == "AX-Enhanced") 24 else 12; if (i + len <= assemblyPos) { markSuccessfulPacket(label, path); consumed = len }
+                    if (i + 5 <= assemblyPos) {
+                        // [v1.6.3] UMBUS 深度指紋識別：檢查 Header (Byte 2-5)
+                        // V2 標準 Header: 10 02 04 01
+                        val b2 = assemblyBuffer[i+2].toInt() and 0xFF
+                        val b3 = assemblyBuffer[i+3].toInt() and 0xFF
+                        val b4 = assemblyBuffer[i+4].toInt() and 0xFF
+                        val b5 = assemblyBuffer[i+5].toInt() and 0xFF
+                        
+                        val isV2 = b2 == 0x10 && b3 == 0x02 && b4 == 0x04 && b5 == 0x01
+                        val label = if (isV2) "RadioMaster AX12 (UMBUS-V2)" else "RadioMaster AX12 (UMBUS-V1)"
+                        val len = 87 // 兩者封包長度皆為 87
+                        
+                        if (i + len <= assemblyPos) { 
+                            val packet = assemblyBuffer.copyOfRange(i, i + len)
+                            // [v1.6.3] 深度解析邏輯：將有效封包交給 Driver 處理
+                            if (activeDriver == null) {
+                                activeDriver = if (isV2) com.horizon.caadronesimulator.logic.drivers.AX12V2Driver() 
+                                               else com.horizon.caadronesimulator.logic.drivers.AX12Driver()
+                            }
+                            
+                            val channels = activeDriver?.parseRaw(java.nio.ByteBuffer.wrap(packet).order(java.nio.ByteOrder.LITTLE_ENDIAN))
+                            if (channels != null) {
+                                onRawChannelsReceived(channels)
+                                // 也同時更新舊有的四通道回調 (T-Y-P-R)
+                                if (channels.size >= 4) {
+                                    onDataReceived(channels[0], channels[1], channels[2], channels[3])
+                                }
+                            }
+                            
+                            markSuccessfulPacket(label, path); consumed = len 
+                        }
                     }
                 } else if ((u == 0xC8 || u == 0x81) && canDetectCRSF) {
                     if (i + 1 < assemblyPos) {
@@ -344,6 +404,7 @@ class UsbSerialManager(
         isRunning.set(false); internalSerialThread?.interrupt(); try { currentFis?.close() } catch (_: Exception) {}; currentFis = null
         udpSocket?.close(); udpSocket = null; networkThread?.interrupt(); networkThread = null
         ioManager?.stop(); ioManager = null; serialPort?.close(); serialPort = null
+        activeDriver = null // [v1.6.3] 停止通訊時重置驅動狀態
     }
 
     fun stopAll() {

@@ -65,6 +65,35 @@ fun InstrumentsLayer(
     }
 }
 
+/**
+ * [v1.6.3] 精密縮放視窗 (Precision Zoom Assistant)
+ * 具備 3D 渲染對位、十字瞄準、以及工業級青色邊框樣式。
+ */
+@Composable
+fun PrecisionZoomView(
+    state: com.horizon.caadronesimulator.model.DroneState,
+    modifier: Modifier = Modifier,
+    onUpdateRect: (androidx.compose.ui.geometry.Rect?) -> Unit
+) {
+    Box(
+        modifier = modifier
+            .size(150.dp, 100.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0x44111111))
+            .border(1.5.dp, Color(0xFFFF9800).copy(0.6f), RoundedCornerShape(12.dp))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(4.dp)
+                .onGloballyPositioned { coords ->
+                    val pos = coords.positionInWindow(); val size = coords.size
+                    onUpdateRect(androidx.compose.ui.geometry.Rect(pos.x, pos.y, pos.x + size.width, pos.y + size.height))
+                }
+        )
+    }
+}
+
 @Composable
 fun OsdView(state: DroneState, onUpdatePipRect: (android.graphics.Rect?) -> Unit, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val spec = DroneRegistry.getSpec(state.droneType)

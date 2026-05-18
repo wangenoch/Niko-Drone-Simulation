@@ -76,7 +76,19 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
         com.horizon.caadronesimulator.logic.CameraDirector.computeMainViewMatrix(vMatrix, cameraMode, physicsState.posX, physicsState.posY, physicsState.posZ, physicsState.yaw, physicsState.posX + physicsState.velX * 0.12f, physicsState.posZ + physicsState.velZ * 0.12f, cameraTilt, droneType)
         System.arraycopy(pMatrix, 0, mainPMatrix, 0, 16); System.arraycopy(vMatrix, 0, mainVMatrix, 0, 16); calculateProjectedTitlePos(); renderScene()
         pipRect?.let { rect -> GLES20.glEnable(GLES20.GL_SCISSOR_TEST); val glY = viewHeight - rect.bottom; GLES20.glScissor(rect.left, glY, rect.width(), rect.height()); GLES20.glViewport(rect.left, glY, rect.width(), rect.height()); GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT); Matrix.perspectiveM(pMatrix, 0, spec.fpvFov, rect.width().toFloat() / rect.height(), 0.5f, 500f); com.horizon.caadronesimulator.logic.CameraDirector.computeMainViewMatrix(vMatrix, "FPV 視角", physicsState.posX, physicsState.posY, physicsState.posZ, physicsState.yaw, physicsState.posX + physicsState.velX * 0.12f, physicsState.posZ + physicsState.velZ * 0.12f, cameraTilt, droneType); renderScene(); GLES20.glDisable(GLES20.GL_SCISSOR_TEST) }
-        zoomPipRect?.let { rect -> GLES20.glEnable(GLES20.GL_SCISSOR_TEST); val glY = viewHeight - rect.bottom; GLES20.glScissor(rect.left, glY, rect.width(), rect.height()); GLES20.glViewport(rect.left, glY, rect.width(), rect.height()); GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT); Matrix.perspectiveM(pMatrix, 0, com.horizon.caadronesimulator.logic.CameraDirector.smoothedZoomPipFov, rect.width().toFloat() / rect.height(), 0.1f, 1000f); com.horizon.caadronesimulator.logic.CameraDirector.computePrecisionViewMatrix(vMatrix, physicsState.posX, physicsState.posY, physicsState.posZ); renderScene(); GLES20.glDisable(GLES20.GL_SCISSOR_TEST) }
+        zoomPipRect?.let { rect ->
+            GLES20.glEnable(GLES20.GL_SCISSOR_TEST)
+            val glY = viewHeight - rect.bottom
+            GLES20.glScissor(rect.left, glY, rect.width(), rect.height())
+            GLES20.glViewport(rect.left, glY, rect.width(), rect.height())
+            // [v1.6.3] 消除藍色方框：在 PiP 渲染前強制使用深灰色清屏
+            GLES20.glClearColor(0.07f, 0.07f, 0.07f, 1.0f)
+            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
+            Matrix.perspectiveM(pMatrix, 0, com.horizon.caadronesimulator.logic.CameraDirector.smoothedZoomPipFov, rect.width().toFloat() / rect.height(), 0.1f, 1000f)
+            com.horizon.caadronesimulator.logic.CameraDirector.computePrecisionViewMatrix(vMatrix, physicsState.posX, physicsState.posY, physicsState.posZ)
+            renderScene()
+            GLES20.glDisable(GLES20.GL_SCISSOR_TEST)
+        }
         if (isSunSimEnabled) sunRenderer.drawLensFlare(mainPMatrix, mainVMatrix, sunPosition)
     }
 

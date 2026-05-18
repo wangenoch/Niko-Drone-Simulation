@@ -1,6 +1,10 @@
 package com.horizon.caadronesimulator.logic
 
 import android.os.Build
+import com.horizon.caadronesimulator.logic.drivers.AX12Driver
+import com.horizon.caadronesimulator.logic.drivers.AX12V2Driver
+import com.horizon.caadronesimulator.logic.drivers.MK15Driver
+import com.horizon.caadronesimulator.logic.drivers.InternalDeviceDriver
 
 /**
  * [v1.6.1] 硬件裝置描述檔 (通用化識別版)
@@ -23,7 +27,7 @@ data class HardwareProfile(
     val defaultInternalPort: String = "/dev/ttyS0",
     val isProfessionalRemote: Boolean = false,
     val factoryAppPackage: String? = null,
-    val driver: com.horizon.caadronesimulator.logic.drivers.InternalDeviceDriver? = null
+    val driver: InternalDeviceDriver? = null,
 )
 
 object HardwareRegistry {
@@ -32,28 +36,28 @@ object HardwareRegistry {
 
     private val profiles = listOf(
         HardwareProfile(
-            id = "RM_AX12",
-            brandName = "RadioMaster AX12",
-            identificationTags = listOf("ax12", "tb8788"), // 支援 alps tb8788p1_64_bsp
+            id = "RM_AX12_V1",
+            brandName = "RadioMaster AX12 (UMBUS-V1)",
+            identificationTags = listOf("ax12", "tb8788"),
             probeSignature = 0xA6.toByte(),               // UMBUS Sync Byte
             defaultBaudRate = 921600,
             minPacketSize = 87,
             defaultInternalPort = "/dev/ttyS0",
             isProfessionalRemote = true,
             factoryAppPackage = "com.Flyshark.RadioMasterAX",
-            driver = com.horizon.caadronesimulator.logic.drivers.AX12Driver()
+            driver = AX12Driver()
         ),
         HardwareProfile(
-            id = "RM_AX12_ENHANCED",
-            brandName = "RadioMaster AX-Enhanced",
-            identificationTags = listOf("ax-enhanced"),
+            id = "RM_AX12_V2",
+            brandName = "RadioMaster AX12 (UMBUS-V2)",
+            identificationTags = listOf("ax-enhanced", "umbus-v2"),
             probeSignature = 0xA6.toByte(),
-            defaultBaudRate = 460800,
+            defaultBaudRate = 921600,
             minPacketSize = 87,
             defaultInternalPort = "/dev/ttyS0",
             isProfessionalRemote = true,
             factoryAppPackage = "com.Flyshark.RadioMasterAX",
-            driver = com.horizon.caadronesimulator.logic.drivers.AX12_2Driver()
+            driver = AX12V2Driver()
         ),
         HardwareProfile(
             id = "QUALCOMM MK15",
@@ -63,7 +67,7 @@ object HardwareRegistry {
             defaultInternalPort = "/dev/ttyUSB",
             isProfessionalRemote = true,
             factoryAppPackage = "com.siyi.transmitter",
-            driver = com.horizon.caadronesimulator.logic.drivers.MK15Driver()
+            driver = MK15Driver()
         )
     )
 

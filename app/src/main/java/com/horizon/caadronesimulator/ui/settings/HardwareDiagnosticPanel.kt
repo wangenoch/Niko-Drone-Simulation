@@ -155,8 +155,6 @@ fun HardwareDiagnosticPanel(
             Row(modifier = Modifier.fillMaxWidth()) {
                 // 左側：配置與主權
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    DiagnosticRow("連結類型", linkType)
-                    
                     // 硬體路徑選單
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("硬體路徑: ", color = Color.Gray, fontSize = 9.sp, modifier = Modifier.width(60.dp))
@@ -176,13 +174,15 @@ fun HardwareDiagnosticPanel(
                             DropdownMenu(
                                 expanded = pathExpanded, 
                                 onDismissRequest = { pathExpanded = false },
+                                modifier = Modifier.background(Color(0xFF1B2535)).border(1.dp, Color.White.copy(0.1f), RoundedCornerShape(8.dp)),
                                 properties = androidx.compose.ui.window.PopupProperties(focusable = false)
                             ) {
-                                DropdownMenuItem(text = { Text("自動掃描 (推薦)", fontSize = 11.sp) }, onClick = { onUpdateLockedPath(""); pathExpanded = false })
-                                availablePorts.forEach { p -> DropdownMenuItem(text = { Text(p, fontSize = 10.sp) }, onClick = { onUpdateLockedPath(p); pathExpanded = false }) }
+                                DropdownMenuItem(text = { Text("自動掃描 (推薦)", fontSize = 11.sp, color = Color.White) }, onClick = { onUpdateLockedPath(""); pathExpanded = false })
+                                availablePorts.forEach { p -> DropdownMenuItem(text = { Text(p, fontSize = 10.sp, color = Color.White) }, onClick = { onUpdateLockedPath(p); pathExpanded = false }) }
                             }
                         }
                     }
+                    DiagnosticRow("連結類型", linkType)
 
                     // 協議管理
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -197,16 +197,20 @@ fun HardwareDiagnosticPanel(
                             DropdownMenu(
                                 expanded = protocolMenuExpanded, 
                                 onDismissRequest = { protocolMenuExpanded = false },
+                                modifier = Modifier.background(Color(0xFF1B2535)).border(1.dp, Color.White.copy(0.1f), RoundedCornerShape(8.dp)),
                                 properties = androidx.compose.ui.window.PopupProperties(focusable = false)
                             ) {
-                                DropdownMenuItem(text = { Text("自動識別協議", fontSize = 11.sp) }, onClick = { onUpdateLockedProtocol(""); protocolMenuExpanded = false })
+                                DropdownMenuItem(text = { Text("自動識別協議", fontSize = 11.sp, color = Color.White) }, onClick = { onUpdateLockedProtocol(""); protocolMenuExpanded = false })
                                 HorizontalDivider(color = Color.White.copy(0.1f))
-                                listOf("CRSF", "S.Bus", "MAVLink", "AX12(UMBUS)(實驗性)", "AX-Enhanced(實驗性)", "SIYI MK15(實驗性)").forEach { p ->
-                                    DropdownMenuItem(text = { Text(p, fontSize = 10.sp) }, onClick = { onUpdateLockedProtocol(p); protocolMenuExpanded = false })
+                                listOf("CRSF", "S.Bus", "MAVLink", "RadioMaster AX12 (UMBUS-V1)", "RadioMaster AX12 (UMBUS-V2)", "SIYI MK15(實驗性)").forEach { p ->
+                                    DropdownMenuItem(text = { Text(p, fontSize = 10.sp, color = Color.White) }, onClick = { onUpdateLockedProtocol(p); protocolMenuExpanded = false })
                                 }
                             }
                         }
                     }
+
+                    // [重組] 進程衝突
+                    DiagnosticRow("進程衝突", conflictPid)
 
                     // 波特率選擇
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -221,6 +225,7 @@ fun HardwareDiagnosticPanel(
                             DropdownMenu(
                                 expanded = baudExpanded, 
                                 onDismissRequest = { baudExpanded = false },
+                                modifier = Modifier.background(Color(0xFF1B2535)).border(1.dp, Color.White.copy(0.1f), RoundedCornerShape(8.dp)),
                                 properties = androidx.compose.ui.window.PopupProperties(focusable = false)
                             ) {
                                 listOf(9600, 57600, 115200, 460800, 921600).forEach { rate ->
@@ -230,10 +235,8 @@ fun HardwareDiagnosticPanel(
                             }
                         }
                     }
-
-                    // [重組] 進程衝突
-                    DiagnosticRow("進程衝突", conflictPid)
                     
+                    DiagnosticRow("網路協議", if(isNetworkConnected) networkProtocol else "--")
                     // [重組] 網路設定入口 (整合至左側)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("網路連線: ", color = Color.Gray, fontSize = 9.sp, modifier = Modifier.width(60.dp))
@@ -242,7 +245,6 @@ fun HardwareDiagnosticPanel(
                             Icon(Icons.Default.Settings, null, tint = Color.Cyan.copy(0.5f), modifier = Modifier.size(10.dp))
                         }
                     }
-                    DiagnosticRow("網路協議", if(isNetworkConnected) networkProtocol else "--")
                 }
 
                 // 右側：物理性能指標

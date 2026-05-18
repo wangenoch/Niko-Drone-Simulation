@@ -202,6 +202,17 @@ class MainActivity : ComponentActivity() {
 
     private fun saveDiagnosticLog() {
         if (!droneState.isLogcatEnabled) { droneState.systemMessage = "📋 請先開啟 [即時監測 Logcat] 以收集診斷數據"; return }
+        
+        // [v1.6.3] Android 9 (API 28) 權限防禦
+        if (Build.VERSION.SDK_INT <= 28) {
+            val perm = android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+            if (androidx.core.content.ContextCompat.checkSelfPermission(this, perm) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                androidx.core.app.ActivityCompat.requestPermissions(this, arrayOf(perm), 1001)
+                droneState.systemMessage = "🔐 請允許儲存權限以匯出日誌"
+                return
+            }
+        }
+
         val physicalLog = usbSerialManager.getFullLog()
         if (physicalLog.isEmpty()) { droneState.systemMessage = "⏳ 正在收集初始數據，請操作搖桿幾秒後再試"; return }
         LogExporter.exportDiagnosticLog(this, droneState, physicalLog, onSuccess = { droneState.systemMessage = it }, onError = { droneState.systemMessage = it })

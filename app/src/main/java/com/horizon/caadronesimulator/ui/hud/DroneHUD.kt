@@ -91,8 +91,28 @@ fun DroneHUD(
             )
         }
 
-        // 4. 頂部狀態顯示
-        Box(modifier = Modifier.fillMaxSize().padding(top = 16.dp)) {
+        // 4. 頂部狀態顯示與姿態輔助視窗 (Zoom Assistant)
+        Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+            val horizontalDist = sqrt(state.posX.pow(2) + (state.posZ + 6f).pow(2))
+            val isInZoomZone = state.enableZoomAssistant && horizontalDist > 10.0f && state.cameraMode != "FPV 視角" && state.cameraMode != "跟則視角" && !state.showSettings
+            
+            // [v1.6.3] 自動避讓算法：當仰角過低(低頭看地)或高度過高時，視窗移往左側以防遮擋
+            // [v1.6.3] 自動避讓算法：避讓至右上角選單按鈕的左方
+            val currentSpec = DroneRegistry.getSpec(state.droneType)
+            val isZoomRelocated = state.autoPiPRelocate && (state.observerTilt < -5f || (state.altitude - currentSpec.groundOffset) > 10f)
+            val zoomAlign = if (isZoomRelocated) Alignment.TopEnd else Alignment.TopCenter
+            val zoomPad = if (isZoomRelocated) Modifier.padding(end = 65.dp, top = 16.dp) else Modifier.padding(top = 10.dp)
+
+            if (isInZoomZone) {
+                PrecisionZoomView(
+                    state = state,
+                    modifier = zoomPad.align(zoomAlign),
+                    onUpdateRect = onUpdateZoomPipRect
+                )
+            } else {
+                onUpdateZoomPipRect(null)
+            }
+
             Column(modifier = Modifier.align(Alignment.TopCenter), horizontalAlignment = Alignment.CenterHorizontally) {
                 // 邊界警告提示 (原始設定)
                 if (state.isNearBoundary) {

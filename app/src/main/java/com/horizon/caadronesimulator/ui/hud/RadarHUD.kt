@@ -103,6 +103,21 @@ fun RadarHUD(
                 drawCircle(Color.Red, 1.0f * s, toRadar(13.5f, 16.0f))
                 drawCircle(Color.Red, 1.0f * s, toRadar(-13.5f, 16.0f))
 
+                // [v1.6.3] 飛行軌跡繪製：補全缺失的 Trail 渲染邏輯
+                if (state.showFlightPath && state.flightPath.isNotEmpty()) {
+                    val trailPath = Path()
+                    state.flightPath.forEachIndexed { index, offset ->
+                        val radarPos = toRadar(offset.x, offset.y)
+                        if (index == 0) trailPath.moveTo(radarPos.x, radarPos.y)
+                        else trailPath.lineTo(radarPos.x, radarPos.y)
+                    }
+                    drawPath(
+                        path = trailPath,
+                        color = Color.Cyan.copy(alpha = 0.5f),
+                        style = Stroke(width = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 4f)))
+                    )
+                }
+
                 val dP = if (state.radarZoomMode == 2) Offset(centerX, centerY) else toRadar(state.posX, state.posZ)
                 rotate(-state.yaw, dP) {
                     val ap = Path().apply { moveTo(dP.x, dP.y - 6.dp.toPx()); lineTo(dP.x - 4.dp.toPx(), dP.y + 4.dp.toPx()); lineTo(dP.x + 4.dp.toPx(), dP.y + 4.dp.toPx()); close() }
