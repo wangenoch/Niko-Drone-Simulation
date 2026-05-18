@@ -10,8 +10,8 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * [v1.6.3] 專業輸入協調中心 (Input Coordinator)
- * 修正：支持 InternalCommManager。
+ * [v1.7.6] 專業輸入協調中心 (Input Coordinator)
+ * 職責：整合物理手把、虛擬搖桿與串口數據。
  */
 object InputCoordinator {
 

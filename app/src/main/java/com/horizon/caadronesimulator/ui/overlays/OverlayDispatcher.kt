@@ -28,7 +28,7 @@ import com.horizon.caadronesimulator.ui.tutorial.JoystickSettingsTutorial
 import com.horizon.caadronesimulator.ui.tutorial.WelcomeTutorial
 
 /**
- * [v1.6.3] 全域 UI 覆蓋層調度器 (Overlay Dispatcher)
+ * [v1.7.6] 全域 UI 覆蓋層調度器 (Overlay Dispatcher)
  * 職責：將 MainAppScreen 中的所有彈窗、教學與提示層解耦，降低主畫面編譯壓力。
  */
 @Composable

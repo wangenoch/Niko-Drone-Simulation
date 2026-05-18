@@ -17,9 +17,8 @@ import java.io.InputStreamReader
 import kotlin.math.*
 
 /**
- * [v1.6.1] 模擬器業務中樞 (Detoxified Logic Hub)
- * 修正：實施最後狀態鎖定，集中距離與縮放判定，新增「恢復原廠設定」邏輯。
- * 已對接：ConfigurationStore (v1.5.9)
+ * [v1.7.6] 模擬器業務中樞 (Detoxified Logic Hub)
+ * 職責：整合數據採集、任務評測與全域狀態管理。
  */
 class DroneViewModel : ViewModel() {
     private var logcatJob: Job? = null

@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.abs
 
 /**
- * [v1.6.3] 內置通訊管理器 (Internal Communication Manager)
+ * [v1.7.6] 內置通訊管理器 (Internal Communication Manager)
  * 職責：專注於「內置 (Pro)」鏈路通訊，包括 /dev/ttyS0 讀取與 UMBUS 協議解析。
  */
 class InternalCommManager(

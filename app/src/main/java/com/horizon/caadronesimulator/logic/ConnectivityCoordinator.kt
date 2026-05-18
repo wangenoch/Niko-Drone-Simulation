@@ -9,7 +9,7 @@ import com.horizon.caadronesimulator.model.DroneState
 import kotlinx.coroutines.*
 
 /**
- * [v1.6.3] 通訊主權協調員 (Connectivity Coordinator)
+ * [v1.7.6] 通訊主權協調員 (Connectivity Coordinator)
  * 職責：負責硬體自動感知、身分分類 (Pro vs Store) 與連線決策。
  * 接管原 MainActivity 中的硬體掃描邏輯，解決「名實不符」的問題。
  */

@@ -29,7 +29,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * [v1.5.9] 模擬器主入口 - 效能極致優化版
+ * [v1.7.6] 模擬器主入口 - 效能極致優化版
  * 職責：管理組件生命週期與高頻渲染回調。
  */
 class MainActivity : ComponentActivity() {

@@ -11,7 +11,7 @@ import javax.microedition.khronos.opengles.GL10
 import kotlin.math.*
 
 /**
- * [v1.5.9] 模擬器渲染主引擎 - 科學氣候修復版
+ * [v1.7.6] 模擬器渲染主引擎 - 效能極致優化版
  * 修正：徹底解決 U/V 捲動接縫與層雲可見度問題。
  */
 class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Float, Float, Float, Float, Float, Boolean, Float, Int, androidx.compose.ui.geometry.Offset?, Float?, Float?, Float?, Float?) -> Unit) : GLSurfaceView.Renderer {
@@ -62,7 +62,7 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
             lastWeatherMode = weatherMode; lastDensity = cloudDensity
         }
 
-        // [v1.7.4 撥亂反正]：心跳回歸 OpenGL 渲染線程
+        // [v1.6.3] 撥亂反正：心跳回歸 OpenGL 渲染線程
         // 優點：保證「算一幀、畫一幀」，徹底消除微抖動。邏輯依然保留在外部組件中。
         val now = System.nanoTime(); if (lastFrameTime == 0L) lastFrameTime = now
         val dt = ((now - lastFrameTime) / 1_000_000_000f).coerceIn(0.001f, 0.05f); lastFrameTime = now

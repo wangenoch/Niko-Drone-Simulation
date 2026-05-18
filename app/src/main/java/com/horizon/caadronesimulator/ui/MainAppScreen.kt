@@ -58,7 +58,7 @@ import kotlin.math.*
 
 /**
  * Niko Drone Simulator 主 UI 結構層
- * [v1.5.9] 全專案「最終淨化」三部曲完成版
+ * [v1.7.6] 全專案「最終淨化」三部曲完成版
  */
 @Composable
 fun MainAppScreen(
