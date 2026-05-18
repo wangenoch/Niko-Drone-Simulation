@@ -45,6 +45,13 @@ object CameraDirector {
             finalTargetTilt = strategy.tilt
             finalTargetZoom = strategy.zoom
             finalTargetFov = strategy.fov
+        } else if (cameraMode == "站位視角 (智慧)") {
+            // [v1.6.2] 智慧縮放模式：根據距離動態計算推近鏡頭
+            finalTargetHeight = targetHeight
+            finalTargetTilt = targetTilt
+            // 基礎 1.2x，每飛遠 12 米增加 1.0x 放大
+            finalTargetZoom = (1.2f + (d / 12.0f)).coerceIn(1.0f, 4.0f)
+            finalTargetFov = targetFov
         } else {
             finalTargetHeight = targetHeight
             finalTargetTilt = targetTilt
@@ -82,6 +89,18 @@ object CameraDirector {
 
         when {
             mode == "站位視角 (追蹤)" -> {
+                val isOverhead = distH < 2.0f
+                val upY = if (isOverhead) 0f else 1f
+                val upZ = if (isOverhead) 1f else 0f
+                val rad = Math.toRadians(smoothedTilt.toDouble()).toFloat()
+                val verticalShift = if (isOverhead) 0f else tan(rad) * distH
+                Matrix.setLookAtM(vMatrix, 0, 0f, smoothedHeight, -9f, curX, curY + verticalShift, curZ, 0f, upY, upZ)
+            }
+            mode == "站位視角 (智慧)" -> {
+                // [v1.6.2] 智慧縮放模式：共用追蹤矩陣邏輯，其縮放效果由 smoothedZoom 實現
+                val dx = curX - 0f
+                val dz = curZ - (-9f)
+                val distH = sqrt(dx * dx + dz * dz).coerceAtLeast(0.001f)
                 val isOverhead = distH < 2.0f
                 val upY = if (isOverhead) 0f else 1f
                 val upZ = if (isOverhead) 1f else 0f

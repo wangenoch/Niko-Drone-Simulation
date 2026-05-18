@@ -143,7 +143,7 @@ fun FlightInteractionLayer(
                                     properties = PopupProperties(focusable = false),
                                     modifier = Modifier.background(Color(0xEE111111)).border(1.dp, Color.White.copy(0.1f), RoundedCornerShape(12.dp))
                                 ) {
-                                    listOf("站位視角 (追蹤)", "站位視角 (固定)", "跟隨視角", "FPV 視角", "觀察員視角 (實驗性)").forEach { m ->
+                                    listOf("站位視角 (追蹤)", "站位視角 (智慧)", "站位視角 (固定)", "跟隨視角", "FPV 視角", "觀察員視角 (實驗性)").forEach { m ->
                                         DropdownMenuItem(
                                             text = { Text(m, color = if(state.cameraMode == m) Color.Cyan else Color.White, fontSize = 13.sp) }, 
                                             onClick = { onUpdateState { this.cameraMode = m }; cameraMenuExpanded = false; viewExpanded = false }

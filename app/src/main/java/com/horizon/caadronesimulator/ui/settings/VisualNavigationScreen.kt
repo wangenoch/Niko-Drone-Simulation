@@ -65,7 +65,7 @@ fun VisualNavigationScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 Text("視角模式", color = Color.Gray, fontSize = 10.sp)
-                val modes = listOf("站位視角 (追蹤)", "跟隨視角", "FPV 視角", "觀察員視角 (實驗性)")
+                val modes = listOf("站位視角 (追蹤)", "站位視角 (智慧)", "站位視角 (固定)", "跟隨視角", "FPV 視角")
                 modes.forEach { mode ->
                     CompactChip(
                         text = mode,

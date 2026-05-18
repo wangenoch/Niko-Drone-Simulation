@@ -172,6 +172,11 @@ class DroneViewModel : ViewModel() {
                     observerTilt = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.OBSERVER_TILT_TRACKING
                     zoomFactor = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.ZOOM_FACTOR_TRACKING
                 }
+                "站位視角 (智慧)" -> {
+                    observerHeight = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.OBSERVER_HEIGHT_TRACKING
+                    observerTilt = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.OBSERVER_TILT_TRACKING
+                    zoomFactor = 1.2f
+                }
             }
         }
     }

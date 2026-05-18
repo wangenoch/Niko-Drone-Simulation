@@ -59,6 +59,8 @@ object AppConfig {
         
         /** 初始攝影機模式 */
         const val CAMERA_MODE = "站位視角 (追蹤)"
+        /** 智慧縮放模式名稱 */
+        const val CAMERA_MODE_SMART = "站位視角 (智慧)"
 
         // --- 站位視角 (固定) 專屬預設值 ---
         /** 觀察員站位高度 (公尺) */
