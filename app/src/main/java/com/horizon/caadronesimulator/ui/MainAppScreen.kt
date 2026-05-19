@@ -1,62 +1,28 @@
 package com.horizon.caadronesimulator.ui
 
-import android.opengl.GLSurfaceView
-import androidx.compose.animation.*
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Radar
-import androidx.compose.material.icons.filled.Help
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.boundsInRoot
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInWindow
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
-import com.horizon.caadronesimulator.logic.InternalCommManager
+import com.horizon.caadronesimulator.audio.DroneSoundManager
 import com.horizon.caadronesimulator.logic.DroneViewModel
+import com.horizon.caadronesimulator.logic.UsbSerialManager
+import com.horizon.caadronesimulator.logic.storage.ConfigurationStore
+import com.horizon.caadronesimulator.model.AppConfig
 import com.horizon.caadronesimulator.model.ChannelMapping
 import com.horizon.caadronesimulator.model.DroneState
-import com.horizon.caadronesimulator.logic.storage.ConfigurationStore
 import com.horizon.caadronesimulator.model.StickInputState
 import com.horizon.caadronesimulator.render.DroneSimulationRenderer
-import com.horizon.caadronesimulator.audio.DroneSoundManager
-import com.horizon.caadronesimulator.logic.UsbSerialManager
 import com.horizon.caadronesimulator.ui.hud.DroneHUD
 import com.horizon.caadronesimulator.ui.hud.FlightInteractionLayer
-import com.horizon.caadronesimulator.ui.hud.SideNavInstruments
-import com.horizon.caadronesimulator.ui.hud.StickInteractionLogic
-import com.horizon.caadronesimulator.ui.overlays.*
-import com.horizon.caadronesimulator.ui.settings.NetworkSettingsOverlay
-import com.horizon.caadronesimulator.ui.settings.UnifiedSettingsScreen
-import com.horizon.caadronesimulator.ui.tutorial.WelcomeTutorial
-import com.horizon.caadronesimulator.ui.tutorial.JoystickSettingsTutorial
-import com.horizon.caadronesimulator.ui.tutorial.ClimateSettingsTutorial
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlin.math.*
+import com.horizon.caadronesimulator.ui.overlays.OverlayDispatcher
 
 /**
  * Niko Drone Simulator 主 UI 結構層
- * [v1.7.6] 全專案「最終淨化」三部曲完成版
+ * [v1.7.6] 全專案「最終淨化」三部曲完成版 - 警告清理優化
  */
 @Composable
 fun MainAppScreen(
@@ -64,7 +30,7 @@ fun MainAppScreen(
     stickInputState: StickInputState,
     renderer: DroneSimulationRenderer,
     soundManager: DroneSoundManager,
-    usbSerialManager: com.horizon.caadronesimulator.logic.UsbSerialManager,
+    usbSerialManager: UsbSerialManager,
     configStore: ConfigurationStore,
     viewModel: DroneViewModel,
     showSplash: Boolean,
@@ -133,13 +99,10 @@ fun MainAppScreen(
         renderer.isSunSimEnabled = droneState.isSunSimEnabled
         renderer.sunPosition = droneState.sunPosition
         renderer.observerTilt = droneState.observerTilt
-        renderer.showClouds = droneState.showClouds
         renderer.cloudDensity = droneState.cloudDensity
-        renderer.weatherMode = droneState.weatherMode
-        renderer.showMountains = droneState.showMountains
         renderer.useSimplifiedMarkers = droneState.useSimplifiedMarkers
         renderer.showSpecialTitle = droneState.showSpecialTitle
-        renderer.currentTitleText = if (droneState.customTitle.isNotBlank()) droneState.customTitle else com.horizon.caadronesimulator.model.AppConfig.SPECIAL_TITLE
+        renderer.currentTitleText = droneState.customTitle.ifBlank { AppConfig.SPECIAL_TITLE }
         renderer.useFlightLimit = droneState.useFlightLimit
         renderer.mainFOV = droneState.mainFOV
         renderer.showGroundAnchor = droneState.showGroundAnchor
