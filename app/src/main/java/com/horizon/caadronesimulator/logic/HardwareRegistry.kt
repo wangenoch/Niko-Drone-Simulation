@@ -1,27 +1,17 @@
 package com.horizon.caadronesimulator.logic
 
 import android.os.Build
-import com.horizon.caadronesimulator.logic.drivers.AX12Driver
-import com.horizon.caadronesimulator.logic.drivers.AX12V2Driver
-import com.horizon.caadronesimulator.logic.drivers.MK15Driver
 import com.horizon.caadronesimulator.logic.drivers.InternalDeviceDriver
 
 /**
- * [v1.6.1] 硬件裝置描述檔 (通用化識別版)
- * 
- * --- 狀況排除 SOP (供未來 Agent 參考) ---
- * 如果發現遙控器油門或舵面方向相反：
- * 1. 檢查物理數值：前往「硬體診斷面板」，查看原始數據。
- *    - 物理標準：向上推/向右撥 必須為 正值 (+)。
- * 2. 若物理數值相反：修改此處對應 Profile 的 getDefaultMapping 中的 inverted 屬性。
- * 3. 核心規範：嚴禁在 InputCoordinator.kt 採集層進行反相處理，確保數據源純淨。
- * -------------------------------------------
+ * [v1.7.6] 硬件裝置描述檔 (通用化識別版)
+ * 職責：僅保留資料結構與基礎匹配，驅動程式實例化延遲至 Flavor 層注入。
  */
 data class HardwareProfile(
     val id: String,
     val brandName: String,
-    val identificationTags: List<String> = emptyList(), // 靜態指紋標籤 (模糊匹配)
-    val probeSignature: Byte? = null,                   // 協議暗號 (如 UMBUS: 0xA6)
+    val identificationTags: List<String> = emptyList(),
+    val probeSignature: Byte? = null,
     val defaultBaudRate: Int = 115200,
     val minPacketSize: Int = 0,
     val defaultInternalPort: String = "/dev/ttyS0",
@@ -34,18 +24,20 @@ object HardwareRegistry {
     // [v1.5.2] 全域主控開關：開發者除錯用 (設為 true 則全量解鎖所有保護)
     var debugForceUnlockAll = false
 
+    // 預留介面供 Flavor 注入驅動實體，解決 src/main 找不到 src/pro 驅動的問題
+    var driverProvider: ((String) -> InternalDeviceDriver?)? = null
+
     private val profiles = listOf(
         HardwareProfile(
             id = "RM_AX12_V1",
             brandName = "RadioMaster AX12 (UMBUS-V1)",
             identificationTags = listOf("ax12", "tb8788"),
-            probeSignature = 0xA6.toByte(),               // UMBUS Sync Byte
+            probeSignature = 0xA6.toByte(),
             defaultBaudRate = 921600,
             minPacketSize = 87,
             defaultInternalPort = "/dev/ttyS0",
             isProfessionalRemote = true,
-            factoryAppPackage = "com.Flyshark.RadioMasterAX",
-            driver = AX12Driver()
+            factoryAppPackage = "com.Flyshark.RadioMasterAX"
         ),
         HardwareProfile(
             id = "RM_AX12_V2",
@@ -56,8 +48,7 @@ object HardwareRegistry {
             minPacketSize = 87,
             defaultInternalPort = "/dev/ttyS0",
             isProfessionalRemote = true,
-            factoryAppPackage = "com.Flyshark.RadioMasterAX",
-            driver = AX12V2Driver()
+            factoryAppPackage = "com.Flyshark.RadioMasterAX"
         ),
         HardwareProfile(
             id = "QUALCOMM MK15",
@@ -66,41 +57,29 @@ object HardwareRegistry {
             defaultBaudRate = 115200,
             defaultInternalPort = "/dev/ttyUSB",
             isProfessionalRemote = true,
-            factoryAppPackage = "com.siyi.transmitter",
-            driver = MK15Driver()
+            factoryAppPackage = "com.siyi.transmitter"
         )
     )
 
-    /**
-     * 第一階段：靜態特徵匹配
-     * 返回一個「疑似」的 Profile，用於啟動 10 秒驗證流程。
-     */
     fun detectHardwareHint(): HardwareProfile? {
         val sysInfo = "${Build.PRODUCT} ${Build.MODEL} ${Build.MANUFACTURER}".lowercase()
-        return profiles.find { prof ->
+        val base = profiles.find { prof ->
             prof.identificationTags.any { tag -> sysInfo.contains(tag.lowercase()) }
         }
+        return base?.let { it.copy(driver = driverProvider?.invoke(it.id)) }
     }
 
-    /**
-     * 獲取通用手機 Profile (Fallback)
-     */
     fun getGenericProfile() = HardwareProfile(
         id = "GENERIC_MOBILE",
         brandName = "標準行動裝置",
         isProfessionalRemote = false
     )
 
-    /**
-     * 根據 ID 獲取完整 Profile
-     */
     fun getProfileById(id: String): HardwareProfile {
-        return profiles.find { it.id == id } ?: getGenericProfile()
+        val base = profiles.find { it.id == id } ?: getGenericProfile()
+        return base.copy(driver = driverProvider?.invoke(base.id))
     }
     
-    /**
-     * [向下相容] 舊有的同步偵測接口
-     */
     fun detectHardware(): HardwareProfile {
         return detectHardwareHint() ?: getGenericProfile()
     }

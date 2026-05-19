@@ -10,7 +10,7 @@ import kotlin.math.abs
  */
 class MK15Driver : InternalDeviceDriver {
     override val brandName = "SIYI MK15"
-    override val defaultBaudRate = 115200
+    override var defaultBaudRate = 115200
     override val minPacketSize = 25 // 假設為標準 S.Bus 封包長度
     override val defaultPort = "/dev/ttyHS0"
     override val factoryAppPackage = "com.siyi.transmitter"
@@ -26,7 +26,7 @@ class MK15Driver : InternalDeviceDriver {
     private val MAX_VAL = 1950f
     private val MID_VAL = 1500f
 
-    override fun parseRaw(buffer: ByteBuffer): List<Float> {
+    override fun parseRaw(buffer: ByteBuffer): List<Float>? {
         // [v1.3.9] 實施標準 S.Bus 解析邏輯
         if (buffer.remaining() < 25) return List(24) { 0f }
         

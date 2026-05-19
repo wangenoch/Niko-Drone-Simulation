@@ -18,6 +18,22 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // [v1.7.6] 多風味版本隔離 (Product Flavors)
+    // 職責：物理隔離專業版 (Pro) 與上架版 (Store) 的代碼與權限。
+    flavorDimensions += "tier"
+    productFlavors {
+        create("store") {
+            dimension = "tier"
+            applicationId = "com.horizon.caadronesimulator"
+            versionNameSuffix = "-store"
+        }
+        create("pro") {
+            dimension = "tier"
+            applicationId = "com.horizon.caadronesimulator.pro"
+            versionNameSuffix = "-pro"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false

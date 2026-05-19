@@ -3,6 +3,7 @@ package com.horizon.caadronesimulator.model
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
 import com.horizon.caadronesimulator.logic.HardwareProfile
+import com.horizon.caadronesimulator.logic.HardwareRegistry
 import com.horizon.caadronesimulator.model.AppConfig
 
 data class ChannelMapping(

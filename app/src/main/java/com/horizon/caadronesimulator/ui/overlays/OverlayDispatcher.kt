@@ -35,7 +35,7 @@ import com.horizon.caadronesimulator.ui.tutorial.WelcomeTutorial
 fun OverlayDispatcher(
     droneState: DroneState,
     stickInputState: StickInputState,
-    usbSerialManager: com.horizon.caadronesimulator.logic.InternalCommManager,
+    usbSerialManager: com.horizon.caadronesimulator.logic.UsbSerialManager,
     configStore: ConfigurationStore,
     viewModel: DroneViewModel,
     showSplash: Boolean,
@@ -99,7 +99,7 @@ fun OverlayDispatcher(
                 configStore.saveSettings(droneState)
                 if (droneState.inputMode == 2) {
                     usbSerialManager.setLockedPath("NETWORK")
-                    usbSerialManager.scanAndConnect()
+                    usbSerialManager.startReadingByPath("NETWORK")
                 }
                 onUpdateInputMode(2)
             }
@@ -173,7 +173,7 @@ fun OverlayDispatcher(
     ProtocolOptimizationOverlay(
         state = droneState,
         onApply = { proto, baud ->
-            usbSerialManager.setLockedProtocol(proto)
+            com.horizon.caadronesimulator.logic.ProHardwareBridge.internalCommManager.setLockedProtocol(proto)
             onUpdateBaudRate(baud)
             droneState.commDecisionState = com.horizon.caadronesimulator.model.CommDecisionState.LOCKED
         },

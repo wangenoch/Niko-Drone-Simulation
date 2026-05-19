@@ -83,7 +83,15 @@ fun FlightInteractionLayer(
                             onUpdateState { this.isMotorLocked = true; this.isCollision = false; this.isMenuExpanded = false } 
                         }
                         InteractionBtn(Icons.Default.VideogameAsset, state.showVirtualJoysticks) { onUpdateState { this.showVirtualJoysticks = !this.showVirtualJoysticks } }
-                        InteractionBtn(Icons.Default.Timer, state.isSpotTimerEnabled) { onUpdateState { this.isSpotTimerEnabled = !this.isSpotTimerEnabled } }
+                        InteractionBtn(Icons.Default.Timer, state.isSpotTimerEnabled) { 
+                            onUpdateState { 
+                                this.isSpotTimerEnabled = !this.isSpotTimerEnabled
+                                if (this.isSpotTimerEnabled) {
+                                    this.spotTimerMessage = "請起飛至視線高度"
+                                    this.spotTimerSeconds = 5.0f
+                                }
+                            } 
+                        }
                         InteractionBtn(if (state.isMuted) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp, !state.isMuted) { onUpdateState { this.isMuted = !this.isMuted } }
                         
                         var viewExpanded by remember { mutableStateOf(false) }

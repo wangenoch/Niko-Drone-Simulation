@@ -1,38 +1,30 @@
 package com.horizon.caadronesimulator
 
-import android.hardware.input.InputManager
-import android.os.Build
 import android.os.Bundle
-import android.view.InputDevice
 import android.view.MotionEvent
-import android.Manifest
-import android.content.pm.PackageManager
 import com.horizon.caadronesimulator.util.SystemUiHelper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.compose.runtime.*
-import com.horizon.caadronesimulator.audio.DroneSoundManager
 import com.horizon.caadronesimulator.model.DroneState
 import com.horizon.caadronesimulator.logic.storage.ConfigurationStore
 import com.horizon.caadronesimulator.render.DroneSimulationRenderer
-import com.horizon.caadronesimulator.logic.InternalCommManager
-import com.horizon.caadronesimulator.logic.ConnectivityCoordinator
-import com.horizon.caadronesimulator.logic.InputCoordinator
-import com.horizon.caadronesimulator.util.LogExporter
+import com.horizon.caadronesimulator.logic.UsbSerialManager
 import com.horizon.caadronesimulator.ui.MainAppScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
  * [v1.7.6] 模擬器主入口 - 效能極致優化版
- * 職責：管理組件生命週期與高頻渲染回調。
+ * 職責：管理組件生命週期與高頻渲染回調，作為 Pro (專業) 與 Store (合規) 鏈路的總掛載點。
  */
 class MainActivity : ComponentActivity() {
+    
+    // --- 系統權限組件 ---
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { isGranted: Boolean ->
@@ -40,75 +32,46 @@ class MainActivity : ComponentActivity() {
         else droneState.systemMessage = "Permission required for export"
     }
 
+    // --- 核心狀態與邏輯組件 ---
     private val droneState = DroneState.getInstance()
     private val viewModel: com.horizon.caadronesimulator.logic.DroneViewModel by viewModels()
     private var stickInputState = com.horizon.caadronesimulator.model.StickInputState() 
     private var showSplash by mutableStateOf(value = true)
+    
+    // --- 渲染與通訊引擎 ---
     private lateinit var renderer: DroneSimulationRenderer
     private lateinit var soundManager: com.horizon.caadronesimulator.audio.DroneSoundManager
     private lateinit var configStore: ConfigurationStore
-    private lateinit var internalCommManager: InternalCommManager
-    private lateinit var connectivityCoordinator: ConnectivityCoordinator
+    private lateinit var usbSerialManager: com.horizon.caadronesimulator.logic.UsbSerialManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // 1. 系統 UI 與存儲初始化
         WindowCompat.setDecorFitsSystemWindows(window, false)
         configStore = ConfigurationStore(this)
         configStore.loadSettings(droneState)
         updateSystemUI()
 
-        internalCommManager = InternalCommManager(this, 
-            onStatusUpdate = { connected, message -> 
-                droneState.usbSerialConnected = connected
-                if (message.isNotEmpty()) droneState.systemMessage = message
-                if (connected) droneState.wasInternalSuccess = true 
-            },
-            onDataReceived = { lsv, lsh, rsv, rsh ->
-                if (droneState.inputMode == 0) return@InternalCommManager
-                stickInputState.updateRaw(lsv, lsh, rsv, rsh)
-                stickInputState.serialByteCount++
-            },
+        // 2. [v1.7.6] Store (上架合規) 鏈路初始化：負責 USB OTG 與 網路通訊
+        usbSerialManager = com.horizon.caadronesimulator.logic.UsbSerialManager(this, droneState, 
             onRawChannelsReceived = { channels ->
-                com.horizon.caadronesimulator.logic.InputCoordinator.processSerialInput(channels, droneState, stickInputState, internalCommManager)
+                com.horizon.caadronesimulator.logic.InputCoordinator.processSerialInput(channels, droneState, stickInputState, com.horizon.caadronesimulator.logic.ProHardwareBridge.internalCommManager)
             },
-            onDiagnosticUpdate = { status, path, log, extra ->
-                stickInputState.packetsPerSecond = (extra["pps"] as? Int) ?: stickInputState.packetsPerSecond
-                stickInputState.isSignalActive = (extra["is_signal_active"] as? Boolean) ?: stickInputState.isSignalActive
-                droneState.diagnosticLog = log; if (path != "%SAME%") droneState.activeSerialPath = path
-                (extra["linkType"] as? String)?.let { droneState.linkType = it }
-                (extra["baud"] as? Int)?.let { droneState.baudRate = it }
-                (extra["protocol"] as? String)?.let { droneState.detectedProtocol = it }
-                (extra["conflict"] as? Boolean)?.let { droneState.isSerialConflict = it }
-                (extra["raw_bytes_count"] as? Int)?.let { droneState.rawBytesCount = it }
-                (extra["buffer_usage"] as? String)?.let { droneState.bufferUsage = it }
-                (extra["jitter"] as? String)?.let { droneState.jitter = it }
-                (extra["stability"] as? String)?.let { droneState.stability = it }
-            },
-            onProtocolDetected = { p -> droneState.lockedProtocol = p },
-            onHandshakeStatus = { active, msg -> 
-                droneState.isHandshaking = active
-                if (msg == "TIMEOUT_60S") { if (!droneState.showTroubleshootingHint && !droneState.usbSerialConnected) droneState.showTroubleshootingHint = true }
-                else if (msg.isNotEmpty()) droneState.systemMessage = msg
-            },
-            onConnectionStatusUpdate = { status -> droneState.connectionStatus = status },
-            onIdentityVerified = {
-                if (!droneState.isHardwareVerified) {
-                    droneState.isHardwareVerified = true; droneState.isProbing = false; droneState.probeAttempts = 0
-                    droneState.systemMessage = "✅ 已認證 RadioMaster 硬體"; configStore.saveSettings(droneState)
-                }
-            }
+            onConnectionStatusUpdate = { status -> droneState.connectionStatus = status }
         )
 
-        connectivityCoordinator = ConnectivityCoordinator(this, droneState, internalCommManager) {
-            internalCommManager.scanAndConnect()
-        }
+        // 3. [v1.7.6] Pro (專業自用) 鏈路初始化：交由專屬 Bridge 管理內置串口與自動感知
+        com.horizon.caadronesimulator.logic.ProHardwareBridge.initialize(
+            this, droneState, stickInputState, configStore
+        )
 
-        internalCommManager.setBaudRate(droneState.baudRate)
-        internalCommManager.register(this)
+        // 4. 音效系統啟動
         soundManager = com.horizon.caadronesimulator.audio.DroneSoundManager(); soundManager.start()
 
-        // [v1.7.6] 修正：拆分物理數據與視覺投影，防止零電量數據汙染導致的無限碰撞
+        // 5. 3D 渲染引擎配置
         renderer = DroneSimulationRenderer { alt, x, z, yaw, pitch, roll, speed, isImpact, volt, perc, _, _, _, _, _ ->
+            // 每幀物理結果對接：由 Renderer 驅動降頻數據同步
             com.horizon.caadronesimulator.logic.PhysicsEngine.stepResult?.let { res ->
                 droneState.motorRpmFactor = res.motorRpm
                 viewModel.syncFlightData(
@@ -116,45 +79,59 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+        // 視覺投影位置更新 (分離物理數據以防止無限碰撞)
         renderer.onTitlePosUpdate = { pos -> droneState.specialTitleScreenPos = pos }
 
+        // 6. UI 視圖層載入
         setContent {
             MainAppScreen(
-                droneState = droneState, stickInputState = stickInputState, renderer = renderer, 
-                soundManager = soundManager, usbSerialManager = internalCommManager, configStore = configStore,
-                viewModel = viewModel, showSplash = showSplash, 
+                droneState = droneState, 
+                stickInputState = stickInputState, 
+                renderer = renderer, 
+                soundManager = soundManager, 
+                usbSerialManager = usbSerialManager, // 傳遞 Store 鏈路管理器
+                configStore = configStore,
+                viewModel = viewModel, 
+                showSplash = showSplash, 
                 onCloseSplash = { showSplash = false }, 
                 onResetFlight = { viewModel.resetFlight(droneState, renderer) }, 
                 onRerollWind = { renderer.rerollWindDirection() },
                 onRestoreDefaults = { 
-                    // [v1.6.1] 恢復原廠設定：中央協調層
                     viewModel.restoreFactorySettings(droneState, renderer)
                     configStore.wipeAllSettings()
-                    configStore.saveSettings(droneState) // 抹除後立刻寫入當前預設值
+                    configStore.saveSettings(droneState) 
                     updateSystemUI()
-                    internalCommManager.stopAll()
-                    droneState.inputMode = -1 // 回歸手選模式
+                    com.horizon.caadronesimulator.logic.ProHardwareBridge.onStop()
+                    droneState.inputMode = -1 
                 },
                 onExportLog = { saveDiagnosticLog() }, 
-                onUpdateBaudRate = { b -> droneState.baudRate = b; internalCommManager.setBaudRate(b); configStore.saveSettings(droneState) },
+                onUpdateBaudRate = { b -> 
+                    droneState.baudRate = b
+                    com.horizon.caadronesimulator.logic.ProHardwareBridge.internalCommManager.setBaudRate(b)
+                    configStore.saveSettings(droneState) 
+                },
                 onUpdateInputMode = { m ->
+                    // 手動輸入模式切換邏輯
                     if (droneState.isInteractionLocked) return@MainAppScreen
                     if (droneState.inputMode != m) {
                         droneState.isInteractionLocked = true; droneState.inputMode = m; configStore.saveSettings(droneState)
-                        
-                        // [v1.5.9] 手動切換邏輯：使用者手動點擊模式後，解除 USB 主權鎖定
                         droneState.isUsbStickyActive = false
                         
-                        internalCommManager.stopAll()
+                        com.horizon.caadronesimulator.logic.ProHardwareBridge.onStop()
                         if (m == -1 || m == 2) { droneState.isArmSafetyPassed = true; droneState.isHoldSafetyPassed = true; droneState.isThrottleHoldActive = false } 
                         else { droneState.isArmSafetyPassed = false; droneState.isHoldSafetyPassed = false }
-                        if (m == 1) lifecycleScope.launch { delay(300); internalCommManager.scanAndConnect() }
+                        if (m == 1) lifecycleScope.launch { delay(300); com.horizon.caadronesimulator.logic.ProHardwareBridge.internalCommManager.scanAndConnect() }
                         lifecycleScope.launch { delay(1000); droneState.isInteractionLocked = false }
                     }
                 },
                 onToggleNetworkConnection = { active ->
-                    if (active) { internalCommManager.setLockedPath("NETWORK"); internalCommManager.scanAndConnect() } 
-                    else { internalCommManager.stopAll() }
+                    // 網路通訊鏈路開關
+                    if (active) { 
+                        com.horizon.caadronesimulator.logic.ProHardwareBridge.internalCommManager.setLockedPath("NETWORK")
+                        com.horizon.caadronesimulator.logic.ProHardwareBridge.internalCommManager.scanAndConnect() 
+                    } else { 
+                        com.horizon.caadronesimulator.logic.ProHardwareBridge.onStop()
+                    }
                 },
                 onUpdateSystemUI = { updateSystemUI() }
             )
@@ -164,51 +141,43 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         updateSystemUI()
-        
-        // [v1.6.3] 通訊主權遷移：由 ConnectivityCoordinator 接管自動感知邏輯
-        if (::connectivityCoordinator.isInitialized) {
-            connectivityCoordinator.performAutoSensing()
-        }
+        // 恢復硬體自動感知決策
+        com.horizon.caadronesimulator.logic.ProHardwareBridge.onResume()
     }
 
-    override fun onStop() { super.onStop(); soundManager.stop(); internalCommManager.stopAll() }
-    override fun onWindowFocusChanged(hasFocus: Boolean) { super.onWindowFocusChanged(hasFocus); if (hasFocus) updateSystemUI() }
-    private fun updateSystemUI() { SystemUiHelper.toggleImmersiveMode(window, droneState.hideStatusBar) }
+    override fun onStop() { 
+        super.onStop()
+        soundManager.stop()
+        // 停止所有背景通訊以節電
+        com.horizon.caadronesimulator.logic.ProHardwareBridge.onStop() 
+    }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) { 
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) updateSystemUI() 
+    }
+
+    private fun updateSystemUI() { 
+        SystemUiHelper.toggleImmersiveMode(window, droneState.hideStatusBar) 
+    }
+
+    /** 執行 Pro 版診斷日誌匯出 (含權限請求) */
     private fun saveDiagnosticLog() {
-        if (!droneState.isLogcatEnabled) { droneState.systemMessage = "📋 請先開啟 [即時監測 Logcat] 以收集診斷數據"; return }
-        
-        // [v1.6.3] Android 9 (API 28) 權限防禦
-        if (Build.VERSION.SDK_INT <= 28) {
-            val perm = android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-            if (androidx.core.content.ContextCompat.checkSelfPermission(this, perm) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                androidx.core.app.ActivityCompat.requestPermissions(this, arrayOf(perm), 1001)
-                droneState.systemMessage = "🔐 請允許儲存權限以匯出日誌"
-                return
-            }
+        com.horizon.caadronesimulator.logic.ProHardwareBridge.internalCommManager.tryExportReport(this) { permission ->
+            requestPermissionLauncher.launch(permission)
         }
-
-        val physicalLog = internalCommManager.getFullLog()
-        if (physicalLog.isEmpty()) { droneState.systemMessage = "⏳ 正在收集初始數據，請操作搖桿幾秒後再試"; return }
-        LogExporter.exportDiagnosticLog(this, droneState, physicalLog, onSuccess = { droneState.systemMessage = it }, onError = { droneState.systemMessage = it })
     }
 
+    /** 處理來自標準 HID 手把的搖桿事件 */
     override fun onGenericMotionEvent(event: MotionEvent): Boolean {
-        // [v1.6.3] 待優化：HID 指令將於下一子階段正式遷移至 ConnectivityCoordinator 或 ExternalInputManager
-        return com.horizon.caadronesimulator.logic.InputCoordinator.handleJoystickEvent(event, droneState, stickInputState, internalCommManager)
-    }
-
-    private fun deviceMatchesExpertOrHid(device: android.hardware.usb.UsbDevice): Boolean {
-        if (device.vendorId == 0x2E3C) return true
-        for (i in 0 until device.interfaceCount) {
-            if (device.getInterface(i).interfaceClass == 3) return true
-        }
-        return false
+        return com.horizon.caadronesimulator.logic.InputCoordinator.handleJoystickEvent(
+            event, droneState, stickInputState, com.horizon.caadronesimulator.logic.ProHardwareBridge.internalCommManager
+        )
     }
 
     override fun onDestroy() { 
         super.onDestroy()
-        if (::internalCommManager.isInitialized) internalCommManager.unregister(this) 
-        if (::connectivityCoordinator.isInitialized) connectivityCoordinator.shutdown()
+        // 徹底銷毀 Pro 橋接引用，防止記憶體洩漏
+        com.horizon.caadronesimulator.logic.ProHardwareBridge.onDestroy(this)
     }
 }

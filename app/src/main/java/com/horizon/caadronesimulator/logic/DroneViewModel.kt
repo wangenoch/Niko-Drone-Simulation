@@ -21,7 +21,6 @@ import kotlin.math.*
  * 職責：整合數據採集、任務評測與全域狀態管理。
  */
 class DroneViewModel : ViewModel() {
-    private var logcatJob: Job? = null
     private var wizardJob: Job? = null
 
     var welcomeStep by mutableIntStateOf(0)
@@ -74,27 +73,46 @@ class DroneViewModel : ViewModel() {
 
     fun resetFlight(state: DroneState, renderer: DroneSimulationRenderer) {
         lastResetTime = System.currentTimeMillis()
-        // [v1.7.6] 核心修復：強制清除物理引擎緩存狀態，防止無限碰撞
+        // [v1.7.6] 核心修復：強制清除物理引擎緩存狀態與重置物理狀態
         com.horizon.caadronesimulator.logic.PhysicsEngine.clearState()
         renderer.resetFlight()
         
         state.apply {
+            // 1. 位置與姿態徹底歸零
+            val spec = DroneRegistry.getSpec(droneType)
+            posX = 0f
+            posZ = 0f
+            altitude = spec.groundOffset
+            yaw = 0f
+            pitch = 0f
+            roll = 0f
+            lastYaw = 0f
+            horizontalDist = 0f
+            speed = 0f
+            motorRpmFactor = 0f
+            
+            // 2. 狀態旗標重置
             isCollision = false
             isMotorLocked = true
             flightPath = emptyList()
-            // [v1.6.1] 飛行重置時，根據當前模式動態還原高度
-            applyCameraModeDefaults(this, cameraMode)
             isArmSafetyPassed = false
             isHoldSafetyPassed = false
+            isThrottleHoldActive = false
             
+            // 3. 電池數據恢復
+            batteryVoltage = 4.2f
+            batteryPercent = 100
+            
+            // 4. 引導與考照計時重置
             spotTimerSuccess = false
             spotTimerSeconds = 5.0f
             spotTimerInZone = false
             spotTimerStable = false
             spotTimerMessage = if (isSpotTimerEnabled) "請重新起飛" else null
             systemMessage = null
-            lastYaw = 0f
-            horizontalDist = 0f 
+
+            // 5. 相機導演還原
+            applyCameraModeDefaults(this, cameraMode)
         }
         
         ViewportOptimizer.applyOptimization(state)
@@ -222,6 +240,9 @@ class DroneViewModel : ViewModel() {
         // [v1.7.4] 深度效能優化：實施 20Hz (50ms) 降頻同步攔截
         val now = System.currentTimeMillis()
         if (now - lastStabilityCheckTime < 50) return
+        
+        // [v1.7.6] 正確計算 dt：必須在更新基準時間前計算
+        val dt = if (lastStabilityCheckTime == 0L) 0.05f else (now - lastStabilityCheckTime) / 1000f
         lastStabilityCheckTime = now
 
         val isProtecting = (now - lastResetTime < 500)
@@ -275,10 +296,6 @@ class DroneViewModel : ViewModel() {
                 state.systemMessage = null
             }
             
-            val stabilityNow = System.currentTimeMillis()
-            val dt = if (lastStabilityCheckTime == 0L) 0f else (stabilityNow - lastStabilityCheckTime) / 1000f
-            lastStabilityCheckTime = stabilityNow
-            
             MissionManager.update(state, dt, spec)
 
             if (!spec.isHoldSupported) state.isThrottleHoldActive = false
@@ -294,6 +311,9 @@ class DroneViewModel : ViewModel() {
                 state.flightPath = emptyList()
             }
         }
+        
+        // [v1.7.6] 每幀同步時更新雷達縮放 (確保 Mode 1 自動縮放生效)
+        updateRadarScale(state)
     }
 
     fun updateRadarScale(state: DroneState) {
@@ -334,34 +354,8 @@ class DroneViewModel : ViewModel() {
         }
     }
 
-    fun toggleLogcat(state: DroneState) {
-        logcatJob?.cancel()
-        if (!state.isLogcatEnabled) return
-        logcatJob = viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val process = Runtime.getRuntime().exec("logcat -v time")
-                val reader = BufferedReader(InputStreamReader(process.inputStream))
-                while (state.isLogcatEnabled && isActive) {
-                    if (reader.ready()) {
-                        val line = reader.readLine() ?: break
-                        if (line.contains("Niko") || line.contains("Serial") || line.contains("Drone")) {
-                            withContext(Dispatchers.Main) {
-                                val lines = state.logcatContent.lines().takeLast(100)
-                                state.logcatContent = (lines + line).joinToString("\n")
-                            }
-                        }
-                    } else delay(100)
-                }
-                process.destroy()
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) { state.logcatContent = "Logcat 啟動失敗: ${e.message}" }
-            }
-        }
-    }
-
     override fun onCleared() {
         super.onCleared()
-        logcatJob?.cancel()
         wizardJob?.cancel()
     }
 }

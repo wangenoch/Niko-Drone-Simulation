@@ -79,62 +79,33 @@ fun JoystickMappingScreen(
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         
-        // 1. Header (專家模式保護：僅在解鎖後顯示)
-        if (!state.isExpertModeLocked) {
-            Surface(color = Color.White.copy(alpha = 0.05f), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
-                Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("遙控器連線與模式設定", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(color = Color.Black.copy(alpha = 0.5f), shape = RoundedCornerShape(6.dp)) {
-                                Row(modifier = Modifier.padding(2.dp)) {
-                                    listOf("外接", "內置").forEachIndexed { idx, name ->
-                                        val isSel = inputMode == idx
-                                        Box(modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(if(isSel) Color(0xFF333333) else Color.Transparent).border(if(isSel) 1.dp else 0.dp, if(isSel) Color.Gray else Color.Transparent, RoundedCornerShape(4.dp)).clickable { onUpdateInputMode(idx) }.padding(horizontal = 12.dp, vertical = 2.dp)) {
-                                            Text(name, color = if(isSel) Color.White else Color.Gray, fontSize = 11.sp)
-                                        }
-                                    }
-                                }
-                            }
-                            Spacer(Modifier.width(16.dp))
-                            Text(text = if (isSignalActive) "連線正常" else "等待信號...", color = if (isSignalActive) Color.Green else Color.Red, fontSize = 11.sp)
-                        }
-                    }
-
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        // [v1.6.1] 一鍵鎖定：教官調整完畢後可快速隱藏技術欄位
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { state.isExpertModeLocked = true }) {
-                            Text("快速鎖定", color = Color.Yellow.copy(0.6f), fontSize = 10.sp)
-                            Switch(
-                                checked = false, // 未鎖定狀態下，開關顯示為關閉，點擊後變為 true 並隱藏
-                                onCheckedChange = { state.isExpertModeLocked = true }, 
-                                modifier = Modifier.scale(0.55f), 
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.Yellow)
-                            )
-                        }
-                        
-                        IconButton(
-                            onClick = { onToggleHardwareMonitor(!showHardwareMonitor) },
-                            modifier = Modifier.size(36.dp).background(if (showHardwareMonitor) Color.Cyan.copy(alpha = 0.2f) else Color(0xFF222222), CircleShape).border(1.dp, if (showHardwareMonitor) Color.Cyan else Color.White.copy(alpha = 0.1f), CircleShape)
-                        ) {
-                            Icon(Icons.Default.BugReport, null, tint = if (showHardwareMonitor) Color.Cyan else Color.White, modifier = Modifier.size(18.dp))
-                        }
-                    }
-                }
-            }
-        }
+        // 1. [v1.7.6] 通訊連線 Bar (Flavor 隔離組件)
+        HardwareConnectionHeader(
+            state = state,
+            inputMode = inputMode,
+            isSignalActive = isSignalActive,
+            showHardwareMonitor = showHardwareMonitor,
+            onUpdateInputMode = onUpdateInputMode,
+            onToggleHardwareMonitor = onToggleHardwareMonitor
+        )
 
         // 2. 診斷面板 (專家模式保護：僅在解鎖且開啟監測時顯示)
         AnimatedVisibility(visible = !state.isExpertModeLocked && showHardwareMonitor, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
-            HardwareDiagnosticPanel(
-                serialByteCount = serialByteCount.toLong(), linkType = linkType, activeSerialPath = activeSerialPath, detectedProtocol = detectedProtocol, lockedProtocol = lockedProtocol, conflictPid = conflictPid, isSerialConflict = isSerialConflict, packetsPerSecond = packetsPerSecond, bufferUsage = bufferUsage, rawBytesCount = rawBytesCount, isSignalActive = isSignalActive, baudRate = baudRate, diagnosticLog = diagnosticLog, rawHexData = rawHexData, rawChannels = rawChannels, isLogcatEnabled = isLogcatEnabled, logcatContent = logcatContent, isMappingUnlocked = isMappingUnlocked, networkHost = state.networkHost, networkPort = state.networkPort, networkProtocol = state.networkProtocol, isNetworkConnected = state.isNetworkConnected, connectionStatus = connectionStatus, jitter = jitter, stability = stability,
-                onUpdateLockedProtocol = onUpdateLockedProtocol, onUpdateBaudRate = onUpdateBaudRate, 
-                onUpdateLockedPath = onUpdateLockedPath, // 傳遞路徑鎖定回調
-                onOpenNetworkSettings = onOpenNetworkSettings, // [v1.5.2] 傳遞網路設定回調
-                onExportLog = onExportLog, onToggleLogcat = onToggleLogcat, onClearLogcat = onClearLogcat, onScanUsb = onScanUsb, onUpdateNetworkHost = { state.networkHost = it }, onUpdateNetworkPort = { state.networkPort = it }, onUpdateNetworkProtocol = { state.networkProtocol = it }, onToggleNetworkConnection = { onToggleNetworkConnection(it) }, onToggleMappingUnlock = onToggleMappingUnlock, newHardwareDetected = state.newHardwareDetected,
-                availablePorts = availablePorts, // 傳遞可用路徑列表
-                onSelectHardwareMode = { mode -> if (mode == -1) { state.newHardwareDetected = null } else { onUpdateInputMode(mode); state.newHardwareDetected = null } }
-            )
+                HardwareDiagnosticPanel(
+                    serialByteCount = serialByteCount.toLong(), linkType = linkType, activeSerialPath = activeSerialPath, detectedProtocol = detectedProtocol, lockedProtocol = lockedProtocol, conflictPid = conflictPid, isSerialConflict = isSerialConflict, packetsPerSecond = packetsPerSecond, bufferUsage = bufferUsage, rawBytesCount = rawBytesCount, isSignalActive = isSignalActive, baudRate = baudRate, diagnosticLog = diagnosticLog, rawHexData = rawHexData, rawChannels = rawChannels, isLogcatEnabled = isLogcatEnabled, logcatContent = logcatContent, isMappingUnlocked = isMappingUnlocked, networkHost = state.networkHost, networkPort = state.networkPort, networkProtocol = state.networkProtocol, isNetworkConnected = state.isNetworkConnected, connectionStatus = connectionStatus, jitter = jitter, stability = stability,
+                    isExpertLocked = state.isExpertModeLocked,
+                    onUpdateLockedProtocol = onUpdateLockedProtocol, onUpdateBaudRate = onUpdateBaudRate, 
+                    onUpdateLockedPath = onUpdateLockedPath, 
+                    onOpenNetworkSettings = onOpenNetworkSettings, 
+                    onExportLog = onExportLog, onToggleLogcat = onToggleLogcat, onClearLogcat = onClearLogcat, onScanUsb = onScanUsb, 
+                    onUpdateNetworkHost = { state.networkHost = it }, 
+                    onUpdateNetworkPort = { state.networkPort = it }, 
+                    onUpdateNetworkProtocol = { state.networkProtocol = it }, 
+                    onToggleNetworkConnection = { onToggleNetworkConnection(it) }, 
+                    onToggleMappingUnlock = onToggleMappingUnlock, newHardwareDetected = state.newHardwareDetected,
+                    availablePorts = availablePorts,
+                    onSelectHardwareMode = { mode -> if (mode == -1) { state.newHardwareDetected = null } else { onUpdateInputMode(mode); state.newHardwareDetected = null } }
+                )
         }
 
 

@@ -33,7 +33,8 @@ class SpotTimerEvaluator : MissionEvaluator {
         if (!state.isSpotTimerEnabled) return
         if (dt <= 0) return
 
-        val isAirborne = state.altitude > spec.groundOffset + 0.3f
+        // [v1.7.6] 降低起飛偵測門檻至 0.1m，提升計時器啟動靈敏度
+        val isAirborne = state.altitude > spec.groundOffset + 0.1f
         if (state.isMotorLocked || state.isCollision || !isAirborne) {
             resetTimer(state)
             state.spotTimerMessage = when {
@@ -74,18 +75,28 @@ class SpotTimerEvaluator : MissionEvaluator {
         if (inZoneId == -1) {
             state.spotTimerSeconds = 5.0f; state.spotTimerSuccess = false; state.spotTimerMessageTimer = 0f; state.spotTimerMessage = "尋找目標點中..."
         } else if (!isHeightOk) {
-            state.spotTimerSeconds = 5.0f; state.spotTimerSuccess = false; state.spotTimerMessageTimer = 0f; state.spotTimerMessage = "⚠️ 請維持在 1.0m ~ 3.5m 高度"
+            state.spotTimerSeconds = 5.0f; state.spotTimerSuccess = false; state.spotTimerMessageTimer = 0f
+            state.spotTimerMessage = if (relAlt < 1.0f) "⚠️ 高度過低 (目前: %.1fm)".format(relAlt) else "⚠️ 高度過高 (目前: %.1fm)".format(relAlt)
         } else {
             val isHPad = inZoneId == coneTargets.size - 1
             val currentYaw = (state.yaw % 360f + 360f) % 360f
             val targets = listOf(0f, 90f, 180f, 270f, 360f)
             val yawThreshold = if (isHPad) 8f else 15f
-            val isAligned = targets.any { abs(currentYaw - it) <= yawThreshold }
+            
+            // 計算最小偏角
+            var minDiff = 360f
+            targets.forEach { target ->
+                var diff = abs(currentYaw - target)
+                if (diff > 180f) diff = 360f - diff
+                if (diff < minDiff) minDiff = diff
+            }
+            val isAligned = minDiff <= yawThreshold
 
             if (isRotating) {
                 state.spotTimerSeconds = 5.0f; state.spotTimerSuccess = false; state.spotTimerMessageTimer = 0f; state.spotTimerMessage = "轉向中...等待停穩"
             } else if (!isAligned) {
-                state.spotTimerSeconds = 5.0f; state.spotTimerSuccess = false; state.spotTimerMessageTimer = 0f; state.spotTimerMessage = if(isHPad) "H點請精確對準基準面" else "請對準基準面"
+                state.spotTimerSeconds = 5.0f; state.spotTimerSuccess = false; state.spotTimerMessageTimer = 0f
+                state.spotTimerMessage = if(isHPad) "H點航向偏差過大 (%.0f°)".format(minDiff) else "請對準基準面 (偏差 %.0f°)".format(minDiff)
             } else {
                 if (!state.spotTimerSuccess) {
                     if (state.spotTimerMessageTimer <= 0f) {
@@ -125,7 +136,13 @@ class SpotTimerEvaluator : MissionEvaluator {
         val isZoomRelocated = state.autoPiPRelocate && (state.observerTilt < -5f || state.altitude > 10f)
         val isZoomInCenter = isInZoomZone && !isZoomRelocated
 
-        val targetPadding by animateDpAsState(targetValue = when { state.isMenuExpanded -> 120.dp; isZoomInCenter -> 125.dp; isNearGround -> 30.dp; else -> 60.dp }, label = "pad")
+        // [v1.7.6] 佈局優化：調整與「起槳」按鈕的避讓間距，防止重疊
+        val targetPadding by animateDpAsState(targetValue = when { 
+            state.isMenuExpanded -> 120.dp 
+            isZoomInCenter -> 125.dp 
+            isNearGround -> 140.dp // 移動至「起槳 (85dp)」按鈕下方，防止遮擋
+            else -> 60.dp 
+        }, label = "pad")
         Box(modifier = Modifier.fillMaxSize().statusBarsPadding().padding(top = targetPadding), contentAlignment = Alignment.TopCenter) {
             Surface(color = Color(0xCC111111), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))) {
                 Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {

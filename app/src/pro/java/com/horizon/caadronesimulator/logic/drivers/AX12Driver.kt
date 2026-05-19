@@ -77,7 +77,7 @@ class AX12Driver : InternalDeviceDriver {
         }
     }
 
-    override fun parseRaw(buffer: ByteBuffer): List<Float> {
+    override fun parseRaw(buffer: ByteBuffer): List<Float>? {
         // [v1.5.2 深度整合]
         // 物理真相：Offset 6=Pitch, 8=Throttle, 10=Yaw, 12=Roll (對應 UMBUS SPEC)
         val pitch = (buffer.getShort(6).toFloat() / 500.0f).coerceIn(-1f, 1f)
