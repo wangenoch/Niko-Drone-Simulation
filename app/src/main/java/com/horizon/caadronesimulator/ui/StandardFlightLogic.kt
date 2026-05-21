@@ -19,7 +19,8 @@ fun StandardFlightLogic(
     droneState: DroneState,
     stickInputState: StickInputState,
     viewModel: DroneViewModel,
-    configStore: ConfigurationStore
+    configStore: ConfigurationStore,
+    modifier: Modifier = Modifier
 ) {
     // 1. 通用：硬體設定引導精靈監控
     LaunchedEffect(droneState.setupWizardStep, droneState.wizardWaitingForNeutral) {
@@ -28,11 +29,11 @@ fun StandardFlightLogic(
         }
     }
 
-    // 2. 通用視覺：側邊導航儀表 (zIndex=12)
+    // 2. 通用視覺：側邊導航儀表 (zIndex=12 -> 改由傳入的 modifier 決定)
     SideNavInstruments(
         state = droneState,
         onUpdateState = { action -> droneState.action() },
-        modifier = Modifier.zIndex(12f)
+        modifier = modifier
     )
 
     // 3. 通用邏輯：搖桿解鎖判定 (CSC)

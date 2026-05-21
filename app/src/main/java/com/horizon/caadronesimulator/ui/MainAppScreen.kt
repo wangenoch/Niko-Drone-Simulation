@@ -45,7 +45,8 @@ fun MainAppScreen(
     onUpdateInputMode: (Int) -> Unit,
     onToggleNetworkConnection: (Boolean) -> Unit,
     onUpdateSystemUI: () -> Unit,
-    onLanguageChange: (String) -> Unit = {}
+    onLanguageChange: (String) -> Unit = {},
+    onThemeChange: (String) -> Unit = {}
 ) {
     var isStatusVisible by remember { mutableStateOf(true) }
     var tutorialTargets by remember { mutableStateOf<Map<String, Rect>>(emptyMap()) }
@@ -175,6 +176,15 @@ fun MainAppScreen(
             }
         )
 
+        // [v1.7.6] 通用飛行邏輯調度器：管理基礎 UI 與判定邏輯 (側邊拉桿等，置於較低圖層 zIndex=5)
+        com.horizon.caadronesimulator.ui.StandardFlightLogic(
+            droneState = droneState,
+            stickInputState = stickInputState,
+            viewModel = viewModel,
+            configStore = configStore,
+            modifier = Modifier.zIndex(5f)
+        )
+
         DroneHUD(
             state = droneState, stickState = stickInputState,
             isStatusVisible = isStatusVisible, tutorialTargets = tutorialTargets,
@@ -190,14 +200,6 @@ fun MainAppScreen(
             onUpdateState = { action -> droneState.action() },
             onReset = onResetFlight,
             modifier = Modifier.zIndex(11f)
-        )
-
-        // [v1.7.6] 通用飛行邏輯調度器：管理基礎 UI 與判定邏輯
-        com.horizon.caadronesimulator.ui.StandardFlightLogic(
-            droneState = droneState,
-            stickInputState = stickInputState,
-            viewModel = viewModel,
-            configStore = configStore
         )
 
         // [v1.7.6] 專業版功能派發器：僅管理 Pro 硬體專屬功能
@@ -224,7 +226,8 @@ fun MainAppScreen(
             onUpdateBaudRate = onUpdateBaudRate,
             onUpdateInputMode = onUpdateInputMode,
             onToggleNetworkConnection = onToggleNetworkConnection,
-            onLanguageChange = onLanguageChange
+            onLanguageChange = onLanguageChange,
+            onThemeChange = onThemeChange
         )
     }
 }

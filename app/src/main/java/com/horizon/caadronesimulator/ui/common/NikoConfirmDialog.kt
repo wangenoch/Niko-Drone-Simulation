@@ -15,6 +15,7 @@ import androidx.compose.ui.window.Dialog
 
 import androidx.compose.ui.res.stringResource
 import com.horizon.caadronesimulator.R
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 
 /**
  * [v1.5.3] 統一風格確認對話框
@@ -29,20 +30,20 @@ fun NikoConfirmDialog(
     Dialog(onDismissRequest = onCancel) {
         Surface(
             modifier = Modifier.widthIn(max = 320.dp),
-            color = Color(0xFF1B2535),
+            color = NikoTheme.colors.panel,
             shape = RoundedCornerShape(20.dp),
-            border = BorderStroke(1.dp, Color.White.copy(0.1f))
+            border = BorderStroke(1.dp, NikoTheme.colors.divider)
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
-                Text(title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(title, color = NikoTheme.colors.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(12.dp))
-                Text(message, color = Color.White.copy(0.8f), fontSize = 14.sp, lineHeight = 21.sp)
+                Text(message, color = NikoTheme.colors.textSecondary, fontSize = 14.sp, lineHeight = 21.sp)
                 Spacer(modifier = Modifier.height(24.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = onCancel) { Text(stringResource(R.string.action_cancel), color = Color.Gray, fontSize = 15.sp) }
+                    TextButton(onClick = onCancel) { Text(stringResource(R.string.action_cancel), color = NikoTheme.colors.textSecondary, fontSize = 15.sp) }
                     Spacer(modifier = Modifier.width(16.dp))
                     TextButton(onClick = onConfirm) { 
-                        Text(stringResource(R.string.action_ok), color = Color.Cyan, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Text(stringResource(R.string.action_ok), color = NikoTheme.colors.primary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     }
                 }
             }

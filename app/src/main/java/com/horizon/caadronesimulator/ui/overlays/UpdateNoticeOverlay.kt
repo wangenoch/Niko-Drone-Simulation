@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.horizon.caadronesimulator.R
 import com.horizon.caadronesimulator.model.AppConfig
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 import com.horizon.caadronesimulator.util.ReadmeParser
 
 @Composable
@@ -30,11 +31,12 @@ fun UpdateNoticeOverlay(
     modifier: Modifier = Modifier
 ) {
     val updateData = remember { ReadmeParser.parseUpdateNotice() }
+    val themeColors = NikoTheme.colors
     
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.8f))
+            .background(themeColors.background.copy(alpha = 0.8f))
             .clickable(enabled = false) {}
             .zIndex(2000f),
         contentAlignment = Alignment.Center
@@ -45,9 +47,9 @@ fun UpdateNoticeOverlay(
             modifier = Modifier
                 .fillMaxWidth(0.85f)
                 .fillMaxHeight(0.85f),
-            color = Color(0xFF1A1A1A),
+            color = themeColors.panel,
             shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, Color.Cyan.copy(alpha = 0.3f))
+            border = BorderStroke(1.dp, themeColors.divider)
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 // 內容區域
@@ -61,7 +63,7 @@ fun UpdateNoticeOverlay(
                         // 1. 完整標題 (保留 test/oba 等後綴)
                         Text(
                             text = updateData.fullTitle,
-                            color = Color.Cyan,
+                            color = themeColors.primary,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(bottom = 8.dp)
@@ -71,7 +73,7 @@ fun UpdateNoticeOverlay(
                         if (updateData.intro.isNotEmpty()) {
                             Text(
                                 text = updateData.intro,
-                                color = Color.White.copy(alpha = 0.8f),
+                                color = themeColors.textPrimary.copy(alpha = 0.8f),
                                 fontSize = 14.sp,
                                 lineHeight = 20.sp,
                                 modifier = Modifier.padding(bottom = 20.dp)
@@ -88,17 +90,17 @@ fun UpdateNoticeOverlay(
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
                                 text = stringResource(R.string.notice_known_issues),
-                                color = Color(0xFFFF9800),
+                                color = themeColors.warning,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
                             updateData.knownIssues.forEach { issue ->
                                 Row(modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)) {
-                                    Text("• ", color = Color(0xFFFF9800), fontSize = 13.sp)
+                                    Text("• ", color = themeColors.warning, fontSize = 13.sp)
                                     Text(
                                         text = issue,
-                                        color = Color.LightGray,
+                                        color = themeColors.textSecondary,
                                         fontSize = 13.sp,
                                         lineHeight = 20.sp
                                     )
@@ -113,7 +115,7 @@ fun UpdateNoticeOverlay(
                             Spacer(modifier = Modifier.height(24.dp))
                             Text(
                                 text = stringResource(R.string.notice_special_thanks),
-                                color = Color(0xFFE1BEE7),
+                                color = themeColors.accent,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(bottom = 12.dp)
@@ -121,7 +123,7 @@ fun UpdateNoticeOverlay(
                             allSpecialThanks.forEach { thanks ->
                                 Text(
                                     text = thanks,
-                                    color = Color.LightGray,
+                                    color = themeColors.textSecondary,
                                     fontSize = 13.sp,
                                     modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
                                 )
@@ -131,14 +133,14 @@ fun UpdateNoticeOverlay(
                         // 解析失敗時的 Fallback
                         Text(
                             text = stringResource(R.string.notice_title_update),
-                            color = Color.Cyan,
+                            color = themeColors.primary,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
                         Text(
                             text = stringResource(R.string.notice_intro_error),
-                            color = Color.Gray,
+                            color = themeColors.textSecondary,
                             fontSize = 14.sp
                         )
                     }
@@ -156,7 +158,7 @@ fun UpdateNoticeOverlay(
                             .height(60.dp)
                             .background(
                                 brush = Brush.verticalGradient(
-                                    colors = listOf(Color.Transparent, Color(0xFF1A1A1A))
+                                    colors = listOf(Color.Transparent, themeColors.panel)
                                 )
                             ),
                         contentAlignment = Alignment.BottomCenter
@@ -165,11 +167,11 @@ fun UpdateNoticeOverlay(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(bottom = 8.dp)
                         ) {
-                            Text(stringResource(R.string.notice_scroll_hint), color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
+                            Text(stringResource(R.string.notice_scroll_hint), color = themeColors.textPrimary.copy(alpha = 0.5f), fontSize = 10.sp)
                             Icon(
                                 Icons.Default.KeyboardArrowDown,
                                 null,
-                                tint = Color.White.copy(alpha = 0.5f),
+                                tint = themeColors.textPrimary.copy(alpha = 0.5f),
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -182,13 +184,13 @@ fun UpdateNoticeOverlay(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
-                        .background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                        .background(themeColors.textPrimary.copy(alpha = 0.1f), CircleShape)
                         .size(32.dp)
                 ) {
                     Icon(
                         Icons.Default.Close,
                         contentDescription = stringResource(R.string.action_close),
-                        tint = Color.White,
+                        tint = themeColors.textPrimary,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -199,20 +201,21 @@ fun UpdateNoticeOverlay(
 
 @Composable
 private fun UpdateSection(title: String, items: List<String>) {
+    val themeColors = NikoTheme.colors
     Column(modifier = Modifier.padding(bottom = 16.dp)) {
         Text(
             text = title,
-            color = Color.White,
+            color = themeColors.textPrimary,
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 8.dp)
         )
         items.forEach { item ->
             Row(modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)) {
-                Text("• ", color = Color.Cyan, fontSize = 13.sp)
+                Text("• ", color = themeColors.primary, fontSize = 13.sp)
                 Text(
                     text = item,
-                    color = Color.LightGray,
+                    color = themeColors.textSecondary,
                     fontSize = 13.sp,
                     lineHeight = 18.sp
                 )

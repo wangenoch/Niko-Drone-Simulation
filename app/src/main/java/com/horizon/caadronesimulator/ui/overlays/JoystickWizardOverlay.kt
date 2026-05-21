@@ -24,6 +24,7 @@ import androidx.compose.ui.zIndex
 
 import androidx.compose.ui.res.stringResource
 import com.horizon.caadronesimulator.R
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 
 /**
  * [v1.2.68] 獨立的搖桿引導設定 (Wizard) 圖層
@@ -40,25 +41,26 @@ fun JoystickWizardOverlay(
     onCancelWizard: () -> Unit
 ) {
     if (setupWizardStep <= 0) return
+    val themeColors = NikoTheme.colors
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.7f))
+            .background(Color.Black.copy(alpha = 0.8f))
             .zIndex(1000f),
         contentAlignment = Alignment.Center
     ) {
         Surface(
             modifier = Modifier.width(320.dp).wrapContentHeight(),
-            color = Color(0xFF1B2535),
+            color = themeColors.panel,
             shape = RoundedCornerShape(20.dp),
-            border = BorderStroke(1.5.dp, Color(0xFF2196F3).copy(alpha = 0.8f))
+            border = BorderStroke(1.5.dp, themeColors.primary.copy(alpha = 0.8f))
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(stringResource(R.string.joystick_wizard_title), color = Color(0xFF2196F3), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.joystick_wizard_title), color = themeColors.primary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 
                 val instr = if (isWizardWaiting) stringResource(R.string.joystick_wizard_waiting, wizardCountdown) else when(setupWizardStep) {
                     1 -> stringResource(R.string.joystick_wizard_step1)
@@ -70,7 +72,7 @@ fun JoystickWizardOverlay(
                 
                 Text(
                     text = instr,
-                    color = Color.White,
+                    color = themeColors.textPrimary,
                     fontSize = 14.sp,
                     modifier = Modifier.padding(vertical = 16.dp),
                     textAlign = TextAlign.Center
@@ -99,7 +101,7 @@ fun JoystickWizardOverlay(
                 Spacer(modifier = Modifier.height(20.dp))
                 
                 TextButton(onClick = onCancelWizard) {
-                    Text(stringResource(R.string.action_cancel_wizard), color = Color.White.copy(alpha = 0.4f), fontSize = 13.sp)
+                    Text(stringResource(R.string.action_cancel_wizard), color = themeColors.textSecondary.copy(alpha = 0.6f), fontSize = 13.sp)
                 }
             }
         }
@@ -108,6 +110,7 @@ fun JoystickWizardOverlay(
 
 @Composable
 private fun WizardStickIndicator(isActive: Boolean, targetX: Float, targetY: Float, currentX: Float, currentY: Float) {
+    val themeColors = NikoTheme.colors
     val infiniteTransition = rememberInfiniteTransition(label = "wizard_anim")
     val pulse by infiniteTransition.animateFloat(
         initialValue = 1f,
@@ -129,30 +132,30 @@ private fun WizardStickIndicator(isActive: Boolean, targetX: Float, targetY: Flo
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .border(2.dp, if (isActive) Color.Cyan.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.1f), CircleShape)
+                .border(2.dp, if (isActive) themeColors.primary.copy(alpha = 0.5f) else themeColors.textSecondary.copy(alpha = 0.2f), CircleShape)
         )
         if (isActive) {
-            Box(modifier = Modifier.fillMaxSize().scale(pulse).border(1.dp, Color.Cyan.copy(alpha = 0.3f), CircleShape))
+            Box(modifier = Modifier.fillMaxSize().scale(pulse).border(1.dp, themeColors.primary.copy(alpha = 0.3f), CircleShape))
             Box(
                 modifier = Modifier
                     .size(22.dp)
                     .offset(x = (targetX * animProgress * 35).dp, y = -(targetY * animProgress * 35).dp)
-                    .background(Color.White.copy(alpha = 0.5f), CircleShape)
+                    .background(themeColors.textPrimary.copy(alpha = 0.3f), CircleShape)
             )
             Box(
                 modifier = Modifier
                     .size(10.dp)
                     .offset(x = (targetX * 35).dp, y = -(targetY * 35).dp)
-                    .background(Color.Cyan, CircleShape)
-                    .border(2.dp, Color.Cyan.copy(alpha = 0.3f), CircleShape)
+                    .background(themeColors.primary, CircleShape)
+                    .border(2.dp, themeColors.primary.copy(alpha = 0.3f), CircleShape)
             )
         }
         Box(
             modifier = Modifier
                 .size(24.dp)
                 .offset(x = (currentX * 35).dp, y = -(currentY * 35).dp)
-                .background(Color.White, CircleShape)
-                .border(1.dp, Color.Gray, CircleShape)
+                .background(themeColors.textPrimary, CircleShape)
+                .border(1.dp, themeColors.textSecondary, CircleShape)
         )
     }
 }

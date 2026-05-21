@@ -1,6 +1,7 @@
 package com.horizon.caadronesimulator.ui.overlays
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -10,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -18,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import com.horizon.caadronesimulator.R
 import com.horizon.caadronesimulator.model.DroneState
 import com.horizon.caadronesimulator.model.StickInputState
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 import kotlinx.coroutines.delay
 
 /**
@@ -31,6 +34,7 @@ fun SystemStatusOverlay(
 ) {
     val rawMsg = state.systemMessage
     if (rawMsg.isNullOrBlank()) return
+    val themeColors = NikoTheme.colors
 
     // 1. 動態轉譯邏輯
     val parts = rawMsg.split("|")
@@ -82,28 +86,32 @@ fun SystemStatusOverlay(
     }
 
     Box(
-        modifier = Modifier.fillMaxSize().padding(bottom = 80.dp),
+        modifier = Modifier.fillMaxSize().padding(bottom = 75.dp), // 稍微上移一點避免與底部數據欄太近
         contentAlignment = Alignment.BottomCenter
     ) {
         SurfaceWrapper(
-            color = Color.Black.copy(alpha = 0.7f),
+            color = themeColors.panel.copy(alpha = 0.85f), // 移除硬編碼 0xDD111111，改用主題玻璃背板
             shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f))
+            border = BorderStroke(1.dp, themeColors.divider)
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val isWarn = rawMsg.contains("⚠️") || rawMsg.contains("SAFETY_WARN") || rawMsg.contains("HEAVY_LANDING")
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .background(if (isWarn) Color.Red else Color.Cyan, RoundedCornerShape(50))
-                )
+                val isWarn = rawMsg.contains("⚠️") || rawMsg.contains("SAFETY_WARN") || rawMsg.contains("HEAVY_LANDING") || rawMsg.contains("CRASH")
+                
+                if (isWarn) {
+                    val infiniteTransition = rememberInfiniteTransition(label = "warn_pulse")
+                    val pulse by infiniteTransition.animateFloat(initialValue = 1f, targetValue = 1.3f, animationSpec = infiniteRepeatable(tween(500), RepeatMode.Reverse), label = "pulse")
+                    Box(modifier = Modifier.size(8.dp).scale(pulse).background(themeColors.warning, RoundedCornerShape(50)))
+                } else {
+                    Box(modifier = Modifier.size(8.dp).background(themeColors.primary, RoundedCornerShape(50)))
+                }
+                
                 Spacer(Modifier.width(12.dp))
                 Text(
                     text = displayMessage,
-                    color = Color.White,
+                    color = themeColors.textPrimary, // 在明亮模式下會自動變成深色
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )

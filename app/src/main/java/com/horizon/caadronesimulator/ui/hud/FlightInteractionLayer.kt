@@ -26,6 +26,7 @@ import com.horizon.caadronesimulator.model.DroneRegistry
 import com.horizon.caadronesimulator.model.AppConfig
 import com.horizon.caadronesimulator.model.DroneState
 import com.horizon.caadronesimulator.ui.common.NikoConfirmDialog
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 import kotlin.math.pow
 
 import androidx.compose.ui.res.stringResource
@@ -88,7 +89,7 @@ fun FlightInteractionLayer(
                     exit = shrinkHorizontally(shrinkTowards = Alignment.End) + fadeOut()
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        InteractionBtn(Icons.Default.Refresh, tint = Color.Red.copy(0.8f)) { 
+                        InteractionBtn(Icons.Default.Refresh, tint = NikoTheme.colors.warning) { 
                             onReset()
                             onUpdateState { this.isMotorLocked = true; this.isCollision = false; this.isMenuExpanded = false } 
                         }
@@ -108,20 +109,23 @@ fun FlightInteractionLayer(
                         var cameraMenuExpanded by remember { mutableStateOf(false) }
                         Box {
                             InteractionBtn(Icons.Default.Visibility) { viewExpanded = true }
-                            // [v1.5.9] 樣式還原：1:1 復刻 Git 原始深色戰術選單
+                            
                             MaterialTheme(
-                                colorScheme = MaterialTheme.colorScheme.copy(surface = Color(0xEE111111)),
+                                colorScheme = MaterialTheme.colorScheme.copy(
+                                    surface = NikoTheme.colors.panel,
+                                    onSurface = NikoTheme.colors.textPrimary
+                                ),
                                 shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(12.dp))
                             ) {
                                 DropdownMenu(
                                     expanded = viewExpanded, 
                                     onDismissRequest = { viewExpanded = false }, 
                                     properties = PopupProperties(focusable = false),
-                                    modifier = Modifier.background(Color(0xEE111111)).border(1.dp, Color.White.copy(0.1f), RoundedCornerShape(12.dp))
+                                    modifier = Modifier.background(NikoTheme.colors.panel).border(1.dp, NikoTheme.colors.divider, RoundedCornerShape(12.dp))
                                 ) {
                                     DropdownMenuItem(
-                                        text = { Text("${stringResource(R.string.menu_camera_mode)}: ${state.cameraMode}", color = Color.White, fontSize = 13.sp) }, 
-                                        trailingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowRight, null, tint = Color.White.copy(0.5f)) }, 
+                                        text = { Text("${stringResource(R.string.menu_camera_mode)}: ${state.cameraMode}", color = NikoTheme.colors.textPrimary, fontSize = 13.sp) }, 
+                                        trailingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowRight, null, tint = NikoTheme.colors.textSecondary) }, 
                                         onClick = { cameraMenuExpanded = true }
                                     )
                                     DropdownMenuItem(
@@ -134,7 +138,7 @@ fun FlightInteractionLayer(
                                                 z < 2.5f -> "2.0X"
                                                 else -> "3.0X" 
                                             }
-                                            Text("${stringResource(R.string.menu_zoom_factor)}: $label (${stringResource(R.string.menu_click_to_switch)})", color = Color.Cyan, fontSize = 13.sp)
+                                            Text("${stringResource(R.string.menu_zoom_factor)}: $label (${stringResource(R.string.menu_click_to_switch)})", color = NikoTheme.colors.primary, fontSize = 13.sp)
                                         }, 
                                         onClick = { 
                                             val current = state.zoomFactor
@@ -148,18 +152,18 @@ fun FlightInteractionLayer(
                                             onUpdateState { zoomFactor = next } 
                                         }
                                     )
-                                    HorizontalDivider(color = Color.White.copy(0.1f))
-                                    DropdownMenuItem(text = { Text(if (state.showObstacles) stringResource(R.string.menu_hide_obstacles) else stringResource(R.string.menu_show_obstacles), color = Color.White, fontSize = 13.sp) }, onClick = { onUpdateState { this.showObstacles = !this.showObstacles }; viewExpanded = false })
-                                    DropdownMenuItem(text = { Text(if (state.showShadow) stringResource(R.string.menu_hide_shadow) else stringResource(R.string.menu_show_shadow), color = Color.White, fontSize = 13.sp) }, onClick = { onUpdateState { this.showShadow = !this.showShadow }; viewExpanded = false })
-                                    DropdownMenuItem(text = { Text(if (state.showFlightPath) stringResource(R.string.menu_hide_path) else stringResource(R.string.menu_show_path), color = Color.White, fontSize = 13.sp) }, onClick = { onUpdateState { this.showFlightPath = !this.showFlightPath }; viewExpanded = false })
-                                    DropdownMenuItem(text = { Text(if (state.enableZoomAssistant) stringResource(R.string.menu_disable_zoom) else stringResource(R.string.menu_enable_zoom), color = Color.White, fontSize = 13.sp) }, onClick = { onUpdateState { this.enableZoomAssistant = !this.enableZoomAssistant }; viewExpanded = false })
+                                    HorizontalDivider(color = NikoTheme.colors.divider)
+                                    DropdownMenuItem(text = { Text(if (state.showObstacles) stringResource(R.string.menu_hide_obstacles) else stringResource(R.string.menu_show_obstacles), color = NikoTheme.colors.textPrimary, fontSize = 13.sp) }, onClick = { onUpdateState { this.showObstacles = !this.showObstacles }; viewExpanded = false })
+                                    DropdownMenuItem(text = { Text(if (state.showShadow) stringResource(R.string.menu_hide_shadow) else stringResource(R.string.menu_show_shadow), color = NikoTheme.colors.textPrimary, fontSize = 13.sp) }, onClick = { onUpdateState { this.showShadow = !this.showShadow }; viewExpanded = false })
+                                    DropdownMenuItem(text = { Text(if (state.showFlightPath) stringResource(R.string.menu_hide_path) else stringResource(R.string.menu_show_path), color = NikoTheme.colors.textPrimary, fontSize = 13.sp) }, onClick = { onUpdateState { this.showFlightPath = !this.showFlightPath }; viewExpanded = false })
+                                    DropdownMenuItem(text = { Text(if (state.enableZoomAssistant) stringResource(R.string.menu_disable_zoom) else stringResource(R.string.menu_enable_zoom), color = NikoTheme.colors.textPrimary, fontSize = 13.sp) }, onClick = { onUpdateState { this.enableZoomAssistant = !this.enableZoomAssistant }; viewExpanded = false })
                                 }
 
                                 DropdownMenu(
                                     expanded = cameraMenuExpanded, 
                                     onDismissRequest = { cameraMenuExpanded = false }, 
                                     properties = PopupProperties(focusable = false),
-                                    modifier = Modifier.background(Color(0xEE111111)).border(1.dp, Color.White.copy(0.1f), RoundedCornerShape(12.dp))
+                                    modifier = Modifier.background(NikoTheme.colors.panel).border(1.dp, NikoTheme.colors.divider, RoundedCornerShape(12.dp))
                                 ) {
                                     listOf(
                                         AppConfig.CAM_MODE_STATION_TRACK to stringResource(R.string.visual_cam_mode_station_track),
@@ -170,7 +174,7 @@ fun FlightInteractionLayer(
                                         AppConfig.CAM_MODE_OBS to stringResource(R.string.visual_cam_mode_obs)
                                     ).forEach { (id, label) ->
                                         DropdownMenuItem(
-                                            text = { Text(label, color = if(state.cameraMode == id) Color.Cyan else Color.White, fontSize = 13.sp) }, 
+                                            text = { Text(label, color = if(state.cameraMode == id) NikoTheme.colors.primary else NikoTheme.colors.textPrimary, fontSize = 13.sp) }, 
                                             onClick = { onUpdateState { this.cameraMode = id }; cameraMenuExpanded = false; viewExpanded = false }
                                         ) 
                                     }
@@ -189,6 +193,9 @@ fun FlightInteractionLayer(
 }
 
 @Composable
-fun InteractionBtn(icon: ImageVector, isSelected: Boolean = false, tint: Color = if (isSelected) Color.Cyan else Color.White, onClick: () -> Unit) {
-    IconButton(onClick = onClick, modifier = Modifier.size(44.dp).background(Color(0xAA111111), CircleShape).border(1.dp, if (isSelected) Color.Cyan.copy(0.6f) else Color(0x22FFFFFF), CircleShape)) { Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp)) }
+fun InteractionBtn(icon: ImageVector, isSelected: Boolean = false, tint: Color = if (isSelected) NikoTheme.colors.primary else NikoTheme.colors.textPrimary, onClick: () -> Unit) {
+    val themeColors = NikoTheme.colors
+    // 使用半透明玻璃背景替代純色，減少明亮模式下的眩光感
+    val bgAlpha = if(themeColors.isLight) 0.8f else 0.7f
+    IconButton(onClick = onClick, modifier = Modifier.size(44.dp).background(themeColors.panel.copy(alpha = bgAlpha), CircleShape).border(1.dp, if (isSelected) themeColors.primary.copy(0.6f) else themeColors.divider, CircleShape)) { Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp)) }
 }

@@ -93,6 +93,9 @@ class DroneViewModel : ViewModel() {
             motorRpmFactor = 0f
             
             // 2. 狀態旗標重置
+            crashReason = com.horizon.caadronesimulator.model.CrashReason.NONE
+            sessionFlightTime = 0f
+            isNearBoundary = false
             isCollision = false
             isMotorLocked = true
             flightPath = emptyList()
@@ -237,6 +240,7 @@ class DroneViewModel : ViewModel() {
         yaw: Float, pitch: Float, roll: Float,
         speed: Float, isImpact: Boolean,
         volt: Float, perc: Int,
+        flightTime: Float,
         physicsResult: com.horizon.caadronesimulator.logic.PhysicsEngine.PhysicsResult?
     ) {
         // [v1.7.4] 深度效能優化：實施 20Hz (50ms) 降頻同步攔截
@@ -260,6 +264,7 @@ class DroneViewModel : ViewModel() {
             this.yaw = yaw
             this.pitch = pitch
             this.roll = roll
+            this.sessionFlightTime = flightTime
             
             // [v1.5.9] 撞擊速度保留
             this.speed = if (isImpact && physicsResult != null) physicsResult.impactSpeed else speed
@@ -285,6 +290,8 @@ class DroneViewModel : ViewModel() {
         if (isImpact || (state.useFlightLimit && perc <= 0)) {
             state.isCollision = true
             state.isMotorLocked = true
+            state.crashReason = if (isImpact) com.horizon.caadronesimulator.model.CrashReason.IMPACT 
+                                else com.horizon.caadronesimulator.model.CrashReason.BATTERY_LOW
         } else {
             // [v1.5.9] 分級落地警告優化：確保不覆蓋關鍵停槳條件
             val spec = DroneRegistry.getSpec(state.droneType)

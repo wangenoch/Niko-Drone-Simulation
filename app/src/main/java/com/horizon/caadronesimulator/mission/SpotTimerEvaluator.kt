@@ -20,6 +20,7 @@ import com.horizon.caadronesimulator.model.AppConfig
 import com.horizon.caadronesimulator.model.DroneState
 import com.horizon.caadronesimulator.model.DroneSpecs
 import com.horizon.caadronesimulator.model.DroneRegistry
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 import java.util.Locale
 import kotlin.math.*
 
@@ -138,9 +139,9 @@ class SpotTimerEvaluator : MissionEvaluator {
         // [v1.7.6] 佈局優化：調整與「起槳」按鈕的避讓間距，防止重疊
         val targetPadding by animateDpAsState(targetValue = when { 
             state.isMenuExpanded -> 120.dp 
-            isZoomInCenter -> 125.dp 
-            isNearGround -> 140.dp // 移動至「起槳 (85dp)」按鈕下方，防止遮擋
-            else -> 60.dp 
+            isZoomInCenter -> 150.dp // 增加避讓，避免與 Zoom Assistant 重疊
+            isNearGround -> 155.dp // 移動至「起槳 (85dp)」按鈕下方，防止遮擋
+            else -> 65.dp
         }, label = "pad")
 
         val rawMsg = state.spotTimerMessage ?: ""
@@ -164,16 +165,22 @@ class SpotTimerEvaluator : MissionEvaluator {
         }
 
         Box(modifier = Modifier.fillMaxSize().statusBarsPadding().padding(top = targetPadding), contentAlignment = Alignment.TopCenter) {
-            Surface(color = Color(0xCC111111), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))) {
+            val themeColors = NikoTheme.colors
+            Surface(color = themeColors.panel.copy(alpha = 0.85f), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.5.dp, themeColors.divider)) {
                 Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     val indicatorColor = when { state.spotTimerSuccess -> Color.Green; state.spotTimerStable -> Color.Cyan; else -> Color.Red }
                     Box(modifier = Modifier.size(8.dp).background(indicatorColor, RoundedCornerShape(50)))
-                    Text(text = translatedMessage, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text(text = translatedMessage, color = themeColors.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                     if (state.spotTimerInZone || state.spotTimerSuccess) {
                         Box(contentAlignment = Alignment.Center, modifier = Modifier.size(28.dp)) {
-                            Canvas(modifier = Modifier.fillMaxSize()) { drawCircle(Color.White.copy(alpha = 0.1f), style = Stroke(2.dp.toPx())); if (state.spotTimerSeconds < 5f) drawArc(color = if(state.spotTimerSuccess) Color.Green else Color.Cyan, startAngle = -90f, sweepAngle = (1f - state.spotTimerSeconds / 5.0f) * 360f, useCenter = false, style = Stroke(3.dp.toPx())) }
+                            Canvas(modifier = Modifier.fillMaxSize()) { 
+                                drawCircle(themeColors.textPrimary.copy(alpha = 0.1f), style = Stroke(2.dp.toPx()))
+                                if (state.spotTimerSeconds < 5f) {
+                                    drawArc(color = if(state.spotTimerSuccess) Color.Green else themeColors.primary, startAngle = -90f, sweepAngle = (1f - state.spotTimerSeconds / 5.0f) * 360f, useCenter = false, style = Stroke(3.dp.toPx())) 
+                                }
+                            }
                             if (state.spotTimerSuccess) Icon(Icons.Default.Check, null, tint = Color.Green, modifier = Modifier.size(16.dp))
-                            else Text(text = String.format(Locale.US, "%.0f", state.spotTimerSeconds), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            else Text(text = String.format(Locale.US, "%.0f", state.spotTimerSeconds), color = themeColors.textPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

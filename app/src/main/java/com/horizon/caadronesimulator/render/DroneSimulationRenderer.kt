@@ -111,6 +111,8 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
         // 1. 離屏渲染 (FBO Pass)
         pipRect?.let { 
             fpvFbo.bind()
+            val skyColor = com.horizon.caadronesimulator.logic.EnvironmentManager.getSkyClearColor(com.horizon.caadronesimulator.model.DroneState.getInstance())
+            GLES20.glClearColor(skyColor[0], skyColor[1], skyColor[2], skyColor[3])
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
             Matrix.perspectiveM(pMatrix, 0, spec.fpvFov, 1f, 0.5f, 500f)
             com.horizon.caadronesimulator.logic.CameraDirector.computeMainViewMatrix(vMatrix, AppConfig.CAM_MODE_FPV, physicsState.posX, physicsState.posY, physicsState.posZ, physicsState.yaw, physicsState.posX + physicsState.velX * 0.12f, physicsState.posZ + physicsState.velZ * 0.12f, cameraTilt, droneType)
@@ -120,7 +122,8 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
         
         zoomPipRect?.let {
             zoomFbo.bind()
-            GLES20.glClearColor(0.07f, 0.07f, 0.07f, 1.0f)
+            val skyColor = com.horizon.caadronesimulator.logic.EnvironmentManager.getSkyClearColor(com.horizon.caadronesimulator.model.DroneState.getInstance())
+            GLES20.glClearColor(skyColor[0], skyColor[1], skyColor[2], skyColor[3])
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
             Matrix.perspectiveM(pMatrix, 0, com.horizon.caadronesimulator.logic.CameraDirector.smoothedZoomPipFov, 1f, 0.1f, 1000f)
             com.horizon.caadronesimulator.logic.CameraDirector.computePrecisionViewMatrix(vMatrix, physicsState.posX, physicsState.posY, physicsState.posZ)

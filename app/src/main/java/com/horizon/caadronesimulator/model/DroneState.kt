@@ -16,7 +16,7 @@ data class ChannelMapping(
 )
 
 enum class SettingsTab {
-    CONTROLLER, ENVIRONMENT, DRONE_SELECTION, CAMERA, SYSTEM
+    CONTROLLER, ENVIRONMENT, DRONE_SELECTION, CAMERA, SYSTEM, THEME
 }
 
 enum class ConnectionStatus {
@@ -25,6 +25,10 @@ enum class ConnectionStatus {
 
 enum class CommDecisionState {
     IDLE, SCANNING, AWAITING_PERMISSION, ENGAGED, LOCKED, ERROR_PERMISSION
+}
+
+enum class CrashReason {
+    NONE, IMPACT, BATTERY_LOW
 }
 
 /**
@@ -47,6 +51,7 @@ class DroneState {
         var horizontalDist by mutableFloatStateOf(0f); var batteryVoltage by mutableFloatStateOf(4.2f); var batteryPercent by mutableIntStateOf(100)
         var isCollision by mutableStateOf(false); var isMotorLocked by mutableStateOf(true); var motorRpmFactor by mutableFloatStateOf(0f)
         var flightPath by mutableStateOf<List<Offset>>(emptyList()); var currentRadarScale by mutableFloatStateOf(1.0f)
+        var crashReason by mutableStateOf(CrashReason.NONE); var sessionFlightTime by mutableFloatStateOf(0f)
     }
     val flight = FlightDomain()
 
@@ -103,6 +108,7 @@ class DroneState {
     // --- 配置與全局狀態 ---
     var droneType by mutableStateOf("QUAD_STANDARD"); var joystickMode by mutableIntStateOf(2); var isMuted by mutableStateOf(AppConfig.SystemDefaults.IS_MUTED); var showShadow by mutableStateOf(AppConfig.SystemDefaults.SHOW_SHADOW); var shadowIntensity by mutableFloatStateOf(AppConfig.EnvironmentDefaults.SHADOW_INTENSITY)
     var appLanguage by mutableStateOf("zh") // [v1.7.6] 語言設定：zh 或 en
+    var appTheme by mutableStateOf(AppConfig.THEME_CLASSIC) // [v1.7.7] 主題設定
     var showObstacles by mutableStateOf(AppConfig.SystemDefaults.SHOW_OBSTACLES); var hideStatusBar by mutableStateOf(AppConfig.SystemDefaults.HIDE_STATUS_BAR); var pauseInSettings by mutableStateOf(AppConfig.SystemDefaults.PAUSE_IN_SETTINGS); var applyPhysicalSpecs by mutableStateOf(AppConfig.SystemDefaults.APPLY_PHYSICAL_SPECS); var useFlightLimit by mutableStateOf(AppConfig.SystemDefaults.USE_FLIGHT_LIMIT)
     var useSimplifiedMarkers by mutableStateOf(true); var showSpecialTitle by mutableStateOf(AppConfig.VisualDefaults.SHOW_SPECIAL_TITLE); var customTitle by mutableStateOf(""); var settingsTab by mutableStateOf(SettingsTab.CONTROLLER); var showSettings by mutableStateOf(false)
     var showHardwareMonitor by mutableStateOf(false); var isInteractionLocked by mutableStateOf(false)
@@ -129,6 +135,8 @@ class DroneState {
     var motorRpmFactor: Float get() = flight.motorRpmFactor; set(v) { flight.motorRpmFactor = v }
     var flightPath: List<Offset> get() = flight.flightPath; set(v) { flight.flightPath = v }
     var currentRadarScale: Float get() = flight.currentRadarScale; set(v) { flight.currentRadarScale = v }
+    var crashReason: CrashReason get() = flight.crashReason; set(v) { flight.crashReason = v }
+    var sessionFlightTime: Float get() = flight.sessionFlightTime; set(v) { flight.sessionFlightTime = v }
 
     var inputMode: Int get() = hardware.inputMode; set(v) { hardware.inputMode = v }
     var connectionStatus: ConnectionStatus get() = hardware.connectionStatus; set(v) { hardware.connectionStatus = v }

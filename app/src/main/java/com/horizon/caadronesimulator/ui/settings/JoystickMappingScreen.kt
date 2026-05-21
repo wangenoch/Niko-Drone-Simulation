@@ -29,6 +29,7 @@ import com.horizon.caadronesimulator.model.ConnectionStatus
 import com.horizon.caadronesimulator.model.DroneState
 import com.horizon.caadronesimulator.ui.hud.MiniStickVisual
 import com.horizon.caadronesimulator.ui.overlays.*
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 import java.util.Locale
 
 import androidx.compose.ui.res.stringResource
@@ -118,12 +119,12 @@ fun JoystickMappingScreen(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // 左面板：核心功能按鈕與映射列表
-            Surface(modifier = Modifier.weight(1.1f), color = Color.White.copy(alpha = 0.03f), shape = RoundedCornerShape(12.dp)) {
+            Surface(modifier = Modifier.weight(1.1f), color = NikoTheme.colors.textPrimary.copy(alpha = 0.05f), shape = RoundedCornerShape(12.dp)) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Button(onClick = onStartWizard, modifier = Modifier.weight(1f).height(34.dp), shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)), contentPadding = PaddingValues(horizontal = 4.dp)) { Text(stringResource(R.string.joystick_btn_wizard), fontSize = 10.sp) }
-                        Button(onClick = onStartCalibration, modifier = Modifier.weight(1f).height(34.dp), shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)), contentPadding = PaddingValues(horizontal = 4.dp)) { Text(stringResource(R.string.joystick_btn_recalibrate), fontSize = 10.sp) }
-                        Button(onClick = onOpenAuxMapping, modifier = Modifier.weight(1f).height(34.dp), shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7E57C2)), contentPadding = PaddingValues(horizontal = 4.dp)) { Text(stringResource(R.string.joystick_btn_aux), fontSize = 10.sp) }
+                        Button(onClick = onStartWizard, modifier = Modifier.weight(1f).height(34.dp), shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)), contentPadding = PaddingValues(horizontal = 4.dp)) { Text(stringResource(R.string.joystick_btn_wizard), color = Color.White, fontSize = 10.sp) }
+                        Button(onClick = onStartCalibration, modifier = Modifier.weight(1f).height(34.dp), shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)), contentPadding = PaddingValues(horizontal = 4.dp)) { Text(stringResource(R.string.joystick_btn_recalibrate), color = Color.White, fontSize = 10.sp) }
+                        Button(onClick = onOpenAuxMapping, modifier = Modifier.weight(1f).height(34.dp), shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7E57C2)), contentPadding = PaddingValues(horizontal = 4.dp)) { Text(stringResource(R.string.joystick_btn_aux), color = Color.White, fontSize = 10.sp) }
                     }
                     Spacer(Modifier.height(10.dp))
                     val isMappingLockedByProtocol = state.hardwareProfile?.driver?.isMappingProtected == true && !state.isMappingUnlocked && !com.horizon.caadronesimulator.logic.HardwareRegistry.debugForceUnlockAll
@@ -143,21 +144,21 @@ fun JoystickMappingScreen(
                     }
                     Spacer(Modifier.height(10.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { onModeChange(if(joystickMode > 1) joystickMode - 1 else 4) }, modifier = Modifier.size(24.dp)) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, null, tint = Color.Cyan, modifier = Modifier.size(16.dp)) }
-                        Text(stringResource(R.string.joystick_mode_selector, joystickMode), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 12.dp))
-                        IconButton(onClick = { onModeChange(if(joystickMode < 4) joystickMode + 1 else 1) }, modifier = Modifier.size(24.dp)) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Color.Cyan, modifier = Modifier.size(16.dp)) }
+                        IconButton(onClick = { onModeChange(if(joystickMode > 1) joystickMode - 1 else 4) }, modifier = Modifier.size(24.dp)) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, null, tint = NikoTheme.colors.primary, modifier = Modifier.size(16.dp)) }
+                        Text(stringResource(R.string.joystick_mode_selector, joystickMode), color = NikoTheme.colors.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 12.dp))
+                        IconButton(onClick = { onModeChange(if(joystickMode < 4) joystickMode + 1 else 1) }, modifier = Modifier.size(24.dp)) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = NikoTheme.colors.primary, modifier = Modifier.size(16.dp)) }
                     }
                 }
             }
 
             // 右面板：靈敏度/曲線調整 (加入自適應間距以對齊底部)
-            Surface(modifier = Modifier.weight(1.0f).fillMaxHeight(), color = Color.White.copy(alpha = 0.03f), shape = RoundedCornerShape(12.dp)) {
+            Surface(modifier = Modifier.weight(1.0f).fillMaxHeight(), color = NikoTheme.colors.textPrimary.copy(alpha = 0.05f), shape = RoundedCornerShape(12.dp)) {
                 Column(modifier = Modifier.padding(12.dp).fillMaxHeight()) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(stringResource(R.string.joystick_section_rates), color = Color.Cyan, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.joystick_section_rates), color = NikoTheme.colors.primary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.weight(1f))
-                        TextButton(onClick = onResetRates, contentPadding = PaddingValues(0.dp), modifier = Modifier.height(22.dp)) { Text(stringResource(R.string.action_reset), color = Color.Cyan, fontSize = 10.sp) }
-                        Switch(checked = useGlobalRates, onCheckedChange = onToggleGlobalRates, modifier = Modifier.scale(0.5f))
+                        TextButton(onClick = onResetRates, contentPadding = PaddingValues(0.dp), modifier = Modifier.height(22.dp)) { Text(stringResource(R.string.action_reset), color = NikoTheme.colors.primary, fontSize = 10.sp) }
+                        Switch(checked = useGlobalRates, onCheckedChange = onToggleGlobalRates, modifier = Modifier.scale(0.5f), colors = SwitchDefaults.colors(checkedThumbColor = NikoTheme.colors.primary))
                     }
                     
                     // [v1.5.2 優化] 移除 SpaceBetween，改用與左側一致的固定間距，達成自然且飽滿的視覺對齊
@@ -179,8 +180,8 @@ fun JoystickMappingScreen(
 
                     // 底部 Checkbox 區，在視覺水平線上與左側對齊
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(24.dp)) { 
-                        Checkbox(checked = halfThrottle, onCheckedChange = onToggleHalfThrottle, colors = CheckboxDefaults.colors(checkedColor = Color.Cyan, uncheckedColor = Color.Gray), modifier = Modifier.scale(0.8f))
-                        Text(stringResource(R.string.joystick_half_throttle), color = Color.White, fontSize = 11.sp)
+                        Checkbox(checked = halfThrottle, onCheckedChange = onToggleHalfThrottle, colors = CheckboxDefaults.colors(checkedColor = NikoTheme.colors.primary, uncheckedColor = NikoTheme.colors.textSecondary), modifier = Modifier.scale(0.8f))
+                        Text(stringResource(R.string.joystick_half_throttle), color = NikoTheme.colors.textPrimary, fontSize = 11.sp)
                     }
                 }
             }
@@ -189,7 +190,18 @@ fun JoystickMappingScreen(
 }
 
 @Composable
-fun CompactMappingRow(label: String, mapping: ChannelMapping, key: String, isBinding: String?, onStartBinding: (String) -> Unit, onToggleInvert: (String) -> Unit, onManualBind: (String, Int) -> Unit, inputMode: Int, isLocked: Boolean = false) {
+fun CompactMappingRow(
+    label: String, 
+    mapping: ChannelMapping, 
+    key: String, 
+    isBinding: String?, 
+    onStartBinding: (String) -> Unit, 
+    onToggleInvert: (String) -> Unit, 
+    onManualBind: (String, Int) -> Unit, 
+    inputMode: Int, 
+    isLocked: Boolean = false,
+    labelWidth: androidx.compose.ui.unit.Dp = 40.dp
+) {
     var showPicker by remember { mutableStateOf(false) }
     val isCurrentBinding = isBinding == key
     val chLabel = stringResource(R.string.joystick_label_ch)
@@ -197,17 +209,17 @@ fun CompactMappingRow(label: String, mapping: ChannelMapping, key: String, isBin
     val channelLabelText = if (mapping.axis == -1) "--" else if (inputMode == 1) "$chLabel ${mapping.axis - 100}" else "$axisLabel ${mapping.axis}"
 
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(28.dp)) {
-        Text(label, color = Color.White, fontSize = 13.sp, modifier = Modifier.width(40.dp))
+        Text(label, color = NikoTheme.colors.textPrimary, fontSize = 12.sp, modifier = Modifier.width(labelWidth), maxLines = 1)
         Surface(
-            color = if (isLocked) Color.Gray.copy(alpha = 0.1f) else if (isCurrentBinding) Color.Cyan.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.4f), 
+            color = if (isLocked) NikoTheme.colors.textSecondary.copy(alpha = 0.1f) else if (isCurrentBinding) NikoTheme.colors.primary.copy(alpha = 0.15f) else NikoTheme.colors.textPrimary.copy(alpha = 0.1f), 
             shape = RoundedCornerShape(4.dp), 
-            border = BorderStroke(1.dp, if (isLocked) Color.White.copy(0.05f) else if (isCurrentBinding) Color.Cyan else Color.White.copy(alpha = 0.1f)),
+            border = BorderStroke(1.dp, if (isLocked) NikoTheme.colors.divider else if (isCurrentBinding) NikoTheme.colors.primary else NikoTheme.colors.divider),
             modifier = Modifier.weight(1f).height(22.dp).clickable(enabled = !isLocked) { onStartBinding(key) }
         ) {
             Box(contentAlignment = Alignment.Center) { 
                 Text(
                     text = if (isLocked) stringResource(R.string.joystick_mapping_locked) else if (isCurrentBinding) stringResource(R.string.joystick_mapping_detecting) else stringResource(R.string.joystick_mapping_click), 
-                    color = if (isLocked) Color.Gray else if (isCurrentBinding) Color.Cyan else Color(0xFF00B0FF), 
+                    color = if (isLocked) NikoTheme.colors.textSecondary else if (isCurrentBinding) NikoTheme.colors.primary else NikoTheme.colors.primary, 
                     fontSize = 11.sp
                 ) 
             }
@@ -215,39 +227,39 @@ fun CompactMappingRow(label: String, mapping: ChannelMapping, key: String, isBin
         Spacer(Modifier.width(6.dp))
         Box {
             Surface(
-                color = if (isLocked) Color.Gray.copy(alpha = 0.1f) else Color(0xFF263238), 
+                color = if (isLocked) NikoTheme.colors.textSecondary.copy(alpha = 0.1f) else NikoTheme.colors.surface, 
                 shape = RoundedCornerShape(4.dp), 
-                border = BorderStroke(1.dp, if (isLocked) Color.White.copy(0.05f) else Color.Cyan.copy(0.3f)),
+                border = BorderStroke(1.dp, if (isLocked) NikoTheme.colors.divider else NikoTheme.colors.primary.copy(0.3f)),
                 modifier = Modifier.width(50.dp).height(22.dp).clickable(enabled = !isLocked) { showPicker = true }
             ) {
                 Row(modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                    Text(channelLabelText, color = if (isLocked) Color.Gray else Color.Cyan, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    if (!isLocked) Icon(Icons.Default.ArrowDropDown, null, tint = Color.Cyan, modifier = Modifier.size(12.dp))
+                    Text(channelLabelText, color = if (isLocked) NikoTheme.colors.textSecondary else NikoTheme.colors.primary, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    if (!isLocked) Icon(Icons.Default.ArrowDropDown, null, tint = NikoTheme.colors.primary, modifier = Modifier.size(12.dp))
                 }
             }
             if (!isLocked) {
                 DropdownMenu(
                     expanded = showPicker, 
                     onDismissRequest = { showPicker = false }, 
-                    modifier = Modifier.background(Color(0xFF1B2535)).heightIn(max = 240.dp),
+                    modifier = Modifier.background(NikoTheme.colors.panel).heightIn(max = 240.dp),
                     properties = androidx.compose.ui.window.PopupProperties(focusable = false)
                 ) {
-                    DropdownMenuItem(text = { Text(stringResource(R.string.joystick_mapping_unbound), fontSize = 12.sp, color = Color.Gray) }, onClick = { onManualBind(key, -1); showPicker = false })
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
-                    if (inputMode == 1) { (1..24).forEach { ch -> DropdownMenuItem(text = { Text("$chLabel $ch", fontSize = 12.sp) }, onClick = { onManualBind(key, 100 + ch); showPicker = false }) } } 
-                    else { (0..47).forEach { ax -> DropdownMenuItem(text = { Text("$axisLabel $ax", fontSize = 12.sp) }, onClick = { onManualBind(key, ax); showPicker = false }) } }
+                    DropdownMenuItem(text = { Text(stringResource(R.string.joystick_mapping_unbound), fontSize = 12.sp, color = NikoTheme.colors.textSecondary) }, onClick = { onManualBind(key, -1); showPicker = false })
+                    HorizontalDivider(color = NikoTheme.colors.divider)
+                    if (inputMode == 1) { (1..24).forEach { ch -> DropdownMenuItem(text = { Text("$chLabel $ch", color = NikoTheme.colors.textPrimary, fontSize = 12.sp) }, onClick = { onManualBind(key, 100 + ch); showPicker = false }) } } 
+                    else { (0..47).forEach { ax -> DropdownMenuItem(text = { Text("$axisLabel $ax", color = NikoTheme.colors.textPrimary, fontSize = 12.sp) }, onClick = { onManualBind(key, ax); showPicker = false }) } }
                 }
             }
         }
         Spacer(Modifier.width(6.dp))
-        Switch(checked = mapping.inverted, onCheckedChange = { if (!isLocked) onToggleInvert(key) }, modifier = Modifier.scale(0.45f), enabled = !isLocked)
+        Switch(checked = mapping.inverted, onCheckedChange = { if (!isLocked) onToggleInvert(key) }, modifier = Modifier.scale(0.45f), enabled = !isLocked, colors = SwitchDefaults.colors(checkedThumbColor = NikoTheme.colors.primary))
     }
 }
 
 @Composable
 fun ProfessionalSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, onUpdateValue: (Float) -> Unit) {
     Column {
-        Text(label, color = Color.Gray, fontSize = 10.sp)
-        Slider(value = value, onValueChange = onUpdateValue, valueRange = range, modifier = Modifier.height(24.dp), colors = SliderDefaults.colors(thumbColor = Color(0xFFB39DDB), activeTrackColor = Color(0xFF7E57C2), inactiveTrackColor = Color(0x22FFFFFF)))
+        Text(label, color = NikoTheme.colors.textSecondary, fontSize = 10.sp)
+        Slider(value = value, onValueChange = onUpdateValue, valueRange = range, modifier = Modifier.height(24.dp), colors = SliderDefaults.colors(thumbColor = NikoTheme.colors.primary, activeTrackColor = NikoTheme.colors.primary, inactiveTrackColor = NikoTheme.colors.divider))
     }
 }

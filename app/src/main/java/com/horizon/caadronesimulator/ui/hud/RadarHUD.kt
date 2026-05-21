@@ -27,6 +27,7 @@ import kotlin.math.abs
 
 import androidx.compose.ui.res.stringResource
 import com.horizon.caadronesimulator.R
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 
 /**
  * [v1.5.9] RadarHUD 專業級像素還原版 - 佈局約束修正
@@ -37,14 +38,15 @@ fun RadarHUD(
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {}
 ) {
-    val markerColor = if (state.useSimplifiedMarkers) Color.White.copy(0.6f) else Color(0xFFFFD600).copy(0.7f)
+    val themeColors = NikoTheme.colors
+    val markerColor = if (state.useSimplifiedMarkers) themeColors.textPrimary.copy(0.6f) else Color(0xFFFFD600).copy(0.7f)
     val animatedScale by animateFloatAsState(targetValue = state.currentRadarScale, animationSpec = tween(800), label = "radar_scale")
 
     Box(
         modifier = modifier
             .size(150.dp, 100.dp)
-            .background(Color(0xAA111111), RoundedCornerShape(12.dp))
-            .border(1.5.dp, Color(0xFFFF9800).copy(0.6f), RoundedCornerShape(12.dp))
+            .background(Color(0xAA111111), RoundedCornerShape(12.dp)) // 羅盤視窗維持深色玻璃感，不受主題背景影響
+            .border(1.5.dp, themeColors.primary.copy(0.6f), RoundedCornerShape(12.dp))
             .clickable { onClick() }
     ) {
         Box(
@@ -97,11 +99,11 @@ fun RadarHUD(
                 val hC = toRadar(0f, 0f); val hS = 0.4f * s
                 drawCircle(Color.Blue.copy(0.6f), 1.2f * s, hC)
                 val hP = Path().apply { moveTo(hC.x - hS, hC.y - hS*1.2f); lineTo(hC.x - hS, hC.y + hS*1.2f); moveTo(hC.x + hS, hC.y - hS*1.2f); lineTo(hC.x + hS, hC.y + hS*1.2f); moveTo(hC.x - hS, hC.y); lineTo(hC.x + hS, hC.y) }
-                drawPath(hP, Color.White, style = Stroke(1.5.dp.toPx()))
+                drawPath(hP, themeColors.textPrimary, style = Stroke(1.5.dp.toPx()))
 
                 val pB = toRadar(0f, -9f)
-                drawLine(Color.White, Offset(pB.x - 0.9f * s, pB.y), Offset(pB.x + 0.9f * s, pB.y), 1.5.dp.toPx())
-                drawLine(Color.White, pB, Offset(pB.x, pB.y + 0.5f * s), 1.5.dp.toPx())
+                drawLine(themeColors.textPrimary, Offset(pB.x - 0.9f * s, pB.y), Offset(pB.x + 0.9f * s, pB.y), 1.5.dp.toPx())
+                drawLine(themeColors.textPrimary, pB, Offset(pB.x, pB.y + 0.5f * s), 1.5.dp.toPx())
 
                 drawCircle(Color.Red, 1.0f * s, toRadar(13.5f, 16.0f))
                 drawCircle(Color.Red, 1.0f * s, toRadar(-13.5f, 16.0f))
@@ -116,7 +118,7 @@ fun RadarHUD(
                     }
                     drawPath(
                         path = trailPath,
-                        color = Color.Cyan.copy(alpha = 0.5f),
+                        color = themeColors.accent.copy(alpha = 0.5f),
                         style = Stroke(width = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 4f)))
                     )
                 }
@@ -124,7 +126,7 @@ fun RadarHUD(
                 val dP = if (state.radarZoomMode == 2) Offset(centerX, centerY) else toRadar(state.posX, state.posZ)
                 rotate(-state.yaw, dP) {
                     val ap = Path().apply { moveTo(dP.x, dP.y - 6.dp.toPx()); lineTo(dP.x - 4.dp.toPx(), dP.y + 4.dp.toPx()); lineTo(dP.x + 4.dp.toPx(), dP.y + 4.dp.toPx()); close() }
-                    drawPath(ap, Color.White)
+                    drawPath(ap, themeColors.textPrimary)
                 }
             }
         }
@@ -140,7 +142,7 @@ fun RadarHUD(
                 1 -> "[$autoLabel] $dynamicLabel"
                 else -> "[$preciseLabel] 4.0X"
             },
-            color = Color.Cyan.copy(0.8f), fontSize = 8.sp, fontWeight = FontWeight.Bold,
+            color = themeColors.accent.copy(0.8f), fontSize = 8.sp, fontWeight = FontWeight.Bold,
             modifier = Modifier.align(Alignment.BottomStart).padding(start = 8.dp, bottom = 4.dp) // 縮減底邊距
         )
     }
