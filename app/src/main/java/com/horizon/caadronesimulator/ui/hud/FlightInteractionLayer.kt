@@ -123,8 +123,18 @@ fun FlightInteractionLayer(
                                     properties = PopupProperties(focusable = false),
                                     modifier = Modifier.background(NikoTheme.colors.panel).border(1.dp, NikoTheme.colors.divider, RoundedCornerShape(12.dp))
                                 ) {
+                                    val cameraModes = listOf(
+                                        AppConfig.CAM_MODE_STATION_TRACK to stringResource(R.string.visual_cam_mode_station_track),
+                                        AppConfig.CAM_MODE_STATION_SMART to stringResource(R.string.visual_cam_mode_station_smart),
+                                        AppConfig.CAM_MODE_STATION_FIXED to stringResource(R.string.visual_cam_mode_station_fixed),
+                                        AppConfig.CAM_MODE_FOLLOW to stringResource(R.string.visual_cam_mode_follow),
+                                        AppConfig.CAM_MODE_FPV to stringResource(R.string.visual_cam_mode_fpv),
+                                        AppConfig.CAM_MODE_OBS to stringResource(R.string.visual_cam_mode_obs)
+                                    )
+                                    val currentModeLabel = cameraModes.find { it.first == state.cameraMode }?.second ?: state.cameraMode
+
                                     DropdownMenuItem(
-                                        text = { Text("${stringResource(R.string.menu_camera_mode)}: ${state.cameraMode}", color = NikoTheme.colors.textPrimary, fontSize = 13.sp) }, 
+                                        text = { Text("${stringResource(R.string.menu_camera_mode)}: $currentModeLabel", color = NikoTheme.colors.textPrimary, fontSize = 13.sp) },
                                         trailingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowRight, null, tint = NikoTheme.colors.textSecondary) }, 
                                         onClick = { cameraMenuExpanded = true }
                                     )

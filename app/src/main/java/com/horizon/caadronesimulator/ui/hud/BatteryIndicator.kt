@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 import java.util.Locale
 
 /**
@@ -41,9 +42,9 @@ fun BatteryIndicator(
     )
 
     val color = when {
-        isCritical -> Color.Red
-        isLow -> Color(0xFFFFA000) // 琥珀色
-        else -> Color(0xFFC6FF00) // 螢光綠
+        isCritical -> NikoTheme.colors.warning
+        isLow -> NikoTheme.colors.safety
+        else -> NikoTheme.colors.status
     }
 
     Row(
@@ -69,6 +70,7 @@ fun BatteryIndicator(
         Spacer(modifier = Modifier.width(6.dp))
 
         // 電壓與百分比
+        val textCol = if(NikoTheme.colors.isLight) NikoTheme.colors.textPrimary else Color.White.copy(alpha = 0.9f)
         Column(horizontalAlignment = Alignment.Start) {
             Text(
                 text = String.format(Locale.US, "%.1fV", voltage),
@@ -79,7 +81,7 @@ fun BatteryIndicator(
             )
             Text(
                 text = "$percent%",
-                color = Color.White.copy(alpha = 0.9f),
+                color = textCol,
                 fontSize = 8.sp,
                 fontWeight = FontWeight.Medium,
                 lineHeight = 8.sp

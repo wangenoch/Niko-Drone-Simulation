@@ -237,6 +237,7 @@ class DroneViewModel : ViewModel() {
         yaw: Float, pitch: Float, roll: Float,
         speed: Float, isImpact: Boolean,
         volt: Float, perc: Int,
+        flightTime: Float,
         physicsResult: com.horizon.caadronesimulator.logic.PhysicsEngine.PhysicsResult?
     ) {
         // [v1.7.4] 深度效能優化：實施 20Hz (50ms) 降頻同步攔截
@@ -260,6 +261,8 @@ class DroneViewModel : ViewModel() {
             this.yaw = yaw
             this.pitch = pitch
             this.roll = roll
+            // 僅在非重置狀態下同步時間，防止 0 秒覆蓋
+            if (flightTime > 0) this.sessionFlightTime = flightTime
             
             // [v1.5.9] 撞擊速度保留
             this.speed = if (isImpact && physicsResult != null) physicsResult.impactSpeed else speed

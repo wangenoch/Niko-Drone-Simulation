@@ -122,10 +122,10 @@ fun OverlayDispatcher(
     // 5. 碰撞提示
     if (droneState.isCollision) {
         CollisionOverlay(
+            modifier = Modifier.zIndex(50f),
             reason = droneState.crashReason,
             flightTime = droneState.sessionFlightTime,
-            onReset = onResetFlight,
-            modifier = Modifier.zIndex(50f)
+            onReset = onResetFlight
         )
     }
 

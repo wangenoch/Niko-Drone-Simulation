@@ -103,7 +103,7 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
             )
             
             this.motorRpmFactor = result.motorRpm
-            onFlightDataUpdate(physicsState.posY, physicsState.posX, physicsState.posZ, physicsState.yaw, physicsState.visPitch, physicsState.visRoll, result.impactSpeed, result.isImpact, physicsState.batteryVoltage, physicsState.batteryPercent, specialTitleScreenPos, null, null, null, null)
+            onFlightDataUpdate(physicsState.posY, physicsState.posX, physicsState.posZ, physicsState.yaw, physicsState.visPitch, physicsState.visRoll, result.impactSpeed, result.isImpact, physicsState.batteryVoltage, physicsState.batteryPercent, specialTitleScreenPos, physicsState.flightTime, null, null, null)
         }
 
         val spec = DroneRegistry.getSpec(droneType)
@@ -206,7 +206,11 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
         ds.env.randomWindAngle = (java.util.Random().nextFloat() * 360f)
     }
 
-    fun resetFlight() { physicsState.reset(getGroundY(), 0f); onFlightDataUpdate(physicsState.posY, 0f, 0f, 0f, 0f, 0f, 0f, false, 4.2f, 100, null, null, null, null, null) }
+    fun resetFlight() { 
+        val finalTime = physicsState.flightTime
+        physicsState.reset(getGroundY(), 0f)
+        onFlightDataUpdate(physicsState.posY, 0f, 0f, 0f, 0f, 0f, 0f, false, 4.2f, 100, null, finalTime, null, null, null) 
+    }
     private fun calculateProjectedTitlePos() { if (!showSpecialTitle) { specialTitleScreenPos = null; return }; val worldPos = floatArrayOf(0f, 0.015f, 3.0f, 1.0f); val mvp = FloatArray(16); Matrix.multiplyMM(mvp, 0, mainPMatrix, 0, mainVMatrix, 0); val screenPos = FloatArray(4); Matrix.multiplyMV(screenPos, 0, mvp, 0, worldPos, 0); if (screenPos[3] > 0) { val ndcX = screenPos[0] / screenPos[3]; val ndcY = screenPos[1] / screenPos[3]; specialTitleScreenPos = androidx.compose.ui.geometry.Offset((ndcX + 1f) / 2f * viewWidth, (1f - ndcY) / 2f * viewHeight) } else { specialTitleScreenPos = null } }
 
     private fun generateCloudTexture() {
