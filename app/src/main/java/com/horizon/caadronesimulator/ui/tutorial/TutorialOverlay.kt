@@ -19,6 +19,9 @@ import androidx.compose.ui.text.font.FontWeight // 字體粗細定義
 import androidx.compose.ui.unit.dp // 密度無關像素單位
 import androidx.compose.ui.unit.sp // 文字縮放比例單位
 
+import androidx.compose.ui.res.stringResource
+import com.horizon.caadronesimulator.R
+
 data class TutorialStep(
     val title: String,
     val description: String,
@@ -37,12 +40,12 @@ fun WelcomeTutorial(
 ) {
     val step = viewModel.welcomeStep
     val tutorialSteps = listOf(
-        TutorialStep("歡迎使用 Niko Drone Simulator", "這是一個專業的飛行訓練系統，旨在幫助您熟悉無人機考照流程與物理特性。", Alignment.Center),
-        TutorialStep("功能工具列面板", "點擊右上角按鈕開啟工具列。包含：\n• 數據開關：顯示/隱藏底部資訊\n• 音效切換：開啟/靜音馬達與環境音\n• 虛擬搖桿：切換螢幕觸控按鍵\n• 視角模式：切換追蹤/跟隨/FPV 視角\n• 整合設定：進行搖桿映射與機型選擇\n• 重置飛行：立即回到起飛位置", Alignment.Center, Modifier.padding(top = 100.dp)),
-        TutorialStep("視覺化雷達 HUD", "左下角顯示無人機在場地中的相對位置與航向。紅色區域為出界範圍，請保持在限制內飛行。", Alignment.Center, Modifier.padding(bottom = 120.dp)),
-        TutorialStep("飛行狀態監控", "底部欄位提供高度、速度與距離資訊。注意高度限值為 30m，超過將會收到警示訊息。", Alignment.Center, Modifier.padding(bottom = 100.dp)),
-        TutorialStep("馬達解鎖與啟動", "著地時點擊置頂的「起槳」按鈕或使用實體搖桿「內八 CSC」指令來解鎖馬達開始飛行。", Alignment.Center, Modifier.padding(top = 130.dp)),
-        TutorialStep("準備就緒！", "現在請嘗試解鎖馬達並進行第一次起飛練習。祝您練習順利！", Alignment.Center)
+        TutorialStep(stringResource(R.string.tut_welcome_t1), stringResource(R.string.tut_welcome_d1), Alignment.Center),
+        TutorialStep(stringResource(R.string.tut_welcome_t2), stringResource(R.string.tut_welcome_d2), Alignment.Center, Modifier.padding(top = 100.dp)),
+        TutorialStep(stringResource(R.string.tut_welcome_t3), stringResource(R.string.tut_welcome_d3), Alignment.Center, Modifier.padding(bottom = 120.dp)),
+        TutorialStep(stringResource(R.string.tut_welcome_t4), stringResource(R.string.tut_welcome_d4), Alignment.Center, Modifier.padding(bottom = 100.dp)),
+        TutorialStep(stringResource(R.string.tut_welcome_t5), stringResource(R.string.tut_welcome_d5), Alignment.Center, Modifier.padding(top = 130.dp)),
+        TutorialStep(stringResource(R.string.tut_welcome_t6), stringResource(R.string.tut_welcome_d6), Alignment.Center)
     )
     val pulseAlpha by rememberInfiniteTransition(label = "").animateFloat(0.3f, 0.8f, infiniteRepeatable(tween(1000), RepeatMode.Reverse), label = "")
     
@@ -53,10 +56,10 @@ fun WelcomeTutorial(
         }
     }) {
         when(step) {
-            1 -> TutorialHighlight(Alignment.TopEnd, Modifier.statusBarsPadding().displayCutoutPadding().padding(top = 16.dp, end = 16.dp), "功能選單", pulseAlpha)
-            2 -> TutorialHighlight(Alignment.BottomStart, Modifier.navigationBarsPadding().padding(bottom = 16.dp, start = 16.dp), "視覺雷達", pulseAlpha)
-            3 -> TutorialHighlight(Alignment.BottomCenter, Modifier.navigationBarsPadding(), "飛行數據", pulseAlpha)
-            4 -> TutorialHighlight(Alignment.TopCenter, Modifier.padding(top = 70.dp), "解鎖馬達", pulseAlpha)
+            1 -> TutorialHighlight(Alignment.TopEnd, Modifier.statusBarsPadding().displayCutoutPadding().padding(top = 16.dp, end = 16.dp), stringResource(R.string.tutorial_label_menu), pulseAlpha)
+            2 -> TutorialHighlight(Alignment.BottomStart, Modifier.navigationBarsPadding().padding(bottom = 16.dp, start = 16.dp), stringResource(R.string.tutorial_label_radar), pulseAlpha)
+            3 -> TutorialHighlight(Alignment.BottomCenter, Modifier.navigationBarsPadding(), stringResource(R.string.tutorial_label_data), pulseAlpha)
+            4 -> TutorialHighlight(Alignment.TopCenter, Modifier.padding(top = 70.dp), stringResource(R.string.tutorial_label_arm), pulseAlpha)
         }
         val current = tutorialSteps[step]
         Surface(modifier = Modifier.align(current.alignment).padding(32.dp).then(current.modifier).widthIn(max = 350.dp), color = Color(0xFF1B2535), shape = RoundedCornerShape(16.dp), border = BorderStroke(2.dp, Color.Cyan)) {
@@ -65,8 +68,8 @@ fun WelcomeTutorial(
                 Spacer(modifier = Modifier.height(8.dp)); Text(current.description, color = Color.White, fontSize = 14.sp, lineHeight = 20.sp)
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("點擊畫面繼續 (${step + 1}/${tutorialSteps.size})", color = Color.Gray, fontSize = 11.sp)
-                    TextButton(onClick = onDismiss) { Text("跳過導覽", color = Color.White.copy(0.5f), fontSize = 12.sp) }
+                    Text(stringResource(R.string.tutorial_click_continue, step + 1, tutorialSteps.size), color = Color.Gray, fontSize = 11.sp)
+                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.tutorial_skip_nav), color = Color.White.copy(0.5f), fontSize = 12.sp) }
                 }
             }
         }
@@ -85,15 +88,15 @@ fun JoystickSettingsTutorial(
 ) {
     val step = viewModel.joystickTutorialStep
     val tutorialSteps = listOf(
-        TutorialStep("搖桿設定導覽", "在此頁面您可以完整設定外接遙控器，確保飛行操控精確無誤。", Alignment.Center),
-        TutorialStep("輸入模式選擇", "您可以切換「外接手把」或「內置系統」。專業一體化遙控器請選擇內置模式。", Alignment.Center),
-        TutorialStep("硬體掃描與連線", "點擊此按鈕啟動硬體偵測。連線成功後，RX 數值會開始跳動。", Alignment.Center),
-        TutorialStep("一鍵引導設定", "最推薦新手的設定方式！點擊此處由系統引導您依序撥動搖桿完成對應。", Alignment.Center),
-        TutorialStep("搖桿校準工具", "若搖桿無法回正或行程不足，請使用校準工具定義物理中位點與邊界。", Alignment.Center),
-        TutorialStep("單軸自動綁定", "點擊功能旁的「Auto」並撥動搖桿，可快速手動對應指定通道。", Alignment.Center),
-        TutorialStep("反向開關", "若發現動作方向相反（如推桿變下降），切換此開關即可修正。", Alignment.Center),
-        TutorialStep("操控模式切換", "點擊箭頭可切換 Mode 1 (日本手) 或 Mode 2 (美國手) 等操作模式。", Alignment.Center),
-        TutorialStep("靈敏度與曲線", "調整 Rate (靈敏度) 與 Expo (曲線) 來優化操控手感，亦可進入進階設定微調單軸。", Alignment.Center)
+        TutorialStep(stringResource(R.string.tut_joy_t1), stringResource(R.string.tut_joy_d1), Alignment.Center),
+        TutorialStep(stringResource(R.string.tut_joy_t2), stringResource(R.string.tut_joy_d2), Alignment.Center),
+        TutorialStep(stringResource(R.string.tut_joy_t3), stringResource(R.string.tut_joy_d3), Alignment.Center),
+        TutorialStep(stringResource(R.string.tut_joy_t4), stringResource(R.string.tut_joy_d4), Alignment.Center),
+        TutorialStep(stringResource(R.string.tut_joy_t5), stringResource(R.string.tut_joy_d5), Alignment.Center),
+        TutorialStep(stringResource(R.string.tut_joy_t6), stringResource(R.string.tut_joy_d6), Alignment.Center),
+        TutorialStep(stringResource(R.string.tut_joy_t7), stringResource(R.string.tut_joy_d7), Alignment.Center),
+        TutorialStep(stringResource(R.string.tut_joy_t8), stringResource(R.string.tut_joy_d8), Alignment.Center),
+        TutorialStep(stringResource(R.string.tut_joy_t9), stringResource(R.string.tut_joy_d9), Alignment.Center)
     )
 
     val current = tutorialSteps[step]
@@ -131,7 +134,7 @@ fun JoystickSettingsTutorial(
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("${step + 1}/${tutorialSteps.size}", color = Color.Gray, fontSize = 11.sp)
-                    TextButton(onClick = onDismiss, modifier = Modifier.height(32.dp)) { Text("跳過", color = Color.White.copy(0.4f), fontSize = 12.sp) }
+                    TextButton(onClick = onDismiss, modifier = Modifier.height(32.dp)) { Text(stringResource(R.string.action_skip), color = Color.White.copy(0.4f), fontSize = 12.sp) }
                 }
             }
         }
@@ -150,12 +153,12 @@ fun ClimateSettingsTutorial(
 ) {
     val step = viewModel.climateTutorialStep
     val tutorialSteps = listOf(
-        TutorialStep("環境與氣候導覽", "在此頁面您可以設定模擬環境的各項參數，挑戰不同難度的飛行任務。", Alignment.Center),
-        TutorialStep("風力等級選擇", "設定當前的平均風速。等級越高無人機偏移量越大，需更精確地修正。", Alignment.Center),
-        TutorialStep("風向控制系統", "選擇風的來源方向。選擇「隨機」將挑戰無規律的變向強風。", Alignment.Center),
-        TutorialStep("激烈度與亂流", "調整風速的起伏程度。高激烈度會產生瞬間強陣風模擬惡劣氣候環境。", Alignment.Center),
-        TutorialStep("時間與光影", "切換不同時段的環境光。注意早晨與下午的陰影拉長方向會有所不同。", Alignment.Center),
-        TutorialStep("陰影深淺調節", "調整無人機在地面上的投影濃度，幫助您在不同地形中更好地判斷高度與位置。", Alignment.Center)
+        TutorialStep(stringResource(R.string.tut_clim_t1), stringResource(R.string.tut_clim_d1), Alignment.Center),
+        TutorialStep(stringResource(R.string.tut_clim_t2), stringResource(R.string.tut_clim_d2), Alignment.Center),
+        TutorialStep(stringResource(R.string.tut_clim_t3), stringResource(R.string.tut_clim_d3), Alignment.Center),
+        TutorialStep(stringResource(R.string.tut_clim_t4), stringResource(R.string.tut_clim_d4), Alignment.Center),
+        TutorialStep(stringResource(R.string.tut_clim_t5), stringResource(R.string.tut_clim_d5), Alignment.Center),
+        TutorialStep(stringResource(R.string.tut_clim_t6), stringResource(R.string.tut_clim_d6), Alignment.Center)
     )
 
     val current = tutorialSteps[step]
@@ -183,12 +186,13 @@ fun ClimateSettingsTutorial(
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("${step + 1}/${tutorialSteps.size}", color = Color.Gray, fontSize = 11.sp)
-                    TextButton(onClick = onDismiss, modifier = Modifier.height(32.dp)) { Text("跳過", color = Color.White.copy(0.4f), fontSize = 12.sp) }
+                    TextButton(onClick = onDismiss, modifier = Modifier.height(32.dp)) { Text(stringResource(R.string.action_skip), color = Color.White.copy(0.4f), fontSize = 12.sp) }
                 }
             }
         }
     }
 }
+
 
 @Composable
 fun TutorialHighlight(alignment: Alignment, modifier: Modifier, label: String, pulseAlpha: Float) {

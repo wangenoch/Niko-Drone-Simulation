@@ -16,18 +16,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.horizon.caadronesimulator.model.Constants
+import com.horizon.caadronesimulator.model.AppConfig
 import com.horizon.caadronesimulator.model.DroneState
 import com.horizon.caadronesimulator.model.DroneSpecs
 import com.horizon.caadronesimulator.model.DroneRegistry
 import java.util.Locale
 import kotlin.math.*
 
+import androidx.compose.ui.res.stringResource
+import com.horizon.caadronesimulator.R
+
 /**
  * [v1.5.9] 定點計時評測器 - 高精確度校準版
- * 修正：實施 1.0m~3.5m 高度門檻，收緊角錐偵測半徑至 1.3m。
  */
 class SpotTimerEvaluator : MissionEvaluator {
-    override val modeName: String = "定點計時"
+    override val modeName: String = "定點計時" // 這裡通常由模式選擇器顯示，若需翻譯可由資源獲取
 
     override fun update(state: DroneState, dt: Float, spec: DroneSpecs) {
         if (!state.isSpotTimerEnabled) return
@@ -37,11 +40,7 @@ class SpotTimerEvaluator : MissionEvaluator {
         val isAirborne = state.altitude > spec.groundOffset + 0.1f
         if (state.isMotorLocked || state.isCollision || !isAirborne) {
             resetTimer(state)
-            state.spotTimerMessage = when {
-                state.isCollision -> "無人機損毀"
-                state.isMotorLocked -> "馬達鎖定中"
-                else -> "請起飛至視線高度"
-            }
+            state.spotTimerMessage = "IDLE" // 使用 ID 占位，由 UI 轉譯
             return
         }
 
@@ -73,10 +72,10 @@ class SpotTimerEvaluator : MissionEvaluator {
         }
         
         if (inZoneId == -1) {
-            state.spotTimerSeconds = 5.0f; state.spotTimerSuccess = false; state.spotTimerMessageTimer = 0f; state.spotTimerMessage = "尋找目標點中..."
+            state.spotTimerSeconds = 5.0f; state.spotTimerSuccess = false; state.spotTimerMessageTimer = 0f; state.spotTimerMessage = "SEARCHING"
         } else if (!isHeightOk) {
             state.spotTimerSeconds = 5.0f; state.spotTimerSuccess = false; state.spotTimerMessageTimer = 0f
-            state.spotTimerMessage = if (relAlt < 1.0f) "⚠️ 高度過低 (目前: %.1fm)".format(relAlt) else "⚠️ 高度過高 (目前: %.1fm)".format(relAlt)
+            state.spotTimerMessage = if (relAlt < 1.0f) "TOO_LOW|$relAlt" else "TOO_HIGH|$relAlt"
         } else {
             val isHPad = inZoneId == coneTargets.size - 1
             val currentYaw = (state.yaw % 360f + 360f) % 360f
@@ -93,23 +92,22 @@ class SpotTimerEvaluator : MissionEvaluator {
             val isAligned = minDiff <= yawThreshold
 
             if (isRotating) {
-                state.spotTimerSeconds = 5.0f; state.spotTimerSuccess = false; state.spotTimerMessageTimer = 0f; state.spotTimerMessage = "轉向中...等待停穩"
+                state.spotTimerSeconds = 5.0f; state.spotTimerSuccess = false; state.spotTimerMessageTimer = 0f; state.spotTimerMessage = "ROTATING"
             } else if (!isAligned) {
                 state.spotTimerSeconds = 5.0f; state.spotTimerSuccess = false; state.spotTimerMessageTimer = 0f
-                state.spotTimerMessage = if(isHPad) "H點航向偏差過大 (%.0f°)".format(minDiff) else "請對準基準面 (偏差 %.0f°)".format(minDiff)
+                state.spotTimerMessage = if(isHPad) "YAW_ERROR_H|$minDiff" else "YAW_ERROR_G|$minDiff"
             } else {
                 if (!state.spotTimerSuccess) {
                     if (state.spotTimerMessageTimer <= 0f) {
                         state.spotTimerSeconds = (state.spotTimerSeconds - dt).coerceAtLeast(0f)
                         if (state.spotTimerSeconds <= 0f) {
-                            state.spotTimerSuccess = true; state.spotTimerMessage = if(isHPad) "完美！H點精準懸停合格" else "恭喜！定點懸停合格"
+                            state.spotTimerSuccess = true; state.spotTimerMessage = if(isHPad) "PERFECT_H" else "SUCCESS_G"
                         } else {
-                            val prefix = if(isHPad) "H點精準計時" else "定點計時"
-                            state.spotTimerMessage = String.format(Locale.US, "$prefix: %.1fs", state.spotTimerSeconds)
+                            state.spotTimerMessage = if(isHPad) "COUNTING_H|${state.spotTimerSeconds}" else "COUNTING_G|${state.spotTimerSeconds}"
                         }
                     }
                 } else {
-                    state.spotTimerMessage = if(isHPad) "完美！H點精準懸停合格" else "恭喜！定點懸停合格"
+                    state.spotTimerMessage = if(isHPad) "PERFECT_H" else "SUCCESS_G"
                 }
             }
             state.spotTimerStable = !isRotating && isAligned
@@ -131,8 +129,9 @@ class SpotTimerEvaluator : MissionEvaluator {
         val spec = remember(state.droneType) { DroneRegistry.getSpec(state.droneType) }
         val isNearGround = state.altitude <= (spec.groundOffset + 0.15f)
         
-        val horizontalDist = sqrt(state.posX * state.posX + state.posZ * state.posZ)
-        val isInZoomZone = state.enableZoomAssistant && horizontalDist > 10.0f && state.cameraMode != "FPV 視角" && state.cameraMode != "跟隨視角" && !state.isMenuExpanded
+        // [v1.7.6] 校準：作業中心與觸發基準
+        val distToOpsCenter = sqrt(state.posX * state.posX + (state.posZ - 6f) * (state.posZ - 6f))
+        val isInZoomZone = state.enableZoomAssistant && distToOpsCenter > 10.0f && state.cameraMode != AppConfig.CAM_MODE_FPV && state.cameraMode != AppConfig.CAM_MODE_FOLLOW && !state.isMenuExpanded
         val isZoomRelocated = state.autoPiPRelocate && (state.observerTilt < -5f || state.altitude > 10f)
         val isZoomInCenter = isInZoomZone && !isZoomRelocated
 
@@ -143,12 +142,33 @@ class SpotTimerEvaluator : MissionEvaluator {
             isNearGround -> 140.dp // 移動至「起槳 (85dp)」按鈕下方，防止遮擋
             else -> 60.dp 
         }, label = "pad")
+
+        val rawMsg = state.spotTimerMessage ?: ""
+        val parts = rawMsg.split("|")
+        val msgId = parts[0]
+        val param = parts.getOrNull(1)?.toFloatOrNull() ?: 0f
+
+        val translatedMessage = when(msgId) {
+            "IDLE" -> if (state.isCollision) stringResource(R.string.status_crash) else if (state.isMotorLocked) stringResource(R.string.status_motor_locked) else stringResource(R.string.mission_spot_timer_takeoff)
+            "SEARCHING" -> stringResource(R.string.mission_spot_timer_searching)
+            "TOO_LOW" -> stringResource(R.string.mission_spot_timer_too_low, param)
+            "TOO_HIGH" -> stringResource(R.string.mission_spot_timer_too_high, param)
+            "ROTATING" -> stringResource(R.string.mission_spot_timer_wait_stable)
+            "YAW_ERROR_H" -> stringResource(R.string.mission_spot_timer_yaw_error, param)
+            "YAW_ERROR_G" -> stringResource(R.string.mission_spot_timer_yaw_error_generic, param)
+            "PERFECT_H" -> stringResource(R.string.mission_spot_timer_perfect)
+            "SUCCESS_G" -> stringResource(R.string.mission_spot_timer_success)
+            "COUNTING_H" -> stringResource(R.string.mission_spot_timer_prefix_h) + ": " + "%.1fs".format(param)
+            "COUNTING_G" -> stringResource(R.string.mission_spot_timer_prefix_generic) + ": " + "%.1fs".format(param)
+            else -> rawMsg
+        }
+
         Box(modifier = Modifier.fillMaxSize().statusBarsPadding().padding(top = targetPadding), contentAlignment = Alignment.TopCenter) {
             Surface(color = Color(0xCC111111), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))) {
                 Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     val indicatorColor = when { state.spotTimerSuccess -> Color.Green; state.spotTimerStable -> Color.Cyan; else -> Color.Red }
                     Box(modifier = Modifier.size(8.dp).background(indicatorColor, RoundedCornerShape(50)))
-                    Text(text = state.spotTimerMessage ?: "", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text(text = translatedMessage, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                     if (state.spotTimerInZone || state.spotTimerSuccess) {
                         Box(contentAlignment = Alignment.Center, modifier = Modifier.size(28.dp)) {
                             Canvas(modifier = Modifier.fillMaxSize()) { drawCircle(Color.White.copy(alpha = 0.1f), style = Stroke(2.dp.toPx())); if (state.spotTimerSeconds < 5f) drawArc(color = if(state.spotTimerSuccess) Color.Green else Color.Cyan, startAngle = -90f, sweepAngle = (1f - state.spotTimerSeconds / 5.0f) * 360f, useCenter = false, style = Stroke(3.dp.toPx())) }

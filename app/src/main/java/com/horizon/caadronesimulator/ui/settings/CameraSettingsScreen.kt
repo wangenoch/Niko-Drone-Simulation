@@ -14,6 +14,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.Locale
 
+import androidx.compose.ui.res.stringResource
+import com.horizon.caadronesimulator.R
+
 /**
  * 獨立的相機與視覺設定頁面
  */
@@ -33,7 +36,7 @@ fun CameraSettingsScreen(
             .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Text("相機與視覺設定", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.CenterHorizontally))
+            Text(stringResource(R.string.settings_title_camera), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.CenterHorizontally))
             
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -45,10 +48,15 @@ fun CameraSettingsScreen(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
-                        Text("視角切換", color = Color.Cyan, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.menu_camera_mode), color = Color.Cyan, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(8.dp))
                         
-                        val modes = listOf("站位視角 (追蹤)", "站位視角 (固定)", "跟隨視角", "FPV 視角")
+                        val modes = listOf(
+                            stringResource(R.string.visual_cam_mode_station_track),
+                            stringResource(R.string.visual_cam_mode_station_fixed),
+                            stringResource(R.string.visual_cam_mode_follow),
+                            stringResource(R.string.visual_cam_mode_fpv)
+                        )
                         modes.forEach { mode ->
                             CompactChip(
                                 text = mode,
@@ -67,7 +75,7 @@ fun CameraSettingsScreen(
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
-                            Text("視野倍率 (Zoom)", color = Color.Cyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.visual_label_zoom_short), color = Color.Cyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             Text("${String.format(Locale.US, "%.1f", zoomFactor)}x", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                             Slider(
                                 value = zoomFactor,
@@ -84,7 +92,7 @@ fun CameraSettingsScreen(
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
-                            Text("FPV 鏡頭仰角", color = Color.Cyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.visual_label_fpv_tilt), color = Color.Cyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             Text("${cameraTilt.toInt()}°", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                             Slider(
                                 value = cameraTilt,

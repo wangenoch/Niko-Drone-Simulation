@@ -25,6 +25,9 @@ import com.horizon.caadronesimulator.model.DroneState
 import com.horizon.caadronesimulator.model.Constants
 import kotlin.math.abs
 
+import androidx.compose.ui.res.stringResource
+import com.horizon.caadronesimulator.R
+
 /**
  * [v1.5.9] RadarHUD 專業級像素還原版 - 佈局約束修正
  */
@@ -126,8 +129,17 @@ fun RadarHUD(
             }
         }
         
+        val globalLabel = stringResource(R.string.radar_zoom_global)
+        val autoLabel = stringResource(R.string.radar_zoom_auto)
+        val preciseLabel = stringResource(R.string.radar_zoom_precise)
+        val dynamicLabel = stringResource(R.string.radar_zoom_dynamic)
+
         Text(
-            text = when(state.radarZoomMode) { 0 -> "[全域] 0.6X"; 1 -> "[自動] 動態"; else -> "[精準] 4.0X" },
+            text = when(state.radarZoomMode) { 
+                0 -> "[$globalLabel] 0.6X"
+                1 -> "[$autoLabel] $dynamicLabel"
+                else -> "[$preciseLabel] 4.0X"
+            },
             color = Color.Cyan.copy(0.8f), fontSize = 8.sp, fontWeight = FontWeight.Bold,
             modifier = Modifier.align(Alignment.BottomStart).padding(start = 8.dp, bottom = 4.dp) // 縮減底邊距
         )

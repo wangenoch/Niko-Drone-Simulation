@@ -13,6 +13,8 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.*
 import kotlin.math.abs
 
+import com.horizon.caadronesimulator.R
+
 /**
  * [v1.7.6] 內置專業通訊管理器 (Internal Pro Comm Manager)
  * 職責：專注於「內置 (Pro)」鏈路，包括 /dev/ttyS0 讀取、UMBUS 協議解析與系統診斷。
@@ -38,7 +40,7 @@ class InternalCommManager(
     private var lastValidPacketTime = 0L
     private var lastDiagnosticReportTime = 0L
     private var lastPpsCalcTime = 0L
-    private var detectedProtocolName = "待機"
+    private var detectedProtocolName = ""
     private var activeLinkPath = "None"
     private val diagLogBuffer = mutableListOf<String>()
 
@@ -63,6 +65,15 @@ class InternalCommManager(
     private var logcatJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+    private val diagnosticRunnable = object : Runnable {
+        override fun run() { performDiagnosticCheck(); uiHandler.postDelayed(this, 500) }
+    }
+
+    init { 
+        detectedProtocolName = context.getString(R.string.diag_status_idle)
+        uiHandler.post(diagnosticRunnable) 
+    }
+
     fun toggleLogcat(enabled: Boolean) {
         logcatJob?.cancel()
         if (!enabled) return
@@ -83,17 +94,18 @@ class InternalCommManager(
                 }
                 process.destroy()
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) { droneState.logcatContent = "Logcat 啟動失敗: ${e.message}" }
+                val failMsg = context.getString(R.string.sys_msg_logcat_fail, e.message ?: "Unknown")
+                withContext(Dispatchers.Main) { droneState.logcatContent = failMsg }
             }
         }
     }
 
     fun tryExportReport(activity: android.app.Activity, onPermissionNeeded: (String) -> Unit) {
-        if (!droneState.isLogcatEnabled) { droneState.systemMessage = "📋 請先開啟 [即時監測 Logcat] 以收集診斷數據"; return }
+        if (!droneState.isLogcatEnabled) { droneState.systemMessage = "LOGCAT_REQ"; return }
         if (Build.VERSION.SDK_INT <= 28) {
             val perm = android.Manifest.permission.WRITE_EXTERNAL_STORAGE
             if (androidx.core.content.ContextCompat.checkSelfPermission(activity, perm) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                droneState.systemMessage = "🔐 請允許儲存權限以匯出日誌"
+                droneState.systemMessage = "PERM_REQ"
                 onPermissionNeeded(perm)
                 return
             }
@@ -103,48 +115,49 @@ class InternalCommManager(
 
     fun exportDiagnosticReport(context: Context) {
         val physicalLog = getFullLog()
-        if (physicalLog.isEmpty()) { droneState.systemMessage = "⏳ 正在收集初始數據，請操作搖桿幾秒後再試"; return }
+        if (physicalLog.isEmpty()) { droneState.systemMessage = "INIT_DATA"; return }
         com.horizon.caadronesimulator.util.LogExporter.exportDiagnosticLog(context, droneState, physicalLog, { droneState.systemMessage = it }, { droneState.systemMessage = it })
     }
 
     fun register(ctx: Context) { /* Pro 鏈路目前不需監聽 USB 廣播，由 Coordinator 觸發 */ }
-    fun unregister(ctx: Context) { stopAll() }
-
-    private val diagnosticRunnable = object : Runnable {
-        override fun run() { performDiagnosticCheck(); uiHandler.postDelayed(this, 500) }
+    fun unregister(ctx: Context) { 
+        stopAll()
+        uiHandler.removeCallbacksAndMessages(null)
     }
-
-    init { uiHandler.post(diagnosticRunnable) }
 
     private fun updateDecisionState(newState: CommDecisionState) {
         if (droneState.commDecisionState != newState) {
             droneState.commDecisionState = newState
-            addLogEntry("系統狀態變更 ➔ $newState")
+            addLogEntry(context.getString(R.string.log_msg_state_change, newState.name))
             synchronized(assemblyBuffer) { assemblyPos = 0; packetCount.set(0); consecutiveValidFrames = 0 }
         }
     }
 
     fun setBaudRate(baud: Int) {
         currentBaudRate = baud; updateDecisionState(CommDecisionState.LOCKED)
-        addLogEntry("手動鎖定波特率: $baud"); if (!isUserStopped) scanAndConnect()
+        addLogEntry(context.getString(R.string.log_msg_manual_baud, baud))
+        if (!isUserStopped) scanAndConnect()
     }
 
     fun setLockedPath(path: String) {
         droneState.lockedSerialPath = path; updateDecisionState(CommDecisionState.LOCKED)
-        addLogEntry("手動鎖定路徑: $path"); matrixPathIndex = matrixPaths.indexOf(path).coerceAtLeast(0)
+        addLogEntry(context.getString(R.string.log_msg_manual_path, path))
+        matrixPathIndex = matrixPaths.indexOf(path).coerceAtLeast(0)
         if (!isUserStopped) scanAndConnect()
     }
 
     fun setLockedProtocol(protocol: String) {
         droneState.lockedProtocol = protocol
-        if (protocol.isEmpty()) { updateDecisionState(CommDecisionState.SCANNING); addLogEntry("重置為自動偵測模式") } 
-        else {
-            updateDecisionState(CommDecisionState.LOCKED); detectedProtocolName = protocol; addLogEntry("手動鎖定協議: $protocol")
+        if (protocol.isEmpty()) { 
+            updateDecisionState(CommDecisionState.SCANNING)
+            addLogEntry(context.getString(R.string.log_msg_reset_auto))
+        } else {
+            updateDecisionState(CommDecisionState.LOCKED); detectedProtocolName = protocol; addLogEntry(context.getString(R.string.log_msg_manual_protocol, protocol))
             if (protocol.contains("UMBUS", ignoreCase = true)) {
                 this.currentBaudRate = 921600
                 droneState.lockedSerialPath = "/dev/ttyS0"
                 matrixPathIndex = matrixPaths.indexOf("/dev/ttyS0").coerceAtLeast(0)
-                addLogEntry("UMBUS 智慧連動：已預填 /dev/ttyS0 與 921600 波特率")
+                addLogEntry(context.getString(R.string.log_msg_umbus_smart))
             }
         }
         if (!isUserStopped) scanAndConnect()
@@ -152,7 +165,7 @@ class InternalCommManager(
 
     fun toggleConnection() {
         if (droneState.connectionStatus != ConnectionStatus.IDLE) stopAll() 
-        else { isUserStopped = false; addLogEntry("使用者手動啟動掃描..."); matrixPathIndex = 0; matrixBaudIndex = 0; updateDecisionState(CommDecisionState.SCANNING); scanAndConnect() }
+        else { isUserStopped = false; addLogEntry(context.getString(R.string.log_msg_manual_scan)); matrixPathIndex = 0; matrixBaudIndex = 0; updateDecisionState(CommDecisionState.SCANNING); scanAndConnect() }
     }
 
     fun scanAndConnect() {
@@ -166,7 +179,7 @@ class InternalCommManager(
             }
             val path = matrixPaths.getOrNull(matrixPathIndex) ?: run { stopAll(); return }
             val baud = matrixBauds.getOrNull(matrixBaudIndex) ?: 115200
-            currentBaudRate = baud; activeLinkPath = path; addLogEntry("🔍 探測內置路徑: $path @ $baud"); startInternalReading(path)
+            currentBaudRate = baud; activeLinkPath = path; addLogEntry(context.getString(R.string.log_msg_probing, path, baud)); startInternalReading(path)
         }
     }
 
@@ -188,13 +201,13 @@ class InternalCommManager(
                 myFis = FileInputStream(file)
                 if (myFis.fd == null || !myFis.fd.valid()) throw java.io.IOException("Invalid FD")
                 currentFis = myFis; activeLinkPath = path; updateConnectionStatus(ConnectionStatus.LINKED)
-                addLogEntry("✅ 物理層開啟成功: $path")
+                addLogEntry(context.getString(R.string.log_msg_open_ok, path))
                 val buf = ByteArray(2048)
                 while (isRunning.get() && !Thread.currentThread().isInterrupted) {
                     val read = try { myFis.read(buf) } catch (e: Exception) { -1 }; if (read <= 0) break
                     handleRawIncoming(buf.copyOf(read), path)
                 }
-            } catch (e: Exception) { addLogEntry("❌ 開啟失敗: ${e.message}"); if (!isUserStopped) nextInMatrix() } 
+            } catch (e: Exception) { addLogEntry(context.getString(R.string.log_msg_open_fail, e.message ?: "Unknown")); if (!isUserStopped) nextInMatrix() }
             finally { try { myFis?.close() } catch (_: Exception) {}; isRunning.set(false) }
         }.apply { name = "InternalProEngine"; priority = Thread.MAX_PRIORITY; start() }
     }
@@ -253,7 +266,11 @@ class InternalCommManager(
 
     private fun updateConnectionStatus(status: ConnectionStatus) { onConnectionStatusUpdate(status) }
     private fun stopInternalOnly() { isRunning.set(false); internalSerialThread?.interrupt(); try { currentFis?.close() } catch (_: Exception) {}; currentFis = null; activeDriver = null }
-    fun stopAll() { isUserStopped = true; stopInternalOnly(); updateDecisionState(CommDecisionState.IDLE); packetCount.set(0); pps = 0; activeLinkPath = "None"; detectedProtocolName = "待機"; onConnectionStatusUpdate(ConnectionStatus.IDLE) }
+    fun stopAll() { 
+        isUserStopped = true; stopInternalOnly(); updateDecisionState(CommDecisionState.IDLE); packetCount.set(0); pps = 0; activeLinkPath = "None"; detectedProtocolName = context.getString(R.string.diag_status_idle); onConnectionStatusUpdate(ConnectionStatus.IDLE)
+        // [核心修正] 停止時也移除回調，確保清理徹底
+        uiHandler.removeCallbacksAndMessages(null)
+    }
     fun injectLog(msg: String) { addLogEntry(msg) }
     private fun addLogEntry(msg: String) { diagLogBuffer.add("[${java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())}] $msg"); if (diagLogBuffer.size > 50) diagLogBuffer.removeAt(0) }
     fun getFullLog() = diagLogBuffer.joinToString("\n")

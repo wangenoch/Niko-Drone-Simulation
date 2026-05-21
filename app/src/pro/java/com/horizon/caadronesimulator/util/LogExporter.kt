@@ -11,6 +11,8 @@ import com.horizon.caadronesimulator.model.DroneState
 import java.io.File
 import java.io.FileOutputStream
 
+import com.horizon.caadronesimulator.R
+
 /**
  * [v1.5.2] 專業日誌匯出工具 (Log Exporter)
  * 職責：處理診斷數據的格式化、MediaStore 寫入與舊版本相容性儲存。
@@ -48,14 +50,14 @@ object LogExporter {
                     context.contentResolver.openOutputStream(it)?.use { out ->
                         out.write(combinedLog.toByteArray())
                     }
-                    onSuccess("✅ 日誌已儲存至 Download 資料夾")
-                } ?: onError("無法建立檔案實體")
+                    onSuccess(context.getString(R.string.log_export_success))
+                } ?: onError(context.getString(R.string.log_export_create_fail))
             } else {
                 val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
                 if (!downloadsDir.exists()) downloadsDir.mkdirs()
                 val file = File(downloadsDir, fileName)
                 FileOutputStream(file).use { it.write(combinedLog.toByteArray()) }
-                onSuccess("✅ 日誌已儲存至 Download 資料夾")
+                onSuccess(context.getString(R.string.log_export_success))
             }
         } catch (e: Exception) {
             // [v1.6.3] 備援機制：若公共目錄權限受阻，嘗試寫入 App 私有外部空間
@@ -68,9 +70,9 @@ object LogExporter {
                     append("Original Error: ${e.message}\n\n")
                     append(state.logcatContent.takeLast(10000))
                 }.toByteArray()) }
-                onSuccess("📋 公共空間權限受阻，日誌已存至 App 私有目錄：\n${file.name}")
+                onSuccess(context.getString(R.string.log_export_fallback, file.name))
             } catch (e2: Exception) {
-                onError("❌ 匯出徹底失敗: ${e.message}")
+                onError(context.getString(R.string.log_export_fail, e.message ?: "Unknown"))
             }
         }
     }

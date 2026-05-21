@@ -20,6 +20,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import com.horizon.caadronesimulator.model.DroneState
 
+import androidx.compose.ui.res.stringResource
+import com.horizon.caadronesimulator.R
+
 /**
  * [v1.7.6] 專業版硬體連線狀態 Bar
  * 職責：提供內置/外接模式切換、快速鎖定與診斷監控入口。
@@ -45,11 +48,11 @@ fun HardwareConnectionHeader(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("遙控器連線與模式設定", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.diag_title), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(color = Color.Black.copy(alpha = 0.5f), shape = RoundedCornerShape(6.dp)) {
                         Row(modifier = Modifier.padding(2.dp)) {
-                            listOf("外接", "內置").forEachIndexed { idx, name ->
+                            listOf(stringResource(R.string.joystick_input_external), stringResource(R.string.joystick_input_internal)).forEachIndexed { idx, name ->
                                 val isSel = inputMode == idx
                                 Box(
                                     modifier = Modifier
@@ -66,7 +69,7 @@ fun HardwareConnectionHeader(
                     }
                     Spacer(Modifier.width(16.dp))
                     Text(
-                        text = if (isSignalActive) "連線正常" else "等待信號...", 
+                        text = if (isSignalActive) stringResource(R.string.hud_signal_ok) else stringResource(R.string.hud_signal_waiting), 
                         color = if (isSignalActive) Color.Green else Color.Red, 
                         fontSize = 11.sp
                     )
@@ -79,7 +82,7 @@ fun HardwareConnectionHeader(
                     verticalAlignment = Alignment.CenterVertically, 
                     modifier = Modifier.clickable { state.isExpertModeLocked = true }
                 ) {
-                    Text("快速鎖定", color = Color.Yellow.copy(0.6f), fontSize = 10.sp)
+                    Text(stringResource(R.string.joystick_fast_lock), color = Color.Yellow.copy(0.6f), fontSize = 10.sp)
                     Switch(
                         checked = false,
                         onCheckedChange = { state.isExpertModeLocked = true }, 

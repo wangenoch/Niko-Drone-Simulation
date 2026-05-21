@@ -18,6 +18,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.horizon.caadronesimulator.ui.hud.MiniStickVisual
 
+import androidx.compose.ui.res.stringResource
+import com.horizon.caadronesimulator.R
+
 /**
  * [v1.2.68] 獨立的搖桿校準 (Calibration) 圖層
  */
@@ -52,7 +55,7 @@ fun JoystickCalibrationOverlay(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "搖桿校準 - Step $calibrationStep",
+                    text = stringResource(R.string.joystick_calib_title, calibrationStep),
                     color = Color(0xFF4CAF50),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
@@ -72,7 +75,7 @@ fun JoystickCalibrationOverlay(
                     onClick = { if (calibrationStep == 1) onNextStep() else onFinish() },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
                 ) {
-                    Text(if (calibrationStep == 1) "確認中位" else "完成並儲存")
+                    Text(if (calibrationStep == 1) stringResource(R.string.action_confirm_neutral) else stringResource(R.string.action_save_finish))
                 }
             }
         }

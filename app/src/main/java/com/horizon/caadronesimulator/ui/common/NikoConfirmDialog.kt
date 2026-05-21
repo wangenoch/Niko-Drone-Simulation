@@ -13,6 +13,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 
+import androidx.compose.ui.res.stringResource
+import com.horizon.caadronesimulator.R
+
 /**
  * [v1.5.3] 統一風格確認對話框
  */
@@ -36,10 +39,10 @@ fun NikoConfirmDialog(
                 Text(message, color = Color.White.copy(0.8f), fontSize = 14.sp, lineHeight = 21.sp)
                 Spacer(modifier = Modifier.height(24.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = onCancel) { Text("取消", color = Color.Gray, fontSize = 15.sp) }
+                    TextButton(onClick = onCancel) { Text(stringResource(R.string.action_cancel), color = Color.Gray, fontSize = 15.sp) }
                     Spacer(modifier = Modifier.width(16.dp))
                     TextButton(onClick = onConfirm) { 
-                        Text("確定", color = Color.Cyan, fontWeight = FontWeight.Bold, fontSize = 15.sp) 
+                        Text(stringResource(R.string.action_ok), color = Color.Cyan, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     }
                 }
             }

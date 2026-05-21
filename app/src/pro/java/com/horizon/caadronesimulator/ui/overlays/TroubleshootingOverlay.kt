@@ -15,9 +15,11 @@ import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
+import androidx.compose.ui.res.stringResource
+import com.horizon.caadronesimulator.R
+
 /**
  * [v1.2.81 階段三] 智慧故障排除引導視窗
- * 指引使用者解決串口權限佔用與硬體未初始化問題。
  */
 @Composable
 fun TroubleshootingOverlay(
@@ -50,7 +52,7 @@ fun TroubleshootingOverlay(
                 )
                 
                 Text(
-                    "內置連線異常排除",
+                    stringResource(R.string.trouble_title),
                     color = Color.White,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
@@ -58,7 +60,7 @@ fun TroubleshootingOverlay(
                 )
 
                 Text(
-                    "偵測到通訊受阻，請依照以下步驟重新激活：",
+                    stringResource(R.string.trouble_desc),
                     color = Color.LightGray,
                     fontSize = 14.sp,
                     textAlign = TextAlign.Center
@@ -67,25 +69,25 @@ fun TroubleshootingOverlay(
                 Spacer(modifier = Modifier.height(20.dp))
 
                 // 步驟一
-                TroubleStep(1, "開啟原廠 App 進行初始化", "點擊下方按鈕跳轉至原廠控制介面。")
+                TroubleStep(1, stringResource(R.string.trouble_step1_t), stringResource(R.string.trouble_step1_d))
                 
                 // 步驟二
-                TroubleStep(2, "檢查視覺狀態 (Icon 指引)", "請確認原廠 App 左下角兩個圖示是否點亮。")
+                TroubleStep(2, stringResource(R.string.trouble_step2_t), stringResource(R.string.trouble_step2_d))
                 
                 Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    IconStateSample(true, "✅ 正常 (點亮)")
-                    IconStateSample(false, "❌ 異常 (灰色)")
+                    IconStateSample(true, stringResource(R.string.trouble_status_ok))
+                    IconStateSample(false, stringResource(R.string.trouble_status_err))
                 }
                 
                 Text(
-                    "⚠️ 若圖示為灰色，請立即「重啟遙控器電源」。",
+                    stringResource(R.string.trouble_warn_reboot),
                     color = Color(0xFFFFCC00),
                     fontSize = 12.sp,
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 
                 // 步驟三
-                TroubleStep(3, "滑掉原廠 App 以釋放權限", "點亮後，請將原廠 App 從「最近工作列表」中滑掉關閉，否則模擬器無法取得串口權限。")
+                TroubleStep(3, stringResource(R.string.trouble_step3_t), stringResource(R.string.trouble_step3_d))
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -95,14 +97,14 @@ fun TroubleshootingOverlay(
                         modifier = Modifier.weight(1f),
                         border = BorderStroke(1.dp, Color.Gray)
                     ) {
-                        Text("取消", color = Color.White)
+                        Text(stringResource(R.string.action_cancel), color = Color.White)
                     }
                     Button(
                         onClick = onOpenFactoryApp,
                         modifier = Modifier.weight(1.5f),
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Cyan)
                     ) {
-                        Text("🚀 開啟原廠 App", color = Color.Black, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.action_open_factory_app), color = Color.Black, fontWeight = FontWeight.Bold)
                     }
                 }
             }

@@ -10,11 +10,39 @@ object AppConfig {
     const val RELEASE_DATE = "2026-05"
     const val DEVELOPER = "Enoch Wang"
 
-    const val SPECIAL_TITLE = "NikoNiko考照場地模擬器"
+    const val SPECIAL_TITLE_ZH = "NikoNiko考照場地模擬器"
+    const val SPECIAL_TITLE_EN = "Niko Drone Licensing Simulator"
+
+    /** 根據當前語系獲取預設標題 (Fallback 邏輯) */
+    fun getDefaultSpecialTitle(lang: String): String {
+        return when (lang) {
+            "zh" -> SPECIAL_TITLE_ZH
+            else -> SPECIAL_TITLE_EN
+        }
+    }
 
     val SPECIAL_THANKS = listOf(
         "測試與建議：全體考照班教官與學員"
     )
+
+    /** [v1.7.6] 攝影機模式內部 ID */
+    const val CAM_MODE_STATION_TRACK = "STATION_TRACK"
+    const val CAM_MODE_STATION_SMART = "STATION_SMART"
+    const val CAM_MODE_STATION_FIXED = "STATION_FIXED"
+    const val CAM_MODE_FOLLOW = "FOLLOW"
+    const val CAM_MODE_FPV = "FPV"
+    const val CAM_MODE_OBS = "OBSERVER"
+
+    /** [v1.7.6] 風向內部 ID */
+    const val WIND_DIR_NONE = "NONE"
+    const val WIND_DIR_N = "N"; const val WIND_DIR_NE = "NE"; const val WIND_DIR_E = "E"; const val WIND_DIR_SE = "SE"
+    const val WIND_DIR_S = "S"; const val WIND_DIR_SW = "SW"; const val WIND_DIR_W = "W"; const val WIND_DIR_NW = "NW"
+    const val WIND_DIR_RANDOM = "RANDOM"
+
+    /** [v1.7.6] 時間內部 ID */
+    const val TIME_MORNING = "MORNING"
+    const val TIME_NOON = "NOON"
+    const val TIME_AFTERNOON = "AFTERNOON"
 
     /** 搖桿手感全域預設標準 */
     object JoystickDefaults {
@@ -30,8 +58,8 @@ object AppConfig {
     object EnvironmentDefaults {
         /** 風力等級：0 為無風 */
         const val WIND_LEVEL = 0
-        /** 風向：描述性文字 */
-        const val WIND_DIRECTION = "無"
+        /** 風向：ID */
+        const val WIND_DIRECTION = WIND_DIR_NONE
         /** 太陽渲染開關：控制光暈與耀光效果 */
         const val SUN_ENABLED = true
         /** 太陽方位：0.0~1.0 模擬從日出到日落的時間點 */
@@ -58,9 +86,9 @@ object AppConfig {
         const val ZOOM_FACTOR = 0.5f
         
         /** 初始攝影機模式 */
-        const val CAMERA_MODE = "站位視角 (追蹤)"
-        /** 智慧縮放模式名稱 */
-        const val CAMERA_MODE_SMART = "站位視角 (智慧)"
+        const val CAMERA_MODE = CAM_MODE_STATION_TRACK
+        /** 智慧縮放模式 ID */
+        const val CAMERA_MODE_SMART_ID = CAM_MODE_STATION_SMART
 
         // --- 站位視角 (固定) 專屬預設值 ---
         /** 觀察員站位高度 (公尺) */

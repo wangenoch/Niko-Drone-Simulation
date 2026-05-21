@@ -10,10 +10,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.horizon.caadronesimulator.R
 import com.horizon.caadronesimulator.model.ChannelMapping
 import com.horizon.caadronesimulator.model.DroneState
 
@@ -45,14 +47,14 @@ fun AuxMappingOverlay(
             Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp).fillMaxSize()) {
                 // Header
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().height(40.dp)) {
-                    Text("擴充功能映射與開關設定", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.joystick_aux_title), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.weight(1f))
                     IconButton(onClick = onDismiss, modifier = Modifier.size(36.dp)) {
                         Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.size(24.dp))
                     }
                 }
                 
-                Text("撥動開關或點擊藍色狀態條即可手動選擇通道。", color = Color.Gray, fontSize = 11.sp)
+                Text(stringResource(R.string.joystick_aux_hint), color = Color.Gray, fontSize = 11.sp)
                 Spacer(Modifier.height(16.dp))
 
                 // 映射區域
@@ -62,16 +64,16 @@ fun AuxMappingOverlay(
                 ) {
                     // 左側：安全防護
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("🔒 安全防護 (Safety)", color = Color.Cyan, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.joystick_aux_safety), color = Color.Cyan, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                         Surface(color = Color.White.copy(alpha = 0.05f), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
                             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                AuxMappingLine("馬達解鎖", state.mappingArm, "arm", state.isAutoBinding, onStartBinding, onToggleInvert, onManualBind, state.inputMode)
+                                AuxMappingLine(stringResource(R.string.joystick_label_arm), state.mappingArm, "arm", state.isAutoBinding, onStartBinding, onToggleInvert, onManualBind, state.inputMode)
                                 
                                 // [v1.5.2] 解除機型限制，永遠顯示熄火開關並加註警告
                                 Column {
-                                    AuxMappingLine("熄火開關", state.mappingHold, "hold", state.isAutoBinding, onStartBinding, onToggleInvert, onManualBind, state.inputMode)
+                                    AuxMappingLine(stringResource(R.string.joystick_label_hold), state.mappingHold, "hold", state.isAutoBinding, onStartBinding, onToggleInvert, onManualBind, state.inputMode)
                                     Text(
-                                        text = "※ 實驗功能：目前僅限直昇機 (HELI) 生效", 
+                                        text = stringResource(R.string.joystick_aux_heli_only), 
                                         color = Color.Yellow.copy(alpha = 0.6f), 
                                         fontSize = 9.sp,
                                         modifier = Modifier.padding(start = 45.dp, top = 2.dp)
@@ -80,9 +82,9 @@ fun AuxMappingOverlay(
 
                                 // [v1.5.2] 新增：飛行模式映射 (預留定位/姿態切換)
                                 Column {
-                                    AuxMappingLine("飛行模式", state.mappingFlightMode, "flightMode", state.isAutoBinding, onStartBinding, onToggleInvert, onManualBind, state.inputMode)
+                                    AuxMappingLine(stringResource(R.string.joystick_label_flight_mode), state.mappingFlightMode, "flightMode", state.isAutoBinding, onStartBinding, onToggleInvert, onManualBind, state.inputMode)
                                     Text(
-                                        text = "※ 預留功能：未來支援定位 (Position) / 姿態 (ATTI) 切換", 
+                                        text = stringResource(R.string.joystick_aux_future_mode), 
                                         color = Color.Gray.copy(alpha = 0.8f), 
                                         fontSize = 9.sp,
                                         modifier = Modifier.padding(start = 45.dp, top = 2.dp)
@@ -94,12 +96,12 @@ fun AuxMappingOverlay(
 
                     // 右側：站位與視角
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("👁️ 站位與視角控制 (Camera)", color = Color.Cyan, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.joystick_aux_camera), color = Color.Cyan, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                         Surface(color = Color.White.copy(alpha = 0.05f), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
                             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                AuxMappingLine("站位高度", state.mappingObsHeight, "obsHeight", state.isAutoBinding, onStartBinding, onToggleInvert, onManualBind, state.inputMode)
-                                AuxMappingLine("抬頭角度", state.mappingObsTilt, "obsTilt", state.isAutoBinding, onStartBinding, onToggleInvert, onManualBind, state.inputMode)
-                                AuxMappingLine("FPV 雲台", state.mappingFpvTilt, "fpvTilt", state.isAutoBinding, onStartBinding, onToggleInvert, onManualBind, state.inputMode)
+                                AuxMappingLine(stringResource(R.string.joystick_label_obs_height), state.mappingObsHeight, "obsHeight", state.isAutoBinding, onStartBinding, onToggleInvert, onManualBind, state.inputMode)
+                                AuxMappingLine(stringResource(R.string.joystick_label_obs_tilt), state.mappingObsTilt, "obsTilt", state.isAutoBinding, onStartBinding, onToggleInvert, onManualBind, state.inputMode)
+                                AuxMappingLine(stringResource(R.string.joystick_label_fpv_tilt), state.mappingFpvTilt, "fpvTilt", state.isAutoBinding, onStartBinding, onToggleInvert, onManualBind, state.inputMode)
                             }
                         }
                     }
@@ -112,7 +114,7 @@ fun AuxMappingOverlay(
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Cyan),
                     shape = RoundedCornerShape(12.dp)
                 ) { 
-                    Text("完成設定並返回", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(stringResource(R.string.action_finish), color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
             }
         }

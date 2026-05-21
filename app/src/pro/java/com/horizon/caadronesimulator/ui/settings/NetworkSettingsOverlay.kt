@@ -23,6 +23,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 
+import androidx.compose.ui.res.stringResource
+import com.horizon.caadronesimulator.R
+
 /**
  * [v1.5.2] 網絡連線設定對話框 - 交互優化版
  * 優化橫向小螢幕空間利用，並實作點擊背景收起輸入法、Enter 即儲存之交互。
@@ -64,7 +67,7 @@ fun NetworkSettingsOverlay(
             Column(modifier = Modifier.padding(12.dp)) {
                 // Header
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("網絡連線設定", color = Color.Cyan, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.net_title), color = Color.Cyan, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.weight(1f))
                     IconButton(onClick = { 
                         keyboardController?.hide()
@@ -78,7 +81,7 @@ fun NetworkSettingsOverlay(
 
                 // 協定選擇 (水平整合)
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    Text("連線協定", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.width(60.dp))
+                    Text(stringResource(R.string.net_label_proto), color = Color.Gray, fontSize = 11.sp, modifier = Modifier.width(60.dp))
                     Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         listOf("UDP", "TCP").forEach { p ->
                             Surface(
@@ -103,14 +106,14 @@ fun NetworkSettingsOverlay(
 
                 // IP 位址 (標籤與輔助鈕並排)
                 Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.fillMaxWidth()) {
-                    Text("監聽位址 (IP)", color = Color.Gray, fontSize = 11.sp)
+                    Text(stringResource(R.string.net_label_ip), color = Color.Gray, fontSize = 11.sp)
                     Spacer(Modifier.weight(1f))
                     TextButton(onClick = { tempHost = "127.0.0.1" }, contentPadding = PaddingValues(0.dp), modifier = Modifier.height(20.dp)) {
-                        Text("本機", fontSize = 10.sp, color = Color.Cyan)
+                        Text(stringResource(R.string.net_ip_local), fontSize = 10.sp, color = Color.Cyan)
                     }
                     Spacer(Modifier.width(8.dp))
                     TextButton(onClick = { tempHost = "0.0.0.0" }, contentPadding = PaddingValues(0.dp), modifier = Modifier.height(20.dp)) {
-                        Text("全網", fontSize = 10.sp, color = Color.Cyan)
+                        Text(stringResource(R.string.net_ip_all), fontSize = 10.sp, color = Color.Cyan)
                     }
                 }
                 
@@ -134,7 +137,7 @@ fun NetworkSettingsOverlay(
                 Spacer(Modifier.height(8.dp))
 
                 // Port (緊湊排版)
-                Text("通信連接埠 (Port)", color = Color.Gray, fontSize = 11.sp)
+                Text(stringResource(R.string.net_label_port), color = Color.Gray, fontSize = 11.sp)
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
                         value = tempPort,
@@ -186,7 +189,7 @@ fun NetworkSettingsOverlay(
                     shape = RoundedCornerShape(8.dp),
                     contentPadding = PaddingValues(0.dp)
                 ) {
-                    Text("儲存並套用設定", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text(stringResource(R.string.action_save_apply), color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
             }
         }

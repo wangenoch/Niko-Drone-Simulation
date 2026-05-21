@@ -7,11 +7,15 @@ import java.net.InetAddress
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 
+import android.content.Context
+import com.horizon.caadronesimulator.R
+
 /**
  * [v1.3.9] 網路數據流管理器
  * 支援 UDP 監聽與 TCP 客戶端模式，對接 MAVLink / SITL
  */
 class NetworkStreamManager(
+    private val context: Context,
     private val onDataReceived: (ByteArray) -> Unit,
     private val onStatusUpdate: (Boolean, String) -> Unit
 ) {
@@ -29,7 +33,7 @@ class NetworkStreamManager(
                 udpSocket = DatagramSocket(port, address)
                 udpSocket?.soTimeout = 1000 // 1秒超時以利檢查 isRunning
                 
-                onStatusUpdate(true, "UDP 監聽中 $host:$port")
+                onStatusUpdate(true, context.getString(R.string.diag_net_connected) + " $host:$port")
                 val buffer = ByteArray(2048)
                 val packet = DatagramPacket(buffer, buffer.size)
 
@@ -47,7 +51,8 @@ class NetworkStreamManager(
                     }
                 }
             } catch (e: Exception) {
-                onStatusUpdate(false, "UDP 啟動失敗: ${e.message}")
+                val failMsg = context.getString(R.string.log_export_fail, e.message ?: "Unknown")
+                onStatusUpdate(false, failMsg)
             } finally {
                 udpSocket?.close()
                 udpSocket = null
@@ -61,6 +66,7 @@ class NetworkStreamManager(
         networkThread?.interrupt()
         try { networkThread?.join(500) } catch (e: Exception) {}
         networkThread = null
-        onStatusUpdate(false, "網路通訊已停止")
+        // 暫時保持英文或通用字串，直到有對應資源
+        onStatusUpdate(false, "Network Stopped")
     }
 }

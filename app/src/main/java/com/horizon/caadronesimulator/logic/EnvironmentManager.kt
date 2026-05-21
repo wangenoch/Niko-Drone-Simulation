@@ -1,5 +1,6 @@
 package com.horizon.caadronesimulator.logic
 
+import com.horizon.caadronesimulator.model.AppConfig
 import com.horizon.caadronesimulator.model.DroneState
 import kotlin.math.*
 
@@ -26,8 +27,8 @@ object EnvironmentManager {
                 return floatArrayOf(0.4f, 0.45f, 0.5f, 1.0f)
             } else {
                 return when (state.timeOfDay) {
-                    "早晨" -> floatArrayOf(1.0f, 0.7f, 0.5f, 1.0f)
-                    "下午" -> floatArrayOf(1.0f, 0.6f, 0.3f, 1.0f)
+                    AppConfig.TIME_MORNING -> floatArrayOf(1.0f, 0.7f, 0.5f, 1.0f)
+                    AppConfig.TIME_AFTERNOON -> floatArrayOf(1.0f, 0.6f, 0.3f, 1.0f)
                     else -> floatArrayOf(0.53f, 0.81f, 0.92f, 1.0f)
                 }
             }

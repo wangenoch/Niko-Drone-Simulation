@@ -1,6 +1,7 @@
 package com.horizon.caadronesimulator.logic
 
 import android.view.MotionEvent
+import com.horizon.caadronesimulator.model.AppConfig
 import com.horizon.caadronesimulator.model.ChannelMapping
 import com.horizon.caadronesimulator.model.DroneState
 import com.horizon.caadronesimulator.model.StickInputState
@@ -83,9 +84,9 @@ object SafetyManager {
             if (!state.isArmSafetyPassed) {
                 if (isDisarmedRequested) {
                     state.isArmSafetyPassed = true
-                    if (state.systemMessage?.contains("請先將解鎖開關撥至 OFF") == true) state.systemMessage = "✅ 系統檢查通過"
+                    if (state.systemMessage?.contains("SAFETY_WARN_OFF") == true) state.systemMessage = "SAFETY_PASS"
                 } else if (isArmedRequested) {
-                    state.systemMessage = "⚠️ 安全警告：請先將解鎖開關撥至 OFF"
+                    state.systemMessage = "SAFETY_WARN_OFF"
                     return 
                 }
             } else {
@@ -93,7 +94,7 @@ object SafetyManager {
                 if (isArmedRequested && state.isMotorLocked) {
                     val currentThrottle = stickInput.stickThrottle(state)
                     if (currentThrottle > 0.05f) {
-                        state.systemMessage = "⚠️ 安全警報：油門未歸零 (%.0f%%)".format(currentThrottle * 100)
+                        state.systemMessage = "SAFETY_WARN_THROTTLE|${currentThrottle * 100}"
                         return
                     }
                 }
@@ -118,9 +119,9 @@ object SafetyManager {
                 if (!state.isHoldSafetyPassed) {
                     if (isHoldRequested) {
                         state.isHoldSafetyPassed = true
-                        if (state.systemMessage?.contains("請先將熄火開關撥至 HOLD") == true) state.systemMessage = "✅ 熄火系統就緒"
+                        if (state.systemMessage?.contains("SAFETY_WARN_HOLD") == true) state.systemMessage = "SAFETY_HOLD_READY"
                     } else if (isNormalRequested) {
-                        state.systemMessage = "⚠️ 安全警告：請先將熄火開關撥至 HOLD"
+                        state.systemMessage = "SAFETY_WARN_HOLD"
                         return
                     }
                 } else {
@@ -142,7 +143,7 @@ object SafetyManager {
             val targetH = 1.6f + ((v + 1f) / 2f) * (25f - 1.6f)
             if (abs(targetH - state.observerHeight) > 0.2f) {
                 state.observerHeight = targetH
-                if (state.cameraMode == "觀察員視角 (實驗性)") {
+                if (state.cameraMode == AppConfig.CAM_MODE_OBS) {
                     state.lastManualTouchTime = System.currentTimeMillis()
                 }
             }
@@ -151,7 +152,7 @@ object SafetyManager {
             val targetT = v * 50f + 25f 
             if (abs(targetT - state.observerTilt) > 2.0f) {
                 state.observerTilt = targetT.coerceIn(-30f, 85f)
-                if (state.cameraMode == "觀察員視角 (實驗性)") {
+                if (state.cameraMode == AppConfig.CAM_MODE_OBS) {
                     state.lastManualTouchTime = System.currentTimeMillis()
                 }
             }
@@ -165,13 +166,15 @@ object SafetyManager {
 
         // 4. 飛行模式切換 (三段開關)
         getVal(state.mappingFlightMode)?.let { v ->
-            val newMode = when {
-                v < -0.3f -> "手動模式 (ACRO)"
-                v > 0.3f -> "定點模式 (POS)"
-                else -> "姿態模式 (ATTI)"
+            val modeId = when {
+                v < -0.3f -> "ACRO"
+                v > 0.3f -> "POS"
+                else -> "ATTI"
             }
-            if (!state.diagnosticLog.contains(newMode)) {
-                logSink("飛行模式切換 ➔ $newMode")
+            val newModeMsg = "FLIGHT_MODE_SWITCH|$modeId"
+            if (state.systemMessage != newModeMsg && !state.diagnosticLog.contains(modeId)) {
+                state.systemMessage = newModeMsg
+                logSink("FLIGHT_MODE_SWITCH|$modeId")
             }
         }
     }

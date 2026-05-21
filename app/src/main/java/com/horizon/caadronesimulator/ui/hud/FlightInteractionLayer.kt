@@ -23,9 +23,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
 import com.horizon.caadronesimulator.model.DroneRegistry
+import com.horizon.caadronesimulator.model.AppConfig
 import com.horizon.caadronesimulator.model.DroneState
 import com.horizon.caadronesimulator.ui.common.NikoConfirmDialog
 import kotlin.math.pow
+
+import androidx.compose.ui.res.stringResource
+import com.horizon.caadronesimulator.R
 
 /**
  * [v1.5.3] 飛行互動控制層 (UI Corrected Version)
@@ -44,8 +48,9 @@ fun FlightInteractionLayer(
         val isNearGround by remember(state.altitude) { derivedStateOf { state.altitude <= (spec.groundOffset + 0.5f) } }
         
         if (isNearGround) {
-            val horizontalDist = kotlin.math.sqrt(state.posX * state.posX + (state.posZ + 6f) * (state.posZ + 6f))
-            val isInZoomZone = state.enableZoomAssistant && horizontalDist > 10.0f && state.cameraMode != "FPV 視角" && state.cameraMode != "跟隨視角" && !state.isMenuExpanded
+            // [v1.7.6] 校準：Zoom Assistant 觸發維持作業中心 Z=6 基準
+            val distToOpsCenter = kotlin.math.sqrt(state.posX * state.posX + (state.posZ - 6f) * (state.posZ - 6f))
+            val isInZoomZone = state.enableZoomAssistant && distToOpsCenter > 10.0f && state.cameraMode != AppConfig.CAM_MODE_FPV && state.cameraMode != AppConfig.CAM_MODE_FOLLOW && !state.isMenuExpanded
             val isZoomRelocated = state.autoPiPRelocate && (state.observerTilt < -5f || state.altitude > 10f)
             val isZoomInCenter = isInZoomZone && !isZoomRelocated
             val buttonTopPadding = if (isZoomInCenter) 175.dp else 85.dp
@@ -59,7 +64,12 @@ fun FlightInteractionLayer(
                     modifier = Modifier.size(width = 100.dp, height = 40.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Text(text = if (state.isMotorLocked) "起槳" else "停槳", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text(
+                            text = if (state.isMotorLocked) stringResource(R.string.action_arm) else stringResource(R.string.action_disarm),
+                            color = Color.White, 
+                            fontWeight = FontWeight.Bold, 
+                            fontSize = 13.sp
+                        )
                     }
                 }
             }
@@ -87,7 +97,7 @@ fun FlightInteractionLayer(
                             onUpdateState { 
                                 this.isSpotTimerEnabled = !this.isSpotTimerEnabled
                                 if (this.isSpotTimerEnabled) {
-                                    this.spotTimerMessage = "請起飛至視線高度"
+                                    this.spotTimerMessage = "IDLE"
                                     this.spotTimerSeconds = 5.0f
                                 }
                             } 
@@ -110,7 +120,7 @@ fun FlightInteractionLayer(
                                     modifier = Modifier.background(Color(0xEE111111)).border(1.dp, Color.White.copy(0.1f), RoundedCornerShape(12.dp))
                                 ) {
                                     DropdownMenuItem(
-                                        text = { Text("視角模式：${state.cameraMode}", color = Color.White, fontSize = 13.sp) }, 
+                                        text = { Text("${stringResource(R.string.menu_camera_mode)}: ${state.cameraMode}", color = Color.White, fontSize = 13.sp) }, 
                                         trailingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowRight, null, tint = Color.White.copy(0.5f)) }, 
                                         onClick = { cameraMenuExpanded = true }
                                     )
@@ -124,7 +134,7 @@ fun FlightInteractionLayer(
                                                 z < 2.5f -> "2.0X"
                                                 else -> "3.0X" 
                                             }
-                                            Text("視野倍率：$label (點擊切換)", color = Color.Cyan, fontSize = 13.sp) 
+                                            Text("${stringResource(R.string.menu_zoom_factor)}: $label (${stringResource(R.string.menu_click_to_switch)})", color = Color.Cyan, fontSize = 13.sp)
                                         }, 
                                         onClick = { 
                                             val current = state.zoomFactor
@@ -139,10 +149,10 @@ fun FlightInteractionLayer(
                                         }
                                     )
                                     HorizontalDivider(color = Color.White.copy(0.1f))
-                                    DropdownMenuItem(text = { Text(if (state.showObstacles) "隱藏障礙物" else "開啟障礙物", color = Color.White, fontSize = 13.sp) }, onClick = { onUpdateState { this.showObstacles = !this.showObstacles }; viewExpanded = false })
-                                    DropdownMenuItem(text = { Text(if (state.showShadow) "關閉陰影" else "開啟陰影", color = Color.White, fontSize = 13.sp) }, onClick = { onUpdateState { this.showShadow = !this.showShadow }; viewExpanded = false })
-                                    DropdownMenuItem(text = { Text(if (state.showFlightPath) "隱藏飛行軌跡" else "顯示飛行軌跡", color = Color.White, fontSize = 13.sp) }, onClick = { onUpdateState { this.showFlightPath = !this.showFlightPath }; viewExpanded = false })
-                                    DropdownMenuItem(text = { Text(if (state.enableZoomAssistant) "關閉姿態輔助(ZOOM)" else "開啟姿態輔助(ZOOM)", color = Color.White, fontSize = 13.sp) }, onClick = { onUpdateState { this.enableZoomAssistant = !this.enableZoomAssistant }; viewExpanded = false })
+                                    DropdownMenuItem(text = { Text(if (state.showObstacles) stringResource(R.string.menu_hide_obstacles) else stringResource(R.string.menu_show_obstacles), color = Color.White, fontSize = 13.sp) }, onClick = { onUpdateState { this.showObstacles = !this.showObstacles }; viewExpanded = false })
+                                    DropdownMenuItem(text = { Text(if (state.showShadow) stringResource(R.string.menu_hide_shadow) else stringResource(R.string.menu_show_shadow), color = Color.White, fontSize = 13.sp) }, onClick = { onUpdateState { this.showShadow = !this.showShadow }; viewExpanded = false })
+                                    DropdownMenuItem(text = { Text(if (state.showFlightPath) stringResource(R.string.menu_hide_path) else stringResource(R.string.menu_show_path), color = Color.White, fontSize = 13.sp) }, onClick = { onUpdateState { this.showFlightPath = !this.showFlightPath }; viewExpanded = false })
+                                    DropdownMenuItem(text = { Text(if (state.enableZoomAssistant) stringResource(R.string.menu_disable_zoom) else stringResource(R.string.menu_enable_zoom), color = Color.White, fontSize = 13.sp) }, onClick = { onUpdateState { this.enableZoomAssistant = !this.enableZoomAssistant }; viewExpanded = false })
                                 }
 
                                 DropdownMenu(
@@ -151,10 +161,17 @@ fun FlightInteractionLayer(
                                     properties = PopupProperties(focusable = false),
                                     modifier = Modifier.background(Color(0xEE111111)).border(1.dp, Color.White.copy(0.1f), RoundedCornerShape(12.dp))
                                 ) {
-                                    listOf("站位視角 (追蹤)", "站位視角 (智慧)", "站位視角 (固定)", "跟隨視角", "FPV 視角", "觀察員視角 (實驗性)").forEach { m ->
+                                    listOf(
+                                        AppConfig.CAM_MODE_STATION_TRACK to stringResource(R.string.visual_cam_mode_station_track),
+                                        AppConfig.CAM_MODE_STATION_SMART to stringResource(R.string.visual_cam_mode_station_smart),
+                                        AppConfig.CAM_MODE_STATION_FIXED to stringResource(R.string.visual_cam_mode_station_fixed),
+                                        AppConfig.CAM_MODE_FOLLOW to stringResource(R.string.visual_cam_mode_follow),
+                                        AppConfig.CAM_MODE_FPV to stringResource(R.string.visual_cam_mode_fpv),
+                                        AppConfig.CAM_MODE_OBS to stringResource(R.string.visual_cam_mode_obs)
+                                    ).forEach { (id, label) ->
                                         DropdownMenuItem(
-                                            text = { Text(m, color = if(state.cameraMode == m) Color.Cyan else Color.White, fontSize = 13.sp) }, 
-                                            onClick = { onUpdateState { this.cameraMode = m }; cameraMenuExpanded = false; viewExpanded = false }
+                                            text = { Text(label, color = if(state.cameraMode == id) Color.Cyan else Color.White, fontSize = 13.sp) }, 
+                                            onClick = { onUpdateState { this.cameraMode = id }; cameraMenuExpanded = false; viewExpanded = false }
                                         ) 
                                     }
                                 }

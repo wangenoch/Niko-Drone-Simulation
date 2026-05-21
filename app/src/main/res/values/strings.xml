@@ -1,3 +1,430 @@
 <resources>
     <string name="app_name">Niko Drone Simulator</string>
+
+    <!-- Common Actions -->
+    <string name="action_ok">確定</string>
+    <string name="action_cancel">取消</string>
+    <string name="action_close">關閉</string>
+    <string name="action_save">儲存</string>
+    <string name="action_reset">重置</string>
+    <string name="action_restore_defaults">恢復原廠設定</string>
+    <string name="action_apply">立即套用</string>
+    <string name="action_general">一般</string>
+    <string name="action_ignore">忽略</string>
+    <string name="action_arm">起槳</string>
+    <string name="action_disarm">停槳</string>
+    <string name="action_scan">掃描連線</string>
+    <string name="action_disconnect">中斷連線</string>
+    <string name="action_clear">清除</string>
+    <string name="action_export">匯出報告</string>
+    <string name="action_force_unlock">強制解鎖</string>
+    <string name="action_reset_all">全部還原預設值</string>
+    <string name="action_restart">重新開始</string>
+    <string name="action_finish">完成設定並返回</string>
+    <string name="action_skip">跳過</string>
+    <string name="action_enter_settings">進入設定</string>
+    <string name="action_ignore_temp">暫時忽略</string>
+    <string name="action_ignore_perm">不再詢問 (永久忽略)</string>
+    <string name="action_save_apply">儲存並套用設定</string>
+    <string name="action_open_factory_app">🚀 開啟原廠 App</string>
+    <string name="action_cancel_wizard">取消設定</string>
+    <string name="action_confirm_neutral">確認中位</string>
+    <string name="action_save_finish">完成並儲存</string>
+
+    <!-- HUD Labels -->
+    <string name="hud_altitude">高度</string>
+    <string name="hud_speed">速度</string>
+    <string name="hud_distance">距離</string>
+    <string name="hud_altitude_short">ALT</string>
+    <string name="hud_speed_short">SPD</string>
+    <string name="hud_distance_short">DIST</string>
+    <string name="hud_pitch_short">P</string>
+    <string name="hud_tilt_short">TILT</string>
+    <string name="hud_rate_short">R</string>
+    <string name="hud_expo_short">E</string>
+    <string name="hud_unit_m">m</string>
+    <string name="hud_unit_ms">m/s</string>
+    <string name="hud_environment">環境</string>
+    <string name="hud_motor">馬達</string>
+    <string name="hud_motor_locked">鎖定</string>
+    <string name="hud_motor_active">運轉</string>
+    <string name="hud_boundary_warning">警告：接近空域邊界</string>
+    <string name="hud_signal_ok">連線正常</string>
+    <string name="hud_signal_waiting">等待信號…</string>
+    <string name="hud_no_wind">無風</string>
+    <string name="hud_wind_level">%1$d 級</string>
+
+    <!-- Mission & Evaluator -->
+    <string name="mission_spot_timer_mode_name">定點計時</string>
+    <string name="mission_spot_timer_takeoff">請起飛至視線高度</string>
+    <string name="mission_spot_timer_too_low">⚠️ 高度過低 (目前: %1$.1fm)</string>
+    <string name="mission_spot_timer_too_high">⚠️ 高度過高 (目前: %1$.1fm)</string>
+    <string name="mission_spot_timer_yaw_error">H點航向偏差過大 (目前偏差: %1$.0f°)</string>
+    <string name="mission_spot_timer_yaw_error_generic">請對準基準面 (偏差 %1$.0f°)</string>
+    <string name="mission_spot_timer_wait_stable">轉向中…等待停穩</string>
+    <string name="mission_spot_timer_searching">尋找目標點中…</string>
+    <string name="mission_spot_timer_perfect">完美！H點精準懸停合格</string>
+    <string name="mission_spot_timer_success">恭喜！定點懸停合格</string>
+    <string name="mission_spot_timer_prefix_h">H點精準計時</string>
+    <string name="mission_spot_timer_prefix_generic">定點計時</string>
+
+    <!-- Joystick Settings -->
+    <string name="joystick_label_throttle">油門 Throttle</string>
+    <string name="joystick_label_yaw">航向 Yaw</string>
+    <string name="joystick_label_pitch">俯仰 Pitch</string>
+    <string name="joystick_label_roll">橫滾 Roll</string>
+    <string name="joystick_label_throttle_short">油門</string>
+    <string name="joystick_label_yaw_short">航向</string>
+    <string name="joystick_label_pitch_short">俯仰</string>
+    <string name="joystick_label_roll_short">橫滾</string>
+    <string name="joystick_label_aileron">橫滾</string>
+    <string name="joystick_label_elevator">俯仰</string>
+    <string name="joystick_label_rudder">航向</string>
+    <string name="joystick_settings_title">遙控器與手感設定</string>
+    <string name="joystick_mode_selector">操控模式 Mode %1$d</string>
+    <string name="joystick_deadzone">死區 DZ: %1$.2f</string>
+    <string name="joystick_btn_wizard">引導 Wizard</string>
+    <string name="joystick_btn_recalibrate">重新校準</string>
+    <string name="joystick_btn_aux">延伸設置</string>
+    <string name="joystick_section_rates">靈敏度/曲線</string>
+    <string name="joystick_btn_advanced">進階設定 ➔</string>
+    <string name="joystick_half_throttle">半油門模式</string>
+    <string name="joystick_mapping_locked">協議已鎖定</string>
+    <string name="joystick_mapping_detecting">偵測中</string>
+    <string name="joystick_mapping_click">點擊映射</string>
+    <string name="joystick_mapping_unbound">未設置</string>
+    <string name="joystick_input_external">外接</string>
+    <string name="joystick_input_internal">內置</string>
+    <string name="joystick_fast_lock">快速鎖定</string>
+    <string name="joystick_tab_title">遙控</string>
+    <string name="joystick_mode_hint">當前遙控器模式：[Mode %1$d %2$s]</string>
+    <string name="joystick_mode_1">日本手</string>
+    <string name="joystick_mode_2">美國手</string>
+    <string name="joystick_mode_3">反向手</string>
+    <string name="joystick_mode_4">特別手</string>
+    <string name="joystick_rate_up">上昇</string>
+    <string name="joystick_rate_down">下降</string>
+    <string name="joystick_aux_title">擴充功能映射與開關設定</string>
+    <string name="joystick_aux_hint">撥動開關或點擊藍色狀態條即可手動選擇通道。</string>
+    <string name="joystick_aux_safety">🔒 安全防護 (Safety)</string>
+    <string name="joystick_aux_camera">👁️ 站位與視角控制 (Camera)</string>
+    <string name="joystick_label_arm">馬達解鎖</string>
+    <string name="joystick_label_hold">熄火開關</string>
+    <string name="joystick_label_flight_mode">飛行模式</string>
+    <string name="joystick_label_obs_height">站位高度</string>
+    <string name="joystick_label_obs_tilt">抬頭角度</string>
+    <string name="joystick_label_fpv_tilt">FPV 雲台</string>
+    <string name="joystick_aux_heli_only">※ 實驗功能：目前僅限直昇機 (HELI) 生效</string>
+    <string name="joystick_aux_future_mode">※ 預留功能：未來支援定位 (Position) / 姿態 (ATTI) 切換</string>
+    <string name="joystick_wizard_title">引導設定 Wizard</string>
+    <string name="joystick_wizard_waiting">偵測成功！請放手回正 (%1$d)...</string>
+    <string name="joystick_wizard_step1">請將「左搖桿」向上推到底</string>
+    <string name="joystick_wizard_step2">請將「左搖桿」向右撥到底</string>
+    <string name="joystick_wizard_step3">請將「右搖桿」向上推到底</string>
+    <string name="joystick_wizard_step4">請將「右搖桿」向右撥到底</string>
+    <string name="joystick_calib_title">搖桿校準 - Step %1$d</string>
+    <string name="joystick_label_ch">通道</string>
+    <string name="joystick_label_axis">軸向</string>
+
+    <!-- Tactical Menu -->
+    <string name="menu_camera_mode">導航</string>
+    <string name="menu_zoom_factor">視野倍率</string>
+    <string name="menu_click_to_switch">點擊切換</string>
+    <string name="menu_show_obstacles">開啟障礙物</string>
+    <string name="menu_hide_obstacles">隱藏障礙物</string>
+    <string name="menu_show_shadow">開啟陰影</string>
+    <string name="menu_hide_shadow">關閉陰影</string>
+    <string name="menu_show_path">顯示飛行軌跡</string>
+    <string name="menu_hide_path">隱藏飛行軌跡</string>
+    <string name="menu_enable_zoom">開啟姿態輔助(ZOOM)</string>
+    <string name="menu_disable_zoom">關閉姿態輔助(ZOOM)</string>
+    <string name="menu_expand">展開</string>
+
+    <!-- Diagnostic & Professional -->
+    <string name="diag_title">硬體連線與模式設定</string>
+    <string name="diag_status_active">連線中 (穩定)</string>
+    <string name="diag_status_searching">正在搜尋硬體…</string>
+    <string name="diag_status_linked">鏈結建立中…</string>
+    <string name="diag_status_idle">通訊閒置</string>
+    <string name="diag_state_locked">🔒 手動鎖定</string>
+    <string name="diag_state_locked_short">鎖定: %1$s</string>
+    <string name="diag_state_scanning">🔎 自動掃描</string>
+    <string name="diag_state_engaged">🚀 發現硬體</string>
+    <string name="diag_state_awaiting_perm">🔑 等待授權</string>
+    <string name="diag_state_standby">待機</string>
+    <string name="diag_state_silent">🚫 靜默模式</string>
+    <string name="diag_label_path">硬體路徑</string>
+    <string name="diag_path_auto">自動偵測</string>
+    <string name="diag_path_auto_rec">自動掃描 (推薦)</string>
+    <string name="diag_label_link_type">連結類型</string>
+    <string name="diag_label_protocol_mgmt">協議管理</string>
+    <string name="diag_protocol_auto">自動識別協議</string>
+    <string name="diag_protocol_auto_rec">自動偵測 (推薦)</string>
+    <string name="diag_label_conflict">進程衝突</string>
+    <string name="diag_label_baud">傳輸速率</string>
+    <string name="diag_baud_rec">%1$d (推薦)</string>
+    <string name="diag_label_net_proto">網路協議</string>
+    <string name="diag_label_net_conn">網路連線</string>
+    <string name="diag_label_pps">封包速率</string>
+    <string name="diag_label_jitter">訊號延遲</string>
+    <string name="diag_label_stability">通訊穩定</string>
+    <string name="diag_label_buffer">緩衝狀態</string>
+    <string name="diag_label_density">數據密度</string>
+    <string name="diag_label_signal_status">訊號狀態</string>
+    <string name="diag_monitor_hid">手把軸向監控 (HID)</string>
+    <string name="diag_monitor_serial">通道數據流 (15 FPS)</string>
+    <string name="diag_system_log">系統日誌</string>
+    <string name="diag_realtime_monitor">即時監測</string>
+    <string name="diag_new_hw_detected">偵測到新 USB 硬體</string>
+    <string name="diag_btn_set_internal">設為內置</string>
+    <string name="diag_btn_set_external">設為外接</string>
+    <string name="diag_unknown_device">未知裝置</string>
+    <string name="diag_label_umbus_fast">UMBUS 高速模式</string>
+    <string name="diag_label_dual_row">雙排 48 通道</string>
+    <string name="diag_status_waiting_data">正在等待數據流…</string>
+    <string name="diag_net_connected">網路模式：連線中</string>
+    <string name="diag_net_listening">網路模式：監聽中</string>
+    <string name="diag_protocol_si_exp">SIYI MK15(實驗性)</string>
+    <string name="diag_status_active_desc">連線狀態：正常運作中</string>
+    <string name="diag_status_linked_desc">已連線 (等待信號...)</string>
+    <string name="diag_status_searching_desc">正在偵測協議與硬體...</string>
+    <string name="diag_status_waiting_scan">等待掃描連接</string>
+
+    <!-- Settings Screens -->
+    <string name="settings_title_env">環境與氣候模擬</string>
+    <string name="settings_title_drone">無人機機型選擇</string>
+    <string name="settings_title_camera">視訊導航與介面配置</string>
+    <string name="settings_title_system">系統與進階設定</string>
+    <string name="settings_apply_physics">套用機種真實物理特性</string>
+    <string name="settings_btn_tutorial">教學</string>
+    <string name="settings_expert_unlock_title">解鎖專家模式</string>
+    <string name="settings_expert_unlock_desc">此模式專供教官與開發者調整核心參數。</string>
+    <string name="settings_expert_unlock_hint">通行碼提示：12345678</string>
+    <string name="settings_expert_unlock_label">通行碼</string>
+    <string name="settings_expert_unlock_btn">解鎖</string>
+    <string name="settings_tab_drone">機型</string>
+    <string name="settings_auto_connect">啟動時自動偵測硬體</string>
+    <string name="settings_hide_status_bar">隱藏 Android 系統狀態欄</string>
+    <string name="settings_pause_in_settings">進入設定時暫停模擬</string>
+    <string name="settings_strict_landing">專業考核降落安全標準</string>
+    <string name="settings_strict_landing_desc">開啟後落地速度 > 2.2m/s 即損毀，並實施分級警告</string>
+    <string name="settings_expert_active">專家模式已在開啟狀態</string>
+    <string name="settings_dev_label">開發者：</string>
+    <string name="settings_version_label">版本：</string>
+    <string name="settings_language">介面語言 (Language)</string>
+    <string name="settings_lang_zh">繁體中文</string>
+    <string name="settings_lang_en">English</string>
+
+    <!-- Climate Settings -->
+    <string name="climate_wind_physics">🌪️ 物理風力</string>
+    <string name="climate_label_level">等級</string>
+    <string name="climate_wind_directions">風向方位 (九宮格)</string>
+    <string name="climate_dir_n">北風</string>
+    <string name="climate_dir_s">南風</string>
+    <string name="climate_dir_e">東風</string>
+    <string name="climate_dir_w">西風</string>
+    <string name="climate_dir_ne">東北風</string>
+    <string name="climate_dir_nw">西北風</string>
+    <string name="climate_dir_se">東南風</string>
+    <string name="climate_dir_sw">西南風</string>
+    <string name="climate_dir_random">隨機</string>
+    <string name="climate_wind_tuning">氣流微調</string>
+    <string name="climate_wind_var">風速激烈</string>
+    <string name="climate_dir_var">風向激烈</string>
+    <string name="climate_vertical_draft">垂直氣流 (高度修正)</string>
+    <string name="climate_hardcore_physics">進階大氣物理 (實驗性)</string>
+    <string name="climate_visual_details">✨ 視覺與細節</string>
+    <string name="climate_sun_pos">太陽方位</string>
+    <string name="climate_time_morning">早晨</string>
+    <string name="climate_time_noon">中午</string>
+    <string name="climate_time_afternoon">下午</string>
+    <string name="climate_shadow_intensity">機身陰影深淺: %1$.1f</string>
+    <string name="climate_weather_preset">🌦️ 氣象狀況預設</string>
+    <string name="climate_weather_clear">無雲</string>
+    <string name="climate_weather_cirrus">卷雲</string>
+    <string name="climate_weather_cumulus">積雲</string>
+    <string name="climate_weather_stratus">層雲</string>
+    <string name="climate_cloud_density">雲層密度</string>
+    <string name="climate_show_mountains">🏔️ 遠方山景顯示</string>
+
+    <!-- Visual Navigation Settings -->
+    <string name="visual_camera_section">📷 鏡頭與視角</string>
+    <string name="visual_label_fov">視野範圍 (FOV)</string>
+    <string name="visual_label_zoom">縮放倍率</string>
+    <string name="visual_enable_zoom_assistant">遠距離自動放大助手</string>
+    <string name="visual_hud_section">🖥️ HUD 介面元素</string>
+    <string name="visual_special_title">頂部特別標題顯示</string>
+    <string name="visual_side_sliders">顯示側邊操作拉桿</string>
+    <string name="visual_side_rulers">顯示高度速度標尺</string>
+    <string name="visual_reverse_sliders">拉桿位置左右反轉</string>
+    <string name="visual_nav_section">🛰️ 導航輔助</string>
+    <string name="visual_ground_anchor">AR 輔助投影 (H點)</string>
+    <string name="visual_pip_relocate">子畫面自動位移</string>
+    <string name="visual_nav_hint">所有設定將即時套用至導航系統。</string>
+    <string name="visual_edit_title">編輯特別標題</string>
+    <string name="visual_edit_title_desc">請輸入顯示於起飛點上方的文字：</string>
+    <string name="visual_edit_title_placeholder">例如：Niko Drone Team</string>
+    <string name="visual_cam_mode_station_track">站位視角 (追蹤)</string>
+    <string name="visual_cam_mode_station_smart">站位視角 (智慧)</string>
+    <string name="visual_cam_mode_station_fixed">站位視角 (固定)</string>
+    <string name="visual_cam_mode_follow">跟隨視角</string>
+    <string name="visual_cam_mode_fpv">FPV 視角</string>
+    <string name="visual_cam_mode_obs">觀察員視角 (實驗性)</string>
+    <string name="visual_label_auto">自動</string>
+    <string name="visual_label_zoom_short">視野倍率 (Zoom)</string>
+    <string name="visual_label_fpv_tilt">FPV 鏡頭仰角</string>
+
+    <!-- Drone Selection -->
+    <string name="drone_selection_detail_title">機型詳細規格 (%1$s)</string>
+    <string name="drone_selection_current">當前選擇</string>
+    <string name="drone_selection_hold">實體熄火</string>
+
+    <!-- Troubleshooting & Status -->
+    <string name="status_app_not_installed">尚未安裝該硬體的原裝 App</string>
+    <string name="status_app_not_supported">此設備不支援原裝 App 快速啟動</string>
+    <string name="status_crash">無人機損毀</string>
+    <string name="status_motor_locked">馬達鎖定中</string>
+    <string name="status_ok">正常</string>
+    <string name="status_no_signal">無信號</string>
+
+    <!-- Safety & System Messages (IDs) -->
+    <string name="safety_msg_pass">✅ 系統檢查通過</string>
+    <string name="safety_msg_warn_off">⚠️ 安全警告：請先將解鎖開關撥至 OFF</string>
+    <string name="safety_msg_warn_throttle">⚠️ 安全警報：油門未歸零 (%1$.0f%%)</string>
+    <string name="safety_msg_warn_hold">⚠️ 安全警告：請先將熄火開關撥至 HOLD</string>
+    <string name="safety_msg_hold_ready">✅ 熄火系統就緒</string>
+    <string name="safety_flight_mode_atti">姿態模式 (ATTI)</string>
+    <string name="safety_flight_mode_pos">定點模式 (POS)</string>
+    <string name="safety_flight_mode_acro">手動模式 (ACRO)</string>
+    <string name="safety_flight_mode_prefix">飛行模式切換 ➔ %1$s</string>
+    <string name="safety_msg_armed">已解鎖</string>
+    <string name="safety_msg_disarmed">已上鎖</string>
+    <string name="safety_msg_auto_disarm">自動停槳</string>
+
+    <string name="sys_msg_cancel">連線已取消</string>
+    <string name="sys_msg_logcat_required">📋 請先開啟 [即時監測 Logcat] 以收集診斷數據</string>
+    <string name="sys_msg_perm_required">🔐 請允許儲存權限以匯出日誌</string>
+    <string name="sys_msg_init_data">⏳ 正在收集初始數據，請操作搖桿幾秒後再試</string>
+    <string name="sys_msg_internal_hw">🔗 偵測到內置專業硬體，已自動對接</string>
+    <string name="sys_msg_hid_fallback">未偵測到外接手把，已切換至虛擬搖桿</string>
+    <string name="sys_msg_heavy_landing">⚠️ 落地過重 (%1$.1f m/s)，請練習平穩著陸</string>
+    <string name="sys_msg_alt_limit">已達限高 30m</string>
+    <string name="sys_msg_wizard_done">引導設定完成</string>
+    <string name="sys_msg_crash_extreme">❌ 嚴重撞擊損毀 (速度: %1$.1f m/s)</string>
+    <string name="sys_msg_crash_structural">⚠️ 結構衝擊損毀 (速度: %1$.1f m/s)</string>
+    <string name="sys_msg_restore_done">已恢復原廠預設值</string>
+    <string name="sys_msg_video_syncing">視訊數據同步中...</string>
+    <string name="sys_msg_logcat_fail">Logcat 啟動失敗：%1$s</string>
+    <string name="log_export_success">✅ 日誌已儲存至 Download 資料夾</string>
+    <string name="log_export_fallback">📋 公共空間權限受阻，日誌已存至 App 私有目錄：\n%1$s</string>
+    <string name="log_export_fail">❌ 匯出徹底失敗: %1$s</string>
+    <string name="log_export_create_fail">無法建立檔案實體</string>
+    <string name="log_msg_state_change">系統狀態變更 ➔ %1$s</string>
+    <string name="log_msg_manual_baud">手動鎖定波特率: %1$d</string>
+    <string name="log_msg_manual_path">手動鎖定路徑: %1$s</string>
+    <string name="log_msg_reset_auto">重置為自動偵測模式</string>
+    <string name="log_msg_manual_protocol">手動鎖定協議: %1$s</string>
+    <string name="log_msg_umbus_smart">UMBUS 智慧連動：已預填 /dev/ttyS0 與 921600 波特率</string>
+    <string name="log_msg_manual_scan">使用者手動啟動掃描...</string>
+    <string name="log_msg_probing">🔍 探測內置路徑: %1$s @ %2$d</string>
+    <string name="log_msg_open_ok">✅ 物理層開啟成功: %1$s</string>
+    <string name="log_msg_open_fail">❌ 開啟失敗: %1$s</string>
+    <string name="radar_zoom_global">全域</string>
+    <string name="radar_zoom_auto">自動</string>
+    <string name="radar_zoom_precise">精準</string>
+    <string name="radar_zoom_dynamic">動態</string>
+
+    <!-- Overlays -->
+    <string name="notice_title_update">🚀 功能升級報告</string>
+    <string name="notice_intro_error">無法載入更新細節，請參閱專案根目錄 README.md 檔案。</string>
+    <string name="notice_known_issues">⚠️ 已知問題</string>
+    <string name="notice_special_thanks">🎁 特別感謝 (Special Thanks)</string>
+    <string name="notice_scroll_hint">向下捲動查看更多</string>
+    <string name="collision_title">💥 發生碰撞！</string>
+    <string name="collision_btn_restart">重新開始</string>
+    <string name="optimization_title">🚀 偵測到優化協議</string>
+    <string name="optimization_desc">系統偵測到您目前使用的是 %1$s。是否要自動套用優化後的傳輸協議與按鍵映射？</string>
+
+    <!-- Network Settings -->
+    <string name="net_title">網絡連線設定</string>
+    <string name="net_label_proto">連線協定</string>
+    <string name="net_label_ip">監聽位址 (IP)</string>
+    <string name="net_label_port">通信連接埠 (Port)</string>
+    <string name="net_ip_local">本機</string>
+    <string name="net_ip_all">全網</string>
+
+    <!-- Troubleshooting -->
+    <string name="trouble_title">內置連線異常排除</string>
+    <string name="trouble_desc">偵測到通訊受阻，請依照以下步驟重新激活：</string>
+    <string name="trouble_step1_t">開啟原廠 App 進行初始化</string>
+    <string name="trouble_step1_d">點擊下方按鈕跳轉至原廠控制介面。</string>
+    <string name="trouble_step2_t">檢查視覺狀態 (Icon 指引)</string>
+    <string name="trouble_step2_d">請確認原廠 App 左下角兩個圖示是否點亮。</string>
+    <string name="trouble_status_ok">✅ 正常 (點亮)</string>
+    <string name="trouble_status_err">❌ 異常 (灰色)</string>
+    <string name="trouble_warn_reboot">⚠️ 若圖示為灰色，請立即「重啟遙控器電源」。</string>
+    <string name="trouble_step3_t">滑掉原廠 App 以釋放權限</string>
+    <string name="trouble_step3_d">點亮後，請將原廠 App 從「最近工作列表」中滑掉關閉，否則模擬器無法取得串口權限。</string>
+
+    <!-- Tutorials -->
+    <string name="tutorial_click_continue">點擊畫面繼續 (%1$d/%2$d)</string>
+    <string name="tutorial_skip_nav">跳過導覽</string>
+    <string name="tutorial_label_menu">功能選單</string>
+    <string name="tutorial_label_radar">視覺雷達</string>
+    <string name="tutorial_label_data">飛行數據</string>
+    <string name="tutorial_label_arm">解鎖馬達</string>
+
+    <string name="tut_welcome_t1">歡迎使用 Niko Drone Simulator</string>
+    <string name="tut_welcome_d1">這是一個專業的飛行訓練系統，旨在幫助您熟悉無人機考照流程與物理特性。</string>
+    <string name="tut_welcome_t2">功能工具列面板</string>
+    <string name="tut_welcome_d2">點擊右上角按鈕開啟工具列。包含：\n• 數據開關：顯示/隱藏底部資訊\n• 音效切換：開啟/靜音馬達與環境音\n• 虛擬搖桿：切換螢幕觸控按鍵\n• 視角模式：切換追蹤/跟隨/FPV 視角\n• 整合設定：進行搖桿映射與機型選擇\n• 重置飛行：立即回到起飛位置</string>
+    <string name="tut_welcome_t3">視覺化雷達 HUD</string>
+    <string name="tut_welcome_d3">左下角顯示無人機在場地中的相對位置與航向。紅色區域為出界範圍，請保持在限制內飛行。</string>
+    <string name="tut_welcome_t4">飛行狀態監控</string>
+    <string name="tut_welcome_d4">底部欄位提供高度、速度與距離資訊。注意高度限值為 30m，超過將會收到警示訊息。</string>
+    <string name="tut_welcome_t5">馬達解鎖與啟動</string>
+    <string name="tut_welcome_d5">著地時點擊置頂的「起槳」按鈕或使用實體搖桿「內八 CSC」指令來解鎖馬達開始飛行。</string>
+    <string name="tut_welcome_t6">準備就緒！</string>
+    <string name="tut_welcome_d6">現在請嘗試解鎖馬達並進行第一次起飛練習。祝您練習順利！</string>
+
+    <string name="tut_joy_t1">搖桿設定導覽</string>
+    <string name="tut_joy_d1">在此頁面您可以完整設定外接遙控器，確保飛行操控精確無誤。</string>
+    <string name="tut_joy_t2">輸入模式選擇</string>
+    <string name="tut_joy_d2">您可以切換「外接手把」或「內置系統」。專業一體化遙控器請選擇內置模式。</string>
+    <string name="tut_joy_t3">硬體掃描與連線</string>
+    <string name="tut_joy_d3">點擊此按鈕啟動硬體偵測。連線成功後，RX 數值會開始跳動。</string>
+    <string name="tut_joy_t4">一鍵引導設定</string>
+    <string name="tut_joy_d4">最推薦新手的設定方式！點擊此處由系統引導您依序撥動搖桿完成對應。</string>
+    <string name="tut_joy_t5">搖桿校準工具</string>
+    <string name="tut_joy_d5">若搖桿無法回正或行程不足，請使用校準工具定義物理中位點與邊界。</string>
+    <string name="tut_joy_t6">單軸自動綁定</string>
+    <string name="tut_joy_d6">點擊功能旁的「Auto」並撥動搖桿，可快速手動對應指定通道。</string>
+    <string name="tut_joy_t7">反向開關</string>
+    <string name="tut_joy_d7">若發現動作方向相反（如推桿變下降），切換此開關即可修正。</string>
+    <string name="tut_joy_t8">操控模式切換</string>
+    <string name="tut_joy_d8">點擊箭頭可切換 Mode 1 (日本手) 或 Mode 2 (美國手) 等操作模式。</string>
+    <string name="tut_joy_t9">靈敏度與曲線</string>
+    <string name="tut_joy_d9">調整 Rate (靈敏度) 與 Expo (曲線) 來優化操控手感，亦可進入進階設定微調單軸。</string>
+
+    <string name="tut_clim_t1">環境與氣候導覽</string>
+    <string name="tut_clim_d1">在此頁面您可以設定模擬環境的各項參數，挑戰不同難度的飛行任務。</string>
+    <string name="tut_clim_t2">風力等級選擇</string>
+    <string name="tut_clim_d2">設定當前的平均風速。等級越高無人機偏移量越大，需更精確地修正。</string>
+    <string name="tut_clim_t3">風向控制系統</string>
+    <string name="tut_clim_d3">選擇風的來源方向。選擇「隨機」將挑戰無規律的變向強風。</string>
+    <string name="tut_clim_t4">激烈度與亂流</string>
+    <string name="tut_clim_d4">調整風速的起伏程度。高激烈度會產生瞬間強陣風模擬惡劣氣候環境。</string>
+    <string name="tut_clim_t5">時間與光影</string>
+    <string name="tut_clim_d5">切換不同時段的環境光。注意早晨與下午的陰影拉長方向會有所不同。</string>
+    <string name="tut_clim_t6">陰影深淺調節</string>
+    <string name="tut_clim_d6">調整無人機在地面上的投影濃度，幫助您在不同地形中更好地判斷高度與位置。</string>
+
+    <!-- Model Config -->
+    <string name="model_config_title">模型進階設定</string>
+    <string name="model_config_desc">即將進入 [%1$s] 的專屬手感曲線設定？</string>
+
+    <!-- Model Names and Fallbacks -->
+    <string name="model_name_heli">直昇機 (HELI)</string>
+    <string name="model_name_heavy">大型機 (Heavy)</string>
+    <string name="model_name_small">小型機 (Small)</string>
 </resources>

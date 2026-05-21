@@ -1,6 +1,7 @@
 package com.horizon.caadronesimulator.render
 
 import android.opengl.Matrix
+import com.horizon.caadronesimulator.model.AppConfig
 import com.horizon.caadronesimulator.model.DroneRegistry
 import com.horizon.caadronesimulator.render.util.RenderUtils
 import kotlin.math.*
@@ -26,7 +27,7 @@ object DroneRenderer {
             val offsetFactor = -cos(angle) * 1.2f 
             curX + relativeAlt * offsetFactor
         } else {
-            curX + (if (timeOfDay == "早晨") relativeAlt * 0.8f else if (timeOfDay == "下午") -relativeAlt * 0.8f else 0f)
+            curX + (if (timeOfDay == AppConfig.TIME_MORNING) relativeAlt * 0.8f else if (timeOfDay == AppConfig.TIME_AFTERNOON) -relativeAlt * 0.8f else 0f)
         }
         
         val totalAlpha = (shadowIntensity / (1f + relativeAlt * 0.5f)).coerceIn(0f, shadowIntensity)

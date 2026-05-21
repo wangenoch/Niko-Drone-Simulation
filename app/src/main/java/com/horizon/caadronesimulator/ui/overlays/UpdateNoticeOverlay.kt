@@ -15,10 +15,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.horizon.caadronesimulator.R
 import com.horizon.caadronesimulator.model.AppConfig
 import com.horizon.caadronesimulator.util.ReadmeParser
 
@@ -85,7 +87,7 @@ fun UpdateNoticeOverlay(
                         if (updateData.knownIssues.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = "⚠️ 已知問題",
+                                text = stringResource(R.string.notice_known_issues),
                                 color = Color(0xFFFF9800),
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
@@ -110,7 +112,7 @@ fun UpdateNoticeOverlay(
                         if (allSpecialThanks.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(24.dp))
                             Text(
-                                text = "🎁 特別感謝 (Special Thanks)",
+                                text = stringResource(R.string.notice_special_thanks),
                                 color = Color(0xFFE1BEE7),
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
@@ -128,14 +130,14 @@ fun UpdateNoticeOverlay(
                     } else {
                         // 解析失敗時的 Fallback
                         Text(
-                            text = "🚀 功能升級報告",
+                            text = stringResource(R.string.notice_title_update),
                             color = Color.Cyan,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
                         Text(
-                            text = "無法載入更新細節，請參閱專案根目錄 README.md 檔案。",
+                            text = stringResource(R.string.notice_intro_error),
                             color = Color.Gray,
                             fontSize = 14.sp
                         )
@@ -163,7 +165,7 @@ fun UpdateNoticeOverlay(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(bottom = 8.dp)
                         ) {
-                            Text("向下捲動查看更多", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
+                            Text(stringResource(R.string.notice_scroll_hint), color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
                             Icon(
                                 Icons.Default.KeyboardArrowDown,
                                 null,
@@ -185,7 +187,7 @@ fun UpdateNoticeOverlay(
                 ) {
                     Icon(
                         Icons.Default.Close,
-                        contentDescription = "關閉",
+                        contentDescription = stringResource(R.string.action_close),
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )

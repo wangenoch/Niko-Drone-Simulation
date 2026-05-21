@@ -3,6 +3,7 @@ package com.horizon.caadronesimulator.logic
 import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.horizon.caadronesimulator.model.AppConfig
 import com.horizon.caadronesimulator.model.DroneState
 import com.horizon.caadronesimulator.model.StickInputState
 import com.horizon.caadronesimulator.logic.storage.ConfigurationStore
@@ -160,7 +161,7 @@ class DroneViewModel : ViewModel() {
             cameraMode = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.CAMERA_MODE
             mainFOV = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.MAIN_FOV
             
-            if (cameraMode == "站位視角 (固定)") {
+            if (cameraMode == AppConfig.CAM_MODE_STATION_FIXED) {
                 observerHeight = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.OBSERVER_HEIGHT
                 observerTilt = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.OBSERVER_TILT
                 zoomFactor = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.ZOOM_FACTOR_FIXED
@@ -198,11 +199,12 @@ class DroneViewModel : ViewModel() {
 
             // 介面細節還原
             showSpecialTitle = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.SHOW_SPECIAL_TITLE
+            currentTitleText = com.horizon.caadronesimulator.model.AppConfig.getDefaultSpecialTitle(state.appLanguage)
             showSideSliders = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.SHOW_SPECIAL_TITLE // 使用同一基準
             showSideRulers = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.SHOW_SIDE_RULERS
             reverseSliderSides = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.REVERSE_SLIDERS
 
-            systemMessage = "已恢復原廠預設值"
+            systemMessage = "RESTORE_DONE"
         }
     }
 
@@ -210,19 +212,19 @@ class DroneViewModel : ViewModel() {
     fun applyCameraModeDefaults(state: DroneState, mode: String) {
         state.apply {
             when (mode) {
-                "站位視角 (固定)" -> {
-                    observerHeight = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.OBSERVER_HEIGHT
-                    observerTilt = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.OBSERVER_TILT
-                    zoomFactor = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.ZOOM_FACTOR_FIXED
+                AppConfig.CAM_MODE_STATION_FIXED -> {
+                    observerHeight = AppConfig.VisualDefaults.OBSERVER_HEIGHT
+                    observerTilt = AppConfig.VisualDefaults.OBSERVER_TILT
+                    zoomFactor = AppConfig.VisualDefaults.ZOOM_FACTOR_FIXED
                 }
-                "站位視角 (追蹤)" -> {
-                    observerHeight = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.OBSERVER_HEIGHT_TRACKING
-                    observerTilt = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.OBSERVER_TILT_TRACKING
-                    zoomFactor = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.ZOOM_FACTOR_TRACKING
+                AppConfig.CAM_MODE_STATION_TRACK -> {
+                    observerHeight = AppConfig.VisualDefaults.OBSERVER_HEIGHT_TRACKING
+                    observerTilt = AppConfig.VisualDefaults.OBSERVER_TILT_TRACKING
+                    zoomFactor = AppConfig.VisualDefaults.ZOOM_FACTOR_TRACKING
                 }
-                "站位視角 (智慧)" -> {
-                    observerHeight = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.OBSERVER_HEIGHT_TRACKING
-                    observerTilt = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.OBSERVER_TILT_TRACKING
+                AppConfig.CAM_MODE_STATION_SMART -> {
+                    observerHeight = AppConfig.VisualDefaults.OBSERVER_HEIGHT_TRACKING
+                    observerTilt = AppConfig.VisualDefaults.OBSERVER_TILT_TRACKING
                     zoomFactor = 1.2f
                 }
             }
@@ -261,20 +263,23 @@ class DroneViewModel : ViewModel() {
             
             // [v1.5.9] 撞擊速度保留
             this.speed = if (isImpact && physicsResult != null) physicsResult.impactSpeed else speed
+            
+            // [v1.7.6] 水平距離校準：以 H 坪 (0,0) 為 0.0m 基準
             this.horizontalDist = sqrt(x.pow(2) + z.pow(2))
             
-            val distToAnchor = sqrt(x.pow(2) + (z + 6f).pow(2))
-            this.lastInZoomZone = distToAnchor > 10.0f && cameraMode != "FPV 視角" && cameraMode != "跟隨視角"
+            // [v1.7.6] 姿態補助觸發邏輯：維持以作業區中心 (Z=6) 為基準
+            val distToOpsCenter = sqrt(x.pow(2) + (z - 6f).pow(2))
+            this.lastInZoomZone = distToOpsCenter > 10.0f && cameraMode != AppConfig.CAM_MODE_FPV && cameraMode != AppConfig.CAM_MODE_FOLLOW
         }
 
         // [v1.5.9] 統一消息翻譯層：防止 UI 消息阻塞控制邏輯
         if (!state.isCollision && physicsResult?.systemMessage != null) {
-            val msg = when(physicsResult.systemMessage) {
-                "CRASH_EXTREME" -> "❌ 嚴重撞擊損毀 (速度: %.1f m/s)".format(physicsResult.impactSpeed)
-                "CRASH_STRUCTURAL" -> "⚠️ 結構衝擊損毀 (速度: %.1f m/s)".format(physicsResult.impactSpeed)
+            val msgId = when(physicsResult.systemMessage) {
+                "CRASH_EXTREME" -> "CRASH_EXTREME|${physicsResult.impactSpeed}"
+                "CRASH_STRUCTURAL" -> "CRASH_STRUCTURAL|${physicsResult.impactSpeed}"
                 else -> physicsResult.systemMessage
             }
-            if (state.systemMessage == null) state.systemMessage = msg
+            if (state.systemMessage == null) state.systemMessage = msgId
         }
         
         if (isImpact || (state.useFlightLimit && perc <= 0)) {
@@ -287,12 +292,12 @@ class DroneViewModel : ViewModel() {
                 val impactV = physicsResult.impactSpeed
                 // 僅在非停槳嘗試時顯示警告
                 if (impactV in 1.2f..2.2f && state.systemMessage == null) {
-                    state.systemMessage = "⚠️ 落地過重 (%.1f m/s)，請練習平穩著陸".format(impactV)
+                    state.systemMessage = "HEAVY_LANDING|$impactV"
                 }
             }
 
             val relAlt = alt - spec.groundOffset
-            if (relAlt < 29.5f && state.systemMessage == "已達限高 30m") {
+            if (relAlt < 29.5f && state.systemMessage == "ALT_LIMIT") {
                 state.systemMessage = null
             }
             
@@ -347,7 +352,7 @@ class DroneViewModel : ViewModel() {
                 } else {
                     state.setupWizardStep = 0
                     state.wizardWaitingForNeutral = false
-                    state.systemMessage = "引導設定完成"
+                    state.systemMessage = "WIZARD_DONE"
                     configStore.saveSettings(state)
                 }
             }

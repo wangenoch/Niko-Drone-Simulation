@@ -2,6 +2,7 @@ package com.horizon.caadronesimulator.render
 
 import android.opengl.GLES20
 import android.opengl.Matrix
+import com.horizon.caadronesimulator.model.AppConfig
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -105,7 +106,7 @@ class BackdropRenderer {
         val staticV = vMatrix.copyOf(); staticV[12] = 0f; staticV[13] = 0f; staticV[14] = 0f
         val mvp = FloatArray(16); Matrix.multiplyMM(mvp, 0, pMatrix, 0, staticV, 0)
         GLES20.glUniformMatrix4fv(mvpH, 1, false, mvp, 0)
-        val vOffset = when(timeOfDay) { "早晨" -> 0.0f; "下午" -> 0.6666f; else -> 0.3333f }
+        val vOffset = when(timeOfDay) { AppConfig.TIME_MORNING -> 0.0f; AppConfig.TIME_AFTERNOON -> 0.6666f; else -> 0.3333f }
         GLES20.glUniform1f(vOffsetH, vOffset)
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0); GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId); GLES20.glUniform1i(texH, 0)
         GLES20.glEnableVertexAttribArray(posH); GLES20.glVertexAttribPointer(posH, 3, GLES20.GL_FLOAT, false, 0, vertexBuffer)

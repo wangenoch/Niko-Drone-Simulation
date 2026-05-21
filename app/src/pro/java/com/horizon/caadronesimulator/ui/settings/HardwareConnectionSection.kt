@@ -28,6 +28,9 @@ import androidx.compose.ui.unit.sp
  * [v1.2.68] 硬體連線控制組件
  * 整合了多狀態掃描、呼吸燈動畫與交互鎖定保護機制。
  */
+import androidx.compose.ui.res.stringResource
+import com.horizon.caadronesimulator.R
+
 @Composable
 fun HardwareConnectionSection(
     inputMode: Int,
@@ -95,11 +98,11 @@ fun HardwareConnectionSection(
                     }
                     Text(
                         text = when {
-                            inputMode == 2 -> if (isNetworkConnected) "網路模式：連線中" else "網路模式：監聽中"
-                            connectionStatus == com.horizon.caadronesimulator.model.ConnectionStatus.ACTIVE -> "連線狀態：正常運作中"
-                            connectionStatus == com.horizon.caadronesimulator.model.ConnectionStatus.LINKED -> "已連線 (等待信號...)"
-                            connectionStatus == com.horizon.caadronesimulator.model.ConnectionStatus.SEARCHING -> "正在偵測協議與硬體..."
-                            else -> (infoMessage ?: "等待掃描連接")
+                            inputMode == 2 -> if (isNetworkConnected) stringResource(R.string.diag_net_connected) else stringResource(R.string.diag_net_listening)
+                            connectionStatus == com.horizon.caadronesimulator.model.ConnectionStatus.ACTIVE -> stringResource(R.string.diag_status_active_desc)
+                            connectionStatus == com.horizon.caadronesimulator.model.ConnectionStatus.LINKED -> stringResource(R.string.diag_status_linked_desc)
+                            connectionStatus == com.horizon.caadronesimulator.model.ConnectionStatus.SEARCHING -> stringResource(R.string.diag_status_searching_desc)
+                            else -> (infoMessage ?: stringResource(R.string.diag_status_waiting_scan))
                         },
                         color = when {
                             inputMode == 2 -> if (isNetworkConnected) Color.Green else Color.Cyan

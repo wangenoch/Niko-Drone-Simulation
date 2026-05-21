@@ -19,6 +19,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.horizon.caadronesimulator.model.DroneRegistry
 
+import androidx.compose.ui.res.stringResource
+import com.horizon.caadronesimulator.R
+
 /**
  * [v1.5.3] 機型選擇分頁 - 100% 數據驅動
  */
@@ -45,8 +48,14 @@ fun DroneSelectionScreen(
         ) {
             val models = DroneRegistry.getAllSpecs()
             models.forEach { spec ->
+                val localizedName = when(spec.id) {
+                    "QUAD_STANDARD" -> stringResource(R.string.model_name_small)
+                    "T4_HEAVY_LIFT" -> stringResource(R.string.model_name_heavy)
+                    "HELI_900" -> stringResource(R.string.model_name_heli)
+                    else -> spec.name
+                }
                 DroneTypeCard(
-                    title = spec.name,
+                    title = localizedName,
                     type = spec.id,
                     isSelected = currentType == spec.id,
                     onClick = { onTypeSelected(spec.id) },
@@ -68,9 +77,15 @@ fun DroneSelectionScreen(
                 Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
                     val spec = DroneRegistry.getSpec(currentType)
                     val module = DroneRegistry.getModule(currentType)
+                    val localizedName = when(spec.id) {
+                        "QUAD_STANDARD" -> stringResource(R.string.model_name_small)
+                        "T4_HEAVY_LIFT" -> stringResource(R.string.model_name_heavy)
+                        "HELI_900" -> stringResource(R.string.model_name_heli)
+                        else -> spec.name
+                    }
                     
                     Text(
-                        text = "機型詳細規格 (${spec.name})",
+                        text = stringResource(R.string.drone_selection_detail_title, localizedName),
                         color = Color.Cyan,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -144,7 +159,7 @@ fun RowScope.DroneTypeCard(
             Spacer(modifier = Modifier.height(12.dp))
             Text(title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp, textAlign = TextAlign.Center)
             if (isSelected) {
-                Text("當前選擇", color = Color.Cyan, fontSize = 11.sp)
+                Text(stringResource(R.string.drone_selection_current), color = Color.Cyan, fontSize = 11.sp)
                 
                 if (isHoldSupported && isHoldMapped) {
                     Row(
@@ -158,7 +173,7 @@ fun RowScope.DroneTypeCard(
                             colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color.Cyan)
                         )
                         Spacer(Modifier.width(4.dp))
-                        Text("實體熄火", color = if(isHoldEnabled) Color.Cyan else Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.drone_selection_hold), color = if(isHoldEnabled) Color.Cyan else Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }

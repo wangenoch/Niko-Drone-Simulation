@@ -18,16 +18,33 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import androidx.compose.ui.res.stringResource
+import com.horizon.caadronesimulator.R
+
+import com.horizon.caadronesimulator.model.AppConfig
+
 /**
  * [v1.3.9] 獨立風力與風向視覺化組件
  */
 @Composable
 fun WindIndicator(
     level: Int,
-    direction: String,
+    direction: String, // ID
     modifier: Modifier = Modifier
 ) {
-    val isNoWind = level == 0 || direction == "無"
+    val isNoWind = level == 0 || direction == AppConfig.WIND_DIR_NONE
+    val dirLabel = when(direction) {
+        AppConfig.WIND_DIR_N -> stringResource(R.string.climate_dir_n)
+        AppConfig.WIND_DIR_S -> stringResource(R.string.climate_dir_s)
+        AppConfig.WIND_DIR_E -> stringResource(R.string.climate_dir_e)
+        AppConfig.WIND_DIR_W -> stringResource(R.string.climate_dir_w)
+        AppConfig.WIND_DIR_NE -> stringResource(R.string.climate_dir_ne)
+        AppConfig.WIND_DIR_NW -> stringResource(R.string.climate_dir_nw)
+        AppConfig.WIND_DIR_SE -> stringResource(R.string.climate_dir_se)
+        AppConfig.WIND_DIR_SW -> stringResource(R.string.climate_dir_sw)
+        AppConfig.WIND_DIR_RANDOM -> stringResource(R.string.climate_dir_random)
+        else -> ""
+    }
     // [v1.6.1] 物理驅動角度：直接讀取流向角 (憲法基準)
     val physicalAngle = com.horizon.caadronesimulator.model.DroneState.getInstance().env.currentWindAngle
     
@@ -75,7 +92,7 @@ fun WindIndicator(
         // 文字資訊
         Column(horizontalAlignment = Alignment.Start) {
             Text(
-                text = if (isNoWind) "無風" else "L$level",
+                text = if (isNoWind) stringResource(R.string.hud_no_wind) else stringResource(R.string.hud_wind_level, level),
                 color = color,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
@@ -83,7 +100,7 @@ fun WindIndicator(
             )
             if (!isNoWind) {
                 Text(
-                    text = direction,
+                    text = dirLabel,
                     color = Color.White.copy(alpha = 0.7f),
                     fontSize = 8.sp,
                     fontWeight = FontWeight.Medium,

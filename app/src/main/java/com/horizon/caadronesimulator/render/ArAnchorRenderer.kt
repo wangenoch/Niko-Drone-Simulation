@@ -21,9 +21,12 @@ object ArAnchorRenderer {
         posH: Int,
         colorH: Int,
         mvpH: Int,
-        showAnchor: Boolean
+        showAnchor: Boolean,
+        useTexH: Int = -1 // [v1.7.6] 傳入紋理開關控制
     ) {
         if (!showAnchor || posY - groundY < 0.2f) return
+
+        if (useTexH != -1) GLES20.glUniform1i(useTexH, 0)
 
         // 1. 繪製垂直投影虛線
         val lineCoords = floatArrayOf(

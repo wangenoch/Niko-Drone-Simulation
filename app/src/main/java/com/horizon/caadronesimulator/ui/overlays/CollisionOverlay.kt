@@ -11,13 +11,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.horizon.caadronesimulator.R
 
 /**
  * [v1.2.68] 發生碰撞後的覆蓋層
- * 從 DroneHUD 抽離，減少高頻 UI 的負擔並優化顯示邏輯。
  */
 @Composable
 fun CollisionOverlay(
@@ -33,7 +34,7 @@ fun CollisionOverlay(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "💥 發生碰撞！",
+                text = stringResource(R.string.collision_title),
                 color = Color.Red,
                 fontSize = 40.sp,
                 fontWeight = FontWeight.Bold
@@ -48,7 +49,7 @@ fun CollisionOverlay(
                     .height(60.dp)
             ) {
                 Text(
-                    text = "重新開始",
+                    text = stringResource(R.string.collision_btn_restart),
                     color = Color.White,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold

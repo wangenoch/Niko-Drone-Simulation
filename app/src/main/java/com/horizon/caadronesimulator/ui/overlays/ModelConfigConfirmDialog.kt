@@ -11,6 +11,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 
+import androidx.compose.ui.res.stringResource
+import com.horizon.caadronesimulator.R
+
 @Composable
 fun ModelConfigConfirmDialog(
     droneName: String,
@@ -25,14 +28,14 @@ fun ModelConfigConfirmDialog(
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Text(
-                    text = "模型進階設定",
+                    text = stringResource(R.string.model_config_title),
                     color = Color.Cyan,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "即將進入 [$droneName] 的專屬手感曲線設定？",
+                    text = stringResource(R.string.model_config_desc, droneName),
                     color = Color.White,
                     fontSize = 14.sp
                 )
@@ -42,7 +45,7 @@ fun ModelConfigConfirmDialog(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("取消", color = Color.Gray)
+                        Text(stringResource(R.string.action_cancel), color = Color.Gray)
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
@@ -50,7 +53,7 @@ fun ModelConfigConfirmDialog(
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Cyan),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text("進入設定", color = Color.Black, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.action_enter_settings), color = Color.Black, fontWeight = FontWeight.Bold)
                     }
                 }
             }

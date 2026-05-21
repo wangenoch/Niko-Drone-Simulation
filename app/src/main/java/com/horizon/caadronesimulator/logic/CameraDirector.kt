@@ -1,6 +1,7 @@
 package com.horizon.caadronesimulator.logic
 
 import android.opengl.Matrix
+import com.horizon.caadronesimulator.model.AppConfig
 import com.horizon.caadronesimulator.model.DroneRegistry
 import com.horizon.caadronesimulator.model.DroneState
 import kotlin.math.*
@@ -34,7 +35,7 @@ object CameraDirector {
         val finalTargetZoom: Float
         val finalTargetFov: Float
 
-        val isObserverMode = (cameraMode == "觀察員視角 (實驗性)")
+        val isObserverMode = (cameraMode == AppConfig.CAM_MODE_OBS)
 
         if (isObserverMode && !isOverrideActive) {
             finalTargetHeight = when {
@@ -45,7 +46,7 @@ object CameraDirector {
             finalTargetTilt = strategy.tilt
             finalTargetZoom = strategy.zoom
             finalTargetFov = strategy.fov
-        } else if (cameraMode == "站位視角 (智慧)") {
+        } else if (cameraMode == AppConfig.CAM_MODE_STATION_SMART) {
             // [v1.6.2] 智慧縮放模式：根據距離動態計算推近鏡頭
             finalTargetHeight = targetHeight
             finalTargetTilt = targetTilt
@@ -96,7 +97,7 @@ object CameraDirector {
                 val verticalShift = if (isOverhead) 0f else tan(rad) * distH
                 Matrix.setLookAtM(vMatrix, 0, 0f, smoothedHeight, -9f, curX, curY + verticalShift, curZ, 0f, upY, upZ)
             }
-            mode == "站位視角 (智慧)" -> {
+            mode == AppConfig.CAM_MODE_STATION_SMART || mode == AppConfig.CAM_MODE_STATION_TRACK -> {
                 // [v1.6.2] 智慧縮放模式：共用追蹤矩陣邏輯，其縮放效果由 smoothedZoom 實現
                 val dx = curX - 0f
                 val dz = curZ - (-9f)
@@ -108,14 +109,14 @@ object CameraDirector {
                 val verticalShift = if (isOverhead) 0f else tan(rad) * distH
                 Matrix.setLookAtM(vMatrix, 0, 0f, smoothedHeight, -9f, curX, curY + verticalShift, curZ, 0f, upY, upZ)
             }
-            mode == "站位視角 (固定)" -> {
+            mode == AppConfig.CAM_MODE_STATION_FIXED -> {
                 // [v1.6.1] 站位視角 (固定)：視線基準為中心點 (0,0,0)，仰角拉桿控制抬頭
                 val rad = Math.toRadians(smoothedTilt.toDouble()).toFloat()
                 // 固定視距為 9.0m (從站位 -9 到中心 0)，根據角度計算垂直偏移量
                 val verticalTargetShift = tan(rad) * 9.0f
                 Matrix.setLookAtM(vMatrix, 0, 0f, smoothedHeight, -9f, 0f, verticalTargetShift, 0f, 0f, 1f, 0f)
             }
-            mode == "觀察員視角 (實驗性)" -> {
+            mode == AppConfig.CAM_MODE_OBS -> {
                 val isOverhead = distH < 2.0f
                 val upY = if (isOverhead) 0f else 1f
                 val upZ = if (isOverhead) 1f else 0f
@@ -123,12 +124,12 @@ object CameraDirector {
                 val verticalShift = if (isOverhead) 0f else tan(rad) * distH
                 Matrix.setLookAtM(vMatrix, 0, 0f, smoothedHeight, -9f, predictX, curY + verticalShift, predictZ, 0f, upY, upZ)
             }
-            mode == "跟隨視角" -> {
+            mode == AppConfig.CAM_MODE_FOLLOW -> {
                 val rad = Math.toRadians(curYaw.toDouble()).toFloat()
                 val camX = curX - sin(rad) * 5f; val camZ = curZ - cos(rad) * 5f
                 Matrix.setLookAtM(vMatrix, 0, camX, curY + 2.5f, camZ, curX, curY, curZ, 0f, 1f, 0f)
             }
-            mode == "FPV 視角" -> {
+            mode == AppConfig.CAM_MODE_FPV -> {
                 val rad = Math.toRadians(curYaw.toDouble()).toFloat()
                 val tRad = Math.toRadians(cameraTilt.toDouble()).toFloat()
                 val spec = DroneRegistry.getSpec(droneType)

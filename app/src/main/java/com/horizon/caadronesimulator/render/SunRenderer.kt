@@ -35,10 +35,11 @@ class SunRenderer {
         posH = GLES20.glGetAttribLocation(program, "vPosition"); colorH = GLES20.glGetUniformLocation(program, "vColor"); mvpH = GLES20.glGetUniformLocation(program, "uMVPMatrix")
     }
 
-    fun drawSun(pMatrix: FloatArray, vMatrix: FloatArray, sunPos: Float) {
+    fun drawSun(pMatrix: FloatArray, vMatrix: FloatArray, sunPos: Float, updateGlobalState: Boolean = true) {
         GLES20.glUseProgram(program)
         GLES20.glEnableVertexAttribArray(posH); GLES20.glVertexAttribPointer(posH, 3, GLES20.GL_FLOAT, false, 0, vertexBuffer)
-
+        
+        // ... (existing matrix code)
         val staticV = vMatrix.copyOf(); staticV[12] = 0f; staticV[13] = 0f; staticV[14] = 0f
         val angle = Math.toRadians((sunPos * 180f).toDouble()).toFloat()
         val mMatrix = FloatArray(16); Matrix.setIdentityM(mMatrix, 0)
@@ -62,9 +63,11 @@ class SunRenderer {
         // [優化] 視錐體快速裁剪判定
         val sunNDC = FloatArray(4)
         Matrix.multiplyMV(sunNDC, 0, mvp, 0, origin, 0)
-        isSunVisibleInFrame = sunNDC[3] > 0 && abs(sunNDC[0]/sunNDC[3]) < 1.2f && abs(sunNDC[1]/sunNDC[3]) < 1.2f
+        
+        val visible = sunNDC[3] > 0 && abs(sunNDC[0]/sunNDC[3]) < 1.2f && abs(sunNDC[1]/sunNDC[3]) < 1.2f
+        if (updateGlobalState) isSunVisibleInFrame = visible
 
-        if (!isSunVisibleInFrame) {
+        if (!visible) {
             GLES20.glDisableVertexAttribArray(posH)
             return
         }

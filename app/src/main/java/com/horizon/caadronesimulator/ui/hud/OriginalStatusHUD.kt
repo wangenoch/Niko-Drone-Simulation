@@ -22,9 +22,11 @@ import com.horizon.caadronesimulator.model.DroneRegistry
 import java.util.Locale
 import kotlin.math.*
 
+import androidx.compose.ui.res.stringResource
+import com.horizon.caadronesimulator.R
+
 /**
  * [v1.1 原始整合風格] 底部飛行狀態欄
- * 負責整合所有飛行數據、風向羅盤與電池電量。
  */
 @Composable
 fun OriginalStatusHUD(
@@ -53,7 +55,7 @@ fun OriginalStatusHUD(
             ) {
                 androidx.compose.material3.Icon(
                     imageVector = Icons.Default.KeyboardArrowUp,
-                    contentDescription = "展開",
+                    contentDescription = stringResource(R.string.menu_expand),
                     tint = Color.White.copy(alpha = 0.6f),
                     modifier = Modifier.size(18.dp)
                 )
@@ -81,14 +83,13 @@ fun OriginalStatusHUD(
             val relativeAltitude = (state.altitude - spec.groundOffset).coerceAtLeast(0f)
             
             // --- 1. 基本數據組 (左) ---
-            OriginalStatusItem("高度", String.format(Locale.US, "%.1f", relativeAltitude), "m", if(relativeAltitude >= 29.8f) Color.Red else Color.Cyan)
+            OriginalStatusItem(stringResource(R.string.hud_altitude), String.format(Locale.US, "%.1f", relativeAltitude), stringResource(R.string.hud_unit_m), if(relativeAltitude >= 29.8f) Color.Red else Color.Cyan)
             OriginalStatusVerticalDivider()
-            OriginalStatusItem("速度", String.format(Locale.US, "%.1f", state.speed), "m/s", Color.White)
+            OriginalStatusItem(stringResource(R.string.hud_speed), String.format(Locale.US, "%.1f", state.speed), stringResource(R.string.hud_unit_ms), Color.White)
             OriginalStatusVerticalDivider()
             
-            // 距離計算基準修正：相對於 H 點 (0, 0, -6.0)
-            val distance = sqrt((state.posX).pow(2) + (state.posZ - (-6.0f)).pow(2))
-            OriginalStatusItem("距離", String.format(Locale.US, "%.1f", distance), "m", if (state.isNearBoundary) Color.Red else Color.White)
+            // [v1.7.6] 統一距離顯示：使用全域校準後的 horizontalDist (基準點 H 坪 0,0)
+            OriginalStatusItem(stringResource(R.string.hud_distance), String.format(Locale.US, "%.1f", state.horizontalDist), stringResource(R.string.hud_unit_m), if (state.isNearBoundary) Color.Red else Color.White)
             
             OriginalStatusVerticalDivider()
 
@@ -112,9 +113,9 @@ fun OriginalStatusHUD(
 
             // --- 4. 馬達狀態組 (右) ---
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("馬達", color = Color.Gray, fontSize = 8.sp)
+                Text(stringResource(R.string.hud_motor), color = Color.Gray, fontSize = 8.sp)
                 Text(
-                    text = if(state.isMotorLocked) "鎖定" else "運轉",
+                    text = if(state.isMotorLocked) stringResource(R.string.hud_motor_locked) else stringResource(R.string.hud_motor_active),
                     color = if(state.isMotorLocked) Color.Red else lime,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold

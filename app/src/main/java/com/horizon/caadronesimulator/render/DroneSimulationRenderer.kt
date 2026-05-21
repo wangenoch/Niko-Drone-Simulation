@@ -10,24 +10,31 @@ import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import kotlin.math.*
 
+import com.horizon.caadronesimulator.render.util.FboManager
+import com.horizon.caadronesimulator.render.util.RenderUtils
+import com.horizon.caadronesimulator.model.AppConfig
+
 /**
- * [v1.7.6] 模擬器渲染主引擎 - 效能極致優化版
- * 修正：徹底解決 U/V 捲動接縫與層雲可見度問題。
+ * [v1.7.6] 模擬器渲染主引擎 - FBO 效能優化版
  */
 class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Float, Float, Float, Float, Float, Boolean, Float, Int, androidx.compose.ui.geometry.Offset?, Float?, Float?, Float?, Float?) -> Unit) : GLSurfaceView.Renderer {
     private var program = 0
     private val vMatrix = FloatArray(16); private val pMatrix = FloatArray(16); private val mvpMatrix = FloatArray(16)
     private val mainVMatrix = FloatArray(16); private val mainPMatrix = FloatArray(16)
     private var viewWidth = 0; private var viewHeight = 0
-    private var lastFrameTime = 0L // [v1.6.3] 僅保留渲染幀率統計，不再用於物理累加
+    private var lastFrameTime = 0L
     var physicsState = DronePhysicsState(posX = 0f, posZ = 0f)
     private val sunRenderer = SunRenderer(); private val cloudRenderer = CloudRenderer(); private val backdropRenderer = BackdropRenderer()
     
+    // --- [v1.7.6] FBO 管理 ---
+    private val fpvFbo = FboManager(512, 512)
+    private val zoomFbo = FboManager(512, 512)
+
     // --- 渲染控制屬性 ---
     var ctrlThrottle = 0f; var ctrlYaw = 0f; var ctrlPitch = 0f; var ctrlRoll = 0f
     var isMotorLocked = true; var droneType = "QUAD_STANDARD"; var motorRpmFactor = 0f
-    var cameraMode = "站位視角 (追蹤)"; var zoomFactor = 1.5f; var cameraTilt = 0f; var observerHeight = 6.0f
-    var windLevel = 0; var windDirection = "無"; var windVariation = 0f; var windDirVariation = 0f; var timeOfDay = "中午"
+    var cameraMode = AppConfig.CAM_MODE_STATION_TRACK; var zoomFactor = 1.5f; var cameraTilt = 0f; var observerHeight = 6.0f
+    var windLevel = 0; var windDirection = AppConfig.WIND_DIR_NONE; var windVariation = 0f; var windDirVariation = 0f; var timeOfDay = AppConfig.TIME_NOON
     var showShadow = true; var shadowIntensity = 0.5f; var showObstacles = false; var isPaused = false; var applyPhysicalSpecs = false
     var enableVerticalDraft = false; var useHardcorePhysics = false; var isSunSimEnabled = false; var sunPosition = 0.5f
     var observerTilt = 0f; var showClouds = true; var cloudDensity = 0.5f; var showMountains = true 
@@ -49,7 +56,11 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
         texH = GLES20.glGetUniformLocation(program, "uTexture"); texCoordH = GLES20.glGetAttribLocation(program, "aTexCoord"); useTexH = GLES20.glGetUniformLocation(program, "uUseTex")
         GLES20.glEnable(GLES20.GL_DEPTH_TEST); GLES20.glEnable(GLES20.GL_BLEND); GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA); GLES20.glEnable(GLES20.GL_POLYGON_OFFSET_FILL); GLES20.glPolygonOffset(-1.0f, -1.0f)
         sunRenderer.init(); cloudRenderer.init(); backdropRenderer.init()
-        if (currentTitleText.isBlank()) currentTitleText = com.horizon.caadronesimulator.model.AppConfig.SPECIAL_TITLE
+        fpvFbo.init(); zoomFbo.init()
+        if (currentTitleText.isBlank()) {
+            val ds = com.horizon.caadronesimulator.model.DroneState.getInstance()
+            currentTitleText = com.horizon.caadronesimulator.model.AppConfig.getDefaultSpecialTitle(ds.appLanguage)
+        }
         generateTitleTexture(); generateCloudTexture(); generateMountainTexture()
     }
 
@@ -62,17 +73,16 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
             lastWeatherMode = weatherMode; lastDensity = cloudDensity
         }
 
-        // [v1.6.3] 撥亂反正：心跳回歸 OpenGL 渲染線程
-        // 優點：保證「算一幀、畫一幀」，徹底消除微抖動。邏輯依然保留在外部組件中。
         val now = System.nanoTime(); if (lastFrameTime == 0L) lastFrameTime = now
         val dt = ((now - lastFrameTime) / 1_000_000_000f).coerceIn(0.001f, 0.05f); lastFrameTime = now
         
         if (!isPaused) {
-            // 1. 物理相位累加
             randomWindPhase += dt * (1.2f + windVariation * 0.6f)
             turbulencePhase += dt * (0.8f + windVariation * 0.4f)
             
-            // 2. 調用外部物理引擎 (邏輯分離)
+            // [v1.7.6] 更新大氣物理：確保風向 ID 同步更新雲層位移
+            com.horizon.caadronesimulator.logic.WindManager.updateCloudDrift(com.horizon.caadronesimulator.model.DroneState.getInstance(), dt)
+            
             val atmos = com.horizon.caadronesimulator.logic.PhysicsEngine.AtmosConfig(
                 windLevel, windDirection, windVariation.toInt(), windDirVariation.toInt(),
                 enableVerticalDraft, useFlightLimit, randomWindPhase, turbulencePhase, 0f,
@@ -80,14 +90,12 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
                 com.horizon.caadronesimulator.model.DroneState.getInstance().useStrictLanding, showObstacles
             )
             
-            // 獲取當前輸入 (由外部 ViewModel 更新至 Renderer 的屬性)
             val result = com.horizon.caadronesimulator.logic.PhysicsEngine.step(
                 dt, physicsState, 
                 com.horizon.caadronesimulator.logic.PhysicsEngine.ControlInput(ctrlThrottle, ctrlYaw, ctrlPitch, ctrlRoll), 
                 atmos, droneType
             )
             
-            // 3. 更新相機導演與視覺反饋
             com.horizon.caadronesimulator.logic.CameraDirector.update(
                 physicsState.posX, physicsState.posY - getGroundY(), physicsState.posZ, 
                 observerHeight, observerTilt, zoomFactor, mainFOV, cameraMode, 
@@ -95,37 +103,73 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
             )
             
             this.motorRpmFactor = result.motorRpm
-
-            // 4. [關鍵效能優化]：回報 UI 數據
-            // 注意：UI 頻率限制已在 ViewModel 的 syncFlightData 中實作
             onFlightDataUpdate(physicsState.posY, physicsState.posX, physicsState.posZ, physicsState.yaw, physicsState.visPitch, physicsState.visRoll, result.impactSpeed, result.isImpact, physicsState.batteryVoltage, physicsState.batteryPercent, specialTitleScreenPos, null, null, null, null)
         }
 
-        updateEnvironmentLighting(); GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
+        val spec = DroneRegistry.getSpec(droneType)
+        
+        // 1. 離屏渲染 (FBO Pass)
+        pipRect?.let { 
+            fpvFbo.bind()
+            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
+            Matrix.perspectiveM(pMatrix, 0, spec.fpvFov, 1f, 0.5f, 500f)
+            com.horizon.caadronesimulator.logic.CameraDirector.computeMainViewMatrix(vMatrix, AppConfig.CAM_MODE_FPV, physicsState.posX, physicsState.posY, physicsState.posZ, physicsState.yaw, physicsState.posX + physicsState.velX * 0.12f, physicsState.posZ + physicsState.velZ * 0.12f, cameraTilt, droneType)
+            renderScene(isOffscreen = true)
+            fpvFbo.unbind()
+        }
+        
+        zoomPipRect?.let {
+            zoomFbo.bind()
+            GLES20.glClearColor(0.07f, 0.07f, 0.07f, 1.0f)
+            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
+            Matrix.perspectiveM(pMatrix, 0, com.horizon.caadronesimulator.logic.CameraDirector.smoothedZoomPipFov, 1f, 0.1f, 1000f)
+            com.horizon.caadronesimulator.logic.CameraDirector.computePrecisionViewMatrix(vMatrix, physicsState.posX, physicsState.posY, physicsState.posZ)
+            renderScene(isOffscreen = true)
+            zoomFbo.unbind()
+        }
+
+        // 2. 主場景渲染
+        updateEnvironmentLighting()
         GLES20.glViewport(0, 0, viewWidth, viewHeight)
-        val spec = DroneRegistry.getSpec(droneType); val finalFov = if (cameraMode == "FPV 視角") spec.fpvFov else com.horizon.caadronesimulator.logic.CameraDirector.smoothedFov
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
+        
+        val finalFov = if (cameraMode == AppConfig.CAM_MODE_FPV) spec.fpvFov else com.horizon.caadronesimulator.logic.CameraDirector.smoothedFov
         Matrix.perspectiveM(pMatrix, 0, finalFov / com.horizon.caadronesimulator.logic.CameraDirector.smoothedZoom, viewWidth.toFloat() / viewHeight, 1.0f, 6000f)
         com.horizon.caadronesimulator.logic.CameraDirector.computeMainViewMatrix(vMatrix, cameraMode, physicsState.posX, physicsState.posY, physicsState.posZ, physicsState.yaw, physicsState.posX + physicsState.velX * 0.12f, physicsState.posZ + physicsState.velZ * 0.12f, cameraTilt, droneType)
         System.arraycopy(pMatrix, 0, mainPMatrix, 0, 16); System.arraycopy(vMatrix, 0, mainVMatrix, 0, 16); calculateProjectedTitlePos()
         
-        // [v1.7.6] 專屬投影位置更新，移除原本會導致「零電量碰撞」的 dummy 回調
         onTitlePosUpdate?.invoke(specialTitleScreenPos)
-        
         renderScene()
-        pipRect?.let { rect -> GLES20.glEnable(GLES20.GL_SCISSOR_TEST); val glY = viewHeight - rect.bottom; GLES20.glScissor(rect.left, glY, rect.width(), rect.height()); GLES20.glViewport(rect.left, glY, rect.width(), rect.height()); GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT); Matrix.perspectiveM(pMatrix, 0, spec.fpvFov, rect.width().toFloat() / rect.height(), 0.5f, 500f); com.horizon.caadronesimulator.logic.CameraDirector.computeMainViewMatrix(vMatrix, "FPV 視角", physicsState.posX, physicsState.posY, physicsState.posZ, physicsState.yaw, physicsState.posX + physicsState.velX * 0.12f, physicsState.posZ + physicsState.velZ * 0.12f, cameraTilt, droneType); renderScene(); GLES20.glDisable(GLES20.GL_SCISSOR_TEST) }
-        zoomPipRect?.let { rect ->
-            GLES20.glEnable(GLES20.GL_SCISSOR_TEST)
-            val glY = viewHeight - rect.bottom
-            GLES20.glScissor(rect.left, glY, rect.width(), rect.height())
-            GLES20.glViewport(rect.left, glY, rect.width(), rect.height())
-            // [v1.6.3] 消除藍色方框：在 PiP 渲染前強制使用深灰色清屏
-            GLES20.glClearColor(0.07f, 0.07f, 0.07f, 1.0f)
-            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
-            Matrix.perspectiveM(pMatrix, 0, com.horizon.caadronesimulator.logic.CameraDirector.smoothedZoomPipFov, rect.width().toFloat() / rect.height(), 0.1f, 1000f)
-            com.horizon.caadronesimulator.logic.CameraDirector.computePrecisionViewMatrix(vMatrix, physicsState.posX, physicsState.posY, physicsState.posZ)
-            renderScene()
-            GLES20.glDisable(GLES20.GL_SCISSOR_TEST)
+
+        // 3. 合成渲染 (Compositing Pass)
+        GLES20.glDisable(GLES20.GL_DEPTH_TEST) // [關鍵修復] 合成階段必須關閉深度測試，否則 Quad 會被主場景遮擋
+        GLES20.glUseProgram(program)
+        val posH = GLES20.glGetAttribLocation(program, "vPosition"); val colorH = GLES20.glGetUniformLocation(program, "vColor"); val mvpH = GLES20.glGetUniformLocation(program, "uMVPMatrix")
+        
+        // 渲染 FPV PiP
+        pipRect?.let { rect ->
+            GLES20.glUniform1i(useTexH, 1)
+            RenderUtils.drawScreenQuad(posH, texH, texCoordH, mvpH, fpvFbo.getTextureId(), rect.left.toFloat(), rect.top.toFloat(), rect.width().toFloat(), rect.height().toFloat(), viewWidth, viewHeight)
+            
+            // 繪製邊框
+            GLES20.glUniform1i(useTexH, 0)
+            val borderM = FloatArray(16)
+            Matrix.orthoM(borderM, 0, 0f, viewWidth.toFloat(), viewHeight.toFloat(), 0f, -1f, 1f)
+            RenderUtils.drawRectOutline(posH, colorH, mvpH, borderM, rect.centerX().toFloat(), rect.centerY().toFloat(), 0f, rect.width().toFloat(), rect.height().toFloat(), floatArrayOf(1f, 0.6f, 0f, 0.8f), 2f)
         }
+
+        // 渲染 Zoom PiP
+        zoomPipRect?.let { rect ->
+            GLES20.glUniform1i(useTexH, 1)
+            RenderUtils.drawScreenQuad(posH, texH, texCoordH, mvpH, zoomFbo.getTextureId(), rect.left.toFloat(), rect.top.toFloat(), rect.width().toFloat(), rect.height().toFloat(), viewWidth, viewHeight)
+            
+            GLES20.glUniform1i(useTexH, 0)
+            val borderM = FloatArray(16)
+            Matrix.orthoM(borderM, 0, 0f, viewWidth.toFloat(), viewHeight.toFloat(), 0f, -1f, 1f)
+            RenderUtils.drawRectOutline(posH, colorH, mvpH, borderM, rect.centerX().toFloat(), rect.centerY().toFloat(), 0f, rect.width().toFloat(), rect.height().toFloat(), floatArrayOf(1f, 0.6f, 0f, 0.8f), 2f)
+        }
+
+        GLES20.glEnable(GLES20.GL_DEPTH_TEST)
         if (isSunSimEnabled) sunRenderer.drawLensFlare(mainPMatrix, mainVMatrix, sunPosition)
     }
 
@@ -134,17 +178,18 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
         GLES20.glClearColor(skyColor[0], skyColor[1], skyColor[2], skyColor[3])
     }
 
-    private fun renderScene(droneOnly: Boolean = false) {
+    private fun renderScene(droneOnly: Boolean = false, isOffscreen: Boolean = false) {
         Matrix.multiplyMM(mvpMatrix, 0, pMatrix, 0, vMatrix, 0); GLES20.glUseProgram(program); val posH = GLES20.glGetAttribLocation(program, "vPosition"); val colorH = GLES20.glGetUniformLocation(program, "vColor"); val mvpH = GLES20.glGetUniformLocation(program, "uMVPMatrix"); GLES20.glUniform1i(useTexH, 0)
-        sunRenderer.drawSun(pMatrix, vMatrix, sunPosition); GLES20.glUseProgram(program)
+        sunRenderer.drawSun(pMatrix, vMatrix, sunPosition, updateGlobalState = !isOffscreen); GLES20.glUseProgram(program)
         if (showClouds) {
             val actualDensity = cloudDensity.coerceIn(0f, 1f)
-            val cColor = com.horizon.caadronesimulator.logic.EnvironmentManager.getCloudColor(com.horizon.caadronesimulator.model.DroneState.getInstance())
-            cloudRenderer.draw(pMatrix, vMatrix, cloudTextureId, Pair(cloudU, cloudV), cColor, actualDensity); GLES20.glUseProgram(program)
+            val ds = com.horizon.caadronesimulator.model.DroneState.getInstance()
+            val cColor = com.horizon.caadronesimulator.logic.EnvironmentManager.getCloudColor(ds)
+            cloudRenderer.draw(pMatrix, vMatrix, cloudTextureId, Pair(ds.env.cloudU, ds.env.cloudV), cColor, actualDensity); GLES20.glUseProgram(program)
         }
         if (showMountains) { backdropRenderer.draw(pMatrix, vMatrix, mountainTextureId, timeOfDay); GLES20.glUseProgram(program) }
         FieldRenderer.drawField(posH, colorH, mvpH, mvpMatrix, windLevel, windDirection, flagVisualAngle, physicsState.flightTime, showObstacles, isSunSimEnabled, sunPosition, useSimplifiedMarkers, if(showSpecialTitle) titleTextureId else -1, texH, texCoordH, useTexH)
-        ArAnchorRenderer.drawAnchor(mvpMatrix, physicsState.posX, physicsState.posY, physicsState.posZ, 0f, posH, colorH, mvpH, showGroundAnchor)
+        ArAnchorRenderer.drawAnchor(mvpMatrix, physicsState.posX, physicsState.posY, physicsState.posZ, 0f, posH, colorH, mvpH, showGroundAnchor, useTexH)
         DroneRenderer.drawDroneShadow(posH, colorH, mvpH, mvpMatrix, droneType, physicsState.posX, physicsState.posY, physicsState.posZ, timeOfDay, showShadow, shadowIntensity, isSunSimEnabled, sunPosition)
         DroneRenderer.drawActiveDrone(posH, colorH, mvpH, mvpMatrix, droneType, physicsState.posX, physicsState.posY, physicsState.posZ, physicsState.yaw, physicsState.visPitch, physicsState.visRoll, physicsState.flightTime, isMotorLocked, this.motorRpmFactor)
     }
@@ -229,7 +274,8 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
     }
 
     private fun generateTitleTexture() {
-        val textToRender = if (currentTitleText.isNotBlank()) currentTitleText else com.horizon.caadronesimulator.model.AppConfig.SPECIAL_TITLE
+        val ds = com.horizon.caadronesimulator.model.DroneState.getInstance()
+        val textToRender = if (currentTitleText.isNotBlank()) currentTitleText else com.horizon.caadronesimulator.model.AppConfig.getDefaultSpecialTitle(ds.appLanguage)
         val bitmap = android.graphics.Bitmap.createBitmap(2048, 256, android.graphics.Bitmap.Config.ARGB_8888); val canvas = android.graphics.Canvas(bitmap); val paint = android.graphics.Paint().apply { color = android.graphics.Color.WHITE; textSize = 140f; isAntiAlias = true; textAlign = android.graphics.Paint.Align.CENTER; typeface = android.graphics.Typeface.DEFAULT_BOLD; alpha = 255 }
         canvas.drawText(textToRender, 1024f, 170f, paint)
         if (titleTextureId != -1) GLES20.glDeleteTextures(1, intArrayOf(titleTextureId), 0)

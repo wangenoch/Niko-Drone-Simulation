@@ -83,9 +83,9 @@ fun StickInteractionLogic(
         if (isCSC) {
             delay(1200)
             if (latestState.isMotorLocked) {
-                onUpdateState { isMotorLocked = false; systemMessage = "已解鎖" }
+                onUpdateState { isMotorLocked = false; systemMessage = "SAFETY_ARMED" }
             } else if (isGrounded) {
-                onUpdateState { isMotorLocked = true; systemMessage = "已上鎖" }
+                onUpdateState { isMotorLocked = true; systemMessage = "SAFETY_DISARMED" }
             }
         }
     }
@@ -94,7 +94,7 @@ fun StickInteractionLogic(
         if (isAutoStop) {
             delay(1000)
             if (latestState.altitude <= spec.groundOffset + 0.15f) {
-                onUpdateState { isMotorLocked = true; systemMessage = "自動停槳" }
+                onUpdateState { isMotorLocked = true; systemMessage = "SAFETY_AUTO_DISARM" }
             }
         }
     }

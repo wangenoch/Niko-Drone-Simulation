@@ -89,7 +89,7 @@ class DroneState {
     // --- 5. 環境配置域 ---
     class EnvironmentDomain {
         var windLevel by mutableIntStateOf(AppConfig.EnvironmentDefaults.WIND_LEVEL); var windDirection by mutableStateOf(AppConfig.EnvironmentDefaults.WIND_DIRECTION); var windVariation by mutableIntStateOf(0); var windDirVariation by mutableIntStateOf(0)
-        var enableVerticalDraft by mutableStateOf(false); var timeOfDay by mutableStateOf("中午"); var isSunSimEnabled by mutableStateOf(AppConfig.EnvironmentDefaults.SUN_ENABLED); var sunPosition by mutableFloatStateOf(AppConfig.EnvironmentDefaults.SUN_POSITION)
+        var enableVerticalDraft by mutableStateOf(false); var timeOfDay by mutableStateOf(AppConfig.TIME_NOON); var isSunSimEnabled by mutableStateOf(AppConfig.EnvironmentDefaults.SUN_ENABLED); var sunPosition by mutableFloatStateOf(AppConfig.EnvironmentDefaults.SUN_POSITION)
         var useHardcorePhysics by mutableStateOf(AppConfig.EnvironmentDefaults.HARDCORE_PHYSICS); var showClouds by mutableStateOf(AppConfig.EnvironmentDefaults.SHOW_CLOUDS); var cloudDensity by mutableFloatStateOf(AppConfig.EnvironmentDefaults.CLOUD_DENSITY); var showMountains by mutableStateOf(AppConfig.EnvironmentDefaults.SHOW_MOUNTAINS)
         var weatherMode by mutableIntStateOf(AppConfig.EnvironmentDefaults.WEATHER_MODE)
         var cloudU by mutableFloatStateOf(0f); var cloudV by mutableFloatStateOf(0f) 
@@ -102,12 +102,16 @@ class DroneState {
 
     // --- 配置與全局狀態 ---
     var droneType by mutableStateOf("QUAD_STANDARD"); var joystickMode by mutableIntStateOf(2); var isMuted by mutableStateOf(AppConfig.SystemDefaults.IS_MUTED); var showShadow by mutableStateOf(AppConfig.SystemDefaults.SHOW_SHADOW); var shadowIntensity by mutableFloatStateOf(AppConfig.EnvironmentDefaults.SHADOW_INTENSITY)
+    var appLanguage by mutableStateOf("zh") // [v1.7.6] 語言設定：zh 或 en
     var showObstacles by mutableStateOf(AppConfig.SystemDefaults.SHOW_OBSTACLES); var hideStatusBar by mutableStateOf(AppConfig.SystemDefaults.HIDE_STATUS_BAR); var pauseInSettings by mutableStateOf(AppConfig.SystemDefaults.PAUSE_IN_SETTINGS); var applyPhysicalSpecs by mutableStateOf(AppConfig.SystemDefaults.APPLY_PHYSICAL_SPECS); var useFlightLimit by mutableStateOf(AppConfig.SystemDefaults.USE_FLIGHT_LIMIT)
     var useSimplifiedMarkers by mutableStateOf(true); var showSpecialTitle by mutableStateOf(AppConfig.VisualDefaults.SHOW_SPECIAL_TITLE); var customTitle by mutableStateOf(""); var settingsTab by mutableStateOf(SettingsTab.CONTROLLER); var showSettings by mutableStateOf(false)
     var showHardwareMonitor by mutableStateOf(false); var isInteractionLocked by mutableStateOf(false)
     var useStrictLanding by mutableStateOf(AppConfig.SystemDefaults.USE_STRICT_LANDING) // [v1.5.9] 專業考核降落安全標準開關
     var isUsbStickyActive by mutableStateOf(false) // [v1.5.9] USB 外接主權鎖定，防止背景掃描干擾
-    var systemMessage by mutableStateOf<String?>(null); var localSettingsMessage by mutableStateOf<String?>(null); var diagnosticLog by mutableStateOf("等待啟動...")
+    var systemMessage by mutableStateOf<String?>(null); var localSettingsMessage by mutableStateOf<String?>(null); var diagnosticLog by mutableStateOf("")
+
+    /** [v1.7.6] 當前有效的標題文字 (含預設與自定義) */
+    var currentTitleText by mutableStateOf("")
 
     // --- [向下相容代理] ---
     var altitude: Float get() = flight.altitude; set(v) { flight.altitude = v }

@@ -48,7 +48,8 @@ fun OverlayDispatcher(
     onExportLog: () -> Unit,
     onUpdateBaudRate: (Int) -> Unit,
     onUpdateInputMode: (Int) -> Unit,
-    onToggleNetworkConnection: (Boolean) -> Unit
+    onToggleNetworkConnection: (Boolean) -> Unit,
+    onLanguageChange: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -80,6 +81,7 @@ fun OverlayDispatcher(
             onUpdateLockedPath = { path -> usbSerialManager.setLockedPath(path) },
             onOpenNetworkSettings = { droneState.showNetworkSettingsDialog = true },
             onRestoreDefaults = onRestoreDefaults,
+            onLanguageChange = onLanguageChange,
             availablePorts = usbSerialManager.listAvailableSerialPorts(),
             onTargetPositioned = { name, rect -> onUpdateTutorialTargets(name, rect) }
         )

@@ -22,6 +22,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 
+import androidx.compose.ui.res.stringResource
+import com.horizon.caadronesimulator.R
+
 /**
  * [v1.2.68] 獨立的搖桿引導設定 (Wizard) 圖層
  */
@@ -55,13 +58,13 @@ fun JoystickWizardOverlay(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("引導設定 Wizard", color = Color(0xFF2196F3), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.joystick_wizard_title), color = Color(0xFF2196F3), fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 
-                val instr = if (isWizardWaiting) "偵測成功！請放手回正 ($wizardCountdown)..." else when(setupWizardStep) {
-                    1 -> "請將「左搖桿」向上推到底"
-                    2 -> "請將「左搖桿」向右撥到底"
-                    3 -> "請將「右搖桿」向上推到底"
-                    4 -> "請將「右搖桿」向右撥到底"
+                val instr = if (isWizardWaiting) stringResource(R.string.joystick_wizard_waiting, wizardCountdown) else when(setupWizardStep) {
+                    1 -> stringResource(R.string.joystick_wizard_step1)
+                    2 -> stringResource(R.string.joystick_wizard_step2)
+                    3 -> stringResource(R.string.joystick_wizard_step3)
+                    4 -> stringResource(R.string.joystick_wizard_step4)
                     else -> ""
                 }
                 
@@ -96,7 +99,7 @@ fun JoystickWizardOverlay(
                 Spacer(modifier = Modifier.height(20.dp))
                 
                 TextButton(onClick = onCancelWizard) {
-                    Text("取消設定", color = Color.White.copy(alpha = 0.4f), fontSize = 13.sp)
+                    Text(stringResource(R.string.action_cancel_wizard), color = Color.White.copy(alpha = 0.4f), fontSize = 13.sp)
                 }
             }
         }

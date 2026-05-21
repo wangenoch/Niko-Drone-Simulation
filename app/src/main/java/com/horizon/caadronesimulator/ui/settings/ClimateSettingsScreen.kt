@@ -18,18 +18,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.horizon.caadronesimulator.model.AppConfig
 
+import androidx.compose.ui.res.stringResource
+import com.horizon.caadronesimulator.R
+
 /**
  * [v1.6.1] 氣候與物理設定分頁 (佈局優化版)
- * 修正：將垂直氣流與進階大氣物理開關整合至風力微調下方，提升物理邏輯歸位。
- * 已恢復教學引導所需的 onTargetPositioned 回調。
  */
 @Composable
 fun ClimateSettingsScreen(
     windLevel: Int,
-    windDirection: String,
+    windDirection: String, // ID
     windVariation: Int,
     windDirVariation: Int,
-    timeOfDay: String,
+    timeOfDay: String, // ID
     shadowIntensity: Float,
     enableVerticalDraft: Boolean,
     useHardcorePhysics: Boolean, 
@@ -68,7 +69,7 @@ fun ClimateSettingsScreen(
             shape = RoundedCornerShape(12.dp)
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
-                Text("🌪️ 物理風力", color = Color.Cyan, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.climate_wind_physics), color = Color.Cyan, fontSize = 14.sp, fontWeight = FontWeight.Bold)
 
                 Spacer(Modifier.height(8.dp))
                 
@@ -77,7 +78,7 @@ fun ClimateSettingsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.onGloballyPositioned { onTargetPositioned("wind_level", it.boundsInRoot()) }
                 ) {
-                    Text("等級: $windLevel", color = Color.White, fontSize = 11.sp, modifier = Modifier.width(42.dp))
+                    Text("${stringResource(R.string.climate_label_level)}: $windLevel", color = Color.White, fontSize = 11.sp, modifier = Modifier.width(42.dp))
                     Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                         (0..5).forEach { level ->
                             CompactChip(
@@ -99,7 +100,7 @@ fun ClimateSettingsScreen(
                 // [智慧連動] 僅在風力 > 0 時顯示方位九宮格與拉桿
                 AnimatedVisibility(visible = windLevel > 0) {
                     Column {
-                        Text("風向方位 (九宮格)", color = Color.White.copy(0.7f), fontSize = 10.sp)
+                        Text(stringResource(R.string.climate_wind_directions), color = Color.White.copy(0.7f), fontSize = 10.sp)
                         Spacer(Modifier.height(6.dp))
                         
                         // 3x3 九宮格佈局
@@ -108,21 +109,21 @@ fun ClimateSettingsScreen(
                             modifier = Modifier.onGloballyPositioned { onTargetPositioned("wind_dir", it.boundsInRoot()) }
                         ) {
                             val rows = listOf(
-                                listOf("西北風", "北風", "東北風"),
-                                listOf("西風", "隨機", "東風"),
-                                listOf("西南風", "南風", "東南風")
+                                listOf(AppConfig.WIND_DIR_NW to stringResource(R.string.climate_dir_nw), AppConfig.WIND_DIR_N to stringResource(R.string.climate_dir_n), AppConfig.WIND_DIR_NE to stringResource(R.string.climate_dir_ne)),
+                                listOf(AppConfig.WIND_DIR_W to stringResource(R.string.climate_dir_w), AppConfig.WIND_DIR_RANDOM to stringResource(R.string.climate_dir_random), AppConfig.WIND_DIR_E to stringResource(R.string.climate_dir_e)),
+                                listOf(AppConfig.WIND_DIR_SW to stringResource(R.string.climate_dir_sw), AppConfig.WIND_DIR_S to stringResource(R.string.climate_dir_s), AppConfig.WIND_DIR_SE to stringResource(R.string.climate_dir_se))
                             )
                             rows.forEach { rowItems ->
                                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    rowItems.forEach { dir ->
+                                    rowItems.forEach { (id, label) ->
                                         CompactChip(
-                                            text = if(dir == "隨機") "🎲" else dir.replace("風", ""),
-                                            selected = windDirection == dir,
+                                            text = if(id == AppConfig.WIND_DIR_RANDOM) "🎲" else label.replace("風", ""),
+                                            selected = windDirection == id,
                                             modifier = Modifier.weight(1f),
-                                            selectedColor = if(dir == "隨機") Color.Yellow else Color.Cyan,
+                                            selectedColor = if(id == AppConfig.WIND_DIR_RANDOM) Color.Yellow else Color.Cyan,
                                             onClick = { 
-                                                if (dir == "隨機") onRerollWind()
-                                                onUpdateWindDirection(dir); onSave() 
+                                                if (id == AppConfig.WIND_DIR_RANDOM) onRerollWind()
+                                                onUpdateWindDirection(id); onSave() 
                                             }
                                         )
                                     }
@@ -133,15 +134,15 @@ fun ClimateSettingsScreen(
                         Spacer(Modifier.height(16.dp))
 
                         // 氣流微調區 (僅在有風向時顯示)
-                        if (windDirection != "無") {
-                            Text("氣流微調", color = Color.White.copy(0.7f), fontSize = 10.sp)
+                        if (windDirection != AppConfig.WIND_DIR_NONE) {
+                            Text(stringResource(R.string.climate_wind_tuning), color = Color.White.copy(0.7f), fontSize = 10.sp)
                             Column(
                                 modifier = Modifier
                                     .padding(vertical = 4.dp)
                                     .onGloballyPositioned { onTargetPositioned("wind_var", it.boundsInRoot()) }
                             ) {
-                                WindSliderRow("風速激烈", windVariation.toFloat(), { onUpdateWindVariation(it.toInt()) }, onSave)
-                                WindSliderRow("風向激烈", windDirVariation.toFloat(), { onUpdateWindDirVariation(it.toInt()) }, onSave)
+                                WindSliderRow(stringResource(R.string.climate_wind_var), windVariation.toFloat(), { onUpdateWindVariation(it.toInt()) }, onSave)
+                                WindSliderRow(stringResource(R.string.climate_dir_var), windDirVariation.toFloat(), { onUpdateWindDirVariation(it.toInt()) }, onSave)
                             }
                         }
                     }
@@ -152,8 +153,8 @@ fun ClimateSettingsScreen(
                 HorizontalDivider(color = Color(0x11FFFFFF))
                 Spacer(Modifier.height(8.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    WindToggleRow("垂直氣流 (高度修正)", enableVerticalDraft, onToggleVerticalDraft, onSave)
-                    WindToggleRow("進階大氣物理 (實驗性)", useHardcorePhysics, onToggleHardcorePhysics, onSave)
+                    WindToggleRow(stringResource(R.string.climate_vertical_draft), enableVerticalDraft, onToggleVerticalDraft, onSave)
+                    WindToggleRow(stringResource(R.string.climate_hardcore_physics), useHardcorePhysics, onToggleHardcorePhysics, onSave)
                 }
             }
         }
@@ -165,12 +166,12 @@ fun ClimateSettingsScreen(
             shape = RoundedCornerShape(12.dp)
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
-                Text("✨ 視覺與細節", color = Color.Yellow, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.climate_visual_details), color = Color.Yellow, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(8.dp))
 
                 // 太陽方位
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("太陽方位", color = Color.White, fontSize = 11.sp, modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.climate_sun_pos), color = Color.White, fontSize = 11.sp, modifier = Modifier.weight(1f))
                     Switch(checked = isSunSimEnabled, onCheckedChange = { onToggleSunSim(it); onSave() }, modifier = Modifier.scale(0.5f))
                 }
                 if (isSunSimEnabled) {
@@ -182,8 +183,13 @@ fun ClimateSettingsScreen(
                             .onGloballyPositioned { onTargetPositioned("time", it.boundsInRoot()) },
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        listOf("早晨", "中午", "下午").forEach { t ->
-                            CompactChip(text = t, selected = timeOfDay == t, modifier = Modifier.weight(1f), selectedColor = Color.Yellow, onClick = { onUpdateTimeOfDay(t); onSave() })
+                        val times = listOf(
+                            AppConfig.TIME_MORNING to stringResource(R.string.climate_time_morning),
+                            AppConfig.TIME_NOON to stringResource(R.string.climate_time_noon),
+                            AppConfig.TIME_AFTERNOON to stringResource(R.string.climate_time_afternoon)
+                        )
+                        times.forEach { (id, label) ->
+                            CompactChip(text = label, selected = timeOfDay == id, modifier = Modifier.weight(1f), selectedColor = Color.Yellow, onClick = { onUpdateTimeOfDay(id); onSave() })
                         }
                     }
                 }
@@ -191,7 +197,7 @@ fun ClimateSettingsScreen(
                 Spacer(Modifier.height(12.dp))
                 
                 // 陰影深淺
-                Text("機身陰影深淺: " + "%.1f".format(java.util.Locale.US, shadowIntensity), color = Color.White, fontSize = 10.sp)
+                Text(stringResource(R.string.climate_shadow_intensity, shadowIntensity), color = Color.White, fontSize = 10.sp)
                 Slider(
                     value = shadowIntensity, 
                     onValueChange = onUpdateShadowIntensity, 
@@ -205,10 +211,10 @@ fun ClimateSettingsScreen(
                 HorizontalDivider(color = Color(0x11FFFFFF), modifier = Modifier.padding(vertical = 12.dp))
 
                 // 氣象預設
-                Text("🌦️ 氣象狀況預設", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.climate_weather_preset), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(6.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                    val weathers = listOf("無雲", "卷雲", "積雲", "層雲")
+                    val weathers = listOf(stringResource(R.string.climate_weather_clear), stringResource(R.string.climate_weather_cirrus), stringResource(R.string.climate_weather_cumulus), stringResource(R.string.climate_weather_stratus))
                     weathers.forEachIndexed { idx, name ->
                         CompactChip(
                             text = name, 
@@ -232,7 +238,7 @@ fun ClimateSettingsScreen(
                 // 雲層密度
                 AnimatedVisibility(visible = weatherMode > 0) {
                     Column(modifier = Modifier.padding(top = 8.dp)) {
-                        Text("雲層密度", color = Color.Gray, fontSize = 10.sp)
+                        Text(stringResource(R.string.climate_cloud_density), color = Color.Gray, fontSize = 10.sp)
                         Slider(value = cloudDensity, onValueChange = onUpdateCloudDensity, onValueChangeFinished = onSave, valueRange = 0.1f..1f, modifier = Modifier.height(24.dp), colors = SliderDefaults.colors(thumbColor = Color.Cyan))
                     }
                 }
@@ -241,7 +247,7 @@ fun ClimateSettingsScreen(
 
                 // 功能開關組 (視覺類)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("🏔️ 遠方山景顯示", color = Color.White, fontSize = 10.sp, modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.climate_show_mountains), color = Color.White, fontSize = 10.sp, modifier = Modifier.weight(1f))
                     Switch(checked = showMountains, onCheckedChange = { onToggleMountains(it); onSave() }, modifier = Modifier.scale(0.5f))
                 }
             }

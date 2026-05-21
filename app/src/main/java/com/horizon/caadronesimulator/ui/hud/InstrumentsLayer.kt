@@ -20,12 +20,14 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.horizon.caadronesimulator.R
 import com.horizon.caadronesimulator.model.DroneState
 import com.horizon.caadronesimulator.model.DroneRegistry
 import java.util.Locale
@@ -33,7 +35,6 @@ import kotlin.math.*
 
 /**
  * [v1.5.9] 獨立飛行儀表層 (Optimized Display)
- * 修正：移除冗餘運算，距離計算已集中至 DroneViewModel。
  */
 @Composable
 fun InstrumentsLayer(
@@ -45,7 +46,6 @@ fun InstrumentsLayer(
     val radarPad = if (state.showVirtualJoysticks) Modifier.padding(top = 16.dp, start = 16.dp) else Modifier.padding(bottom = 16.dp, start = 16.dp)
     
     Box(modifier = Modifier.fillMaxSize()) {
-        // [v1.5.9] 獨立化尺寸佈局：移除統一尺寸的父容器，由各組件自行宣告尺寸以防變形
         Box(modifier = radarPad.align(radarAlign)) {
             when (state.hudMode) {
                 0 -> RadarHUD(state, modifier = Modifier.size(150.dp, 100.dp)) { onUpdateState { hudMode = 1 } }
@@ -59,16 +59,9 @@ fun InstrumentsLayer(
                 }
             }
         }
-
-        // [v1.5.9] 已移除冗餘高度標尺：為了避免與 SideNavInstruments (站位高度控制) 疊加衝突，
-        // 飛行高度數據現在統一由底端狀態欄或 OSD 視窗顯示。
     }
 }
 
-/**
- * [v1.6.3] 精密縮放視窗 (Precision Zoom Assistant)
- * 具備 3D 渲染對位、十字瞄準、以及工業級青色邊框樣式。
- */
 @Composable
 fun PrecisionZoomView(
     state: com.horizon.caadronesimulator.model.DroneState,
@@ -88,7 +81,8 @@ fun PrecisionZoomView(
                 .padding(4.dp)
                 .onGloballyPositioned { coords ->
                     val pos = coords.positionInWindow(); val size = coords.size
-                    onUpdateRect(androidx.compose.ui.geometry.Rect(pos.x, pos.y, pos.x + size.width, pos.y + size.height))
+                    // [v1.7.6] 加入邊界緩衝，防止 FBO 覆蓋 Compose 邊框
+                    onUpdateRect(androidx.compose.ui.geometry.Rect(pos.x + 2, pos.y + 2, pos.x + size.width - 2, pos.y + size.height - 2))
                 }
         )
     }
@@ -100,23 +94,23 @@ fun OsdView(state: DroneState, onUpdatePipRect: (android.graphics.Rect?) -> Unit
     Box(modifier = modifier.clip(RoundedCornerShape(12.dp)).background(Color(0xAA111111)).border(2.dp, Color(0xFFFF9800).copy(0.6f), RoundedCornerShape(12.dp)).clickable { onClick() }) {
         Box(modifier = Modifier.fillMaxSize().padding(3.dp).onGloballyPositioned { coords ->
             val pos = coords.positionInWindow(); val size = coords.size
-            onUpdatePipRect(android.graphics.Rect(pos.x.toInt(), pos.y.toInt(), (pos.x + size.width).toInt(), (pos.y + size.height).toInt()))
+            // [v1.7.6] 修正：在 Compose 坐標系轉換為 Android Graphics Rect 時加入邊界緩衝
+            onUpdatePipRect(android.graphics.Rect(pos.x.toInt() + 2, pos.y.toInt() + 2, (pos.x + size.width).toInt() - 2, (pos.y + size.height).toInt() - 2))
         })
         Box(modifier = Modifier.fillMaxSize().padding(10.dp)) {
             val vText = String.format(Locale.US, "%.1f", state.speed)
             val hText = String.format(Locale.US, "%.1f", (state.altitude - spec.groundOffset))
-            // [歸位] 直接讀取數據層預計算好的距離，移除局部 sqrt 計算
             val dText = String.format(Locale.US, "%.1f", state.horizontalDist)
 
             Column(modifier = Modifier.align(Alignment.CenterStart)) {
-                Text("V: $vText", color = Color.Green, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                Text("P: ${state.pitch.toInt()}°", color = Color.Green, fontSize = 7.sp)
+                Text("${stringResource(R.string.hud_speed_short)}: $vText", color = Color.Green, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                Text("${stringResource(R.string.hud_pitch_short)}: ${state.pitch.toInt()}°", color = Color.Green, fontSize = 7.sp)
             }
             Column(modifier = Modifier.align(Alignment.CenterEnd), horizontalAlignment = Alignment.End) {
-                Text("H: $hText", color = Color.Green, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                Text("T: ${state.cameraTilt.toInt()}°", color = Color.Cyan, fontSize = 7.sp)
+                Text("${stringResource(R.string.hud_altitude_short)}: $hText", color = Color.Green, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                Text("${stringResource(R.string.hud_tilt_short)}: ${state.cameraTilt.toInt()}°", color = Color.Cyan, fontSize = 7.sp)
             }
-            Text("D: ${dText}m", modifier = Modifier.align(Alignment.BottomCenter), color = Color.Green, fontSize = 8.sp)
+            Text("${stringResource(R.string.hud_distance_short)}: ${dText}${stringResource(R.string.hud_unit_m)}", modifier = Modifier.align(Alignment.BottomCenter), color = Color.Green, fontSize = 8.sp)
             Text("${state.yaw.toInt()}°", modifier = Modifier.align(Alignment.TopCenter), color = Color.Green, fontSize = 9.sp, fontWeight = FontWeight.Bold)
         }
     }
@@ -141,7 +135,8 @@ fun AttitudeView(state: DroneState, modifier: Modifier = Modifier, onClick: () -
                 }
             }
             clipPath(Path().apply { addOval(androidx.compose.ui.geometry.Rect(c, r - 20.dp.toPx())) }) {
-                val pOff = -(state.pitch / 45f) * (r - 20.dp.toPx())
+                // [關鍵修復] 俯仰極性校準：抬頭 (Pitch > 0) 時地平線應下降 (+)，露出天空
+                val pOff = (state.pitch / 45f) * (r - 20.dp.toPx())
                 rotate(-state.roll, c) {
                     drawRect(Color(0xFF5D4037), Offset(-size.width, size.height / 2 + pOff), Size(size.width * 3, size.height * 2))
                     drawRect(Color(0xFF0288D1), Offset(-size.width, -size.height * 2 + size.height / 2 + pOff), Size(size.width * 3, size.height * 2))
@@ -150,6 +145,8 @@ fun AttitudeView(state: DroneState, modifier: Modifier = Modifier, onClick: () -
             }
             val tipPath = Path().apply { moveTo(c.x, 2.dp.toPx()); lineTo(c.x - 5.dp.toPx(), 12.dp.toPx()); lineTo(c.x + 5.dp.toPx(), 12.dp.toPx()); close() }
             drawPath(tipPath, Color.Red)
+            
+            // [v1.7.6] 儀表文字標籤與高度位置修正
             val heading = ((state.yaw % 360 + 360) % 360).toInt(); val hLayout = textMeasurer.measure("$heading°", TextStyle(color = Color.Cyan, fontSize = 10.sp, fontWeight = FontWeight.Bold))
             drawRect(Color.Black.copy(0.4f), Offset(c.x - hLayout.size.width/2 - 2.dp.toPx(), size.height - 18.dp.toPx()), Size(hLayout.size.width.toFloat() + 4.dp.toPx(), 14.dp.toPx()))
             drawText(textLayoutResult = hLayout, topLeft = Offset(c.x - hLayout.size.width / 2, size.height - 18.dp.toPx()))

@@ -37,7 +37,7 @@ class ConnectivityCoordinator(
                         droneState.inputMode = 0
                         droneState.isUsbStickyActive = true
                         internalComm.stopAll()
-                        droneState.systemMessage = "🔗 偵測到內置專業硬體，已自動對接"
+                        droneState.systemMessage = "INTERNAL_HW"
                     }
                     true
                 } else false
@@ -62,7 +62,7 @@ class ConnectivityCoordinator(
             if (hasHidJoystick && droneState.inputMode == -1) {
                 droneState.inputMode = 0
             } else if (!hasHidJoystick && !hasProHardware && droneState.inputMode == 0) {
-                droneState.systemMessage = "未偵測到外接手把，已切換至虛擬搖桿"
+                droneState.systemMessage = "HID_FALLBACK"
                 droneState.inputMode = -1
                 droneState.showVirtualJoysticks = true
             }

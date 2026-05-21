@@ -8,12 +8,11 @@ import java.nio.FloatBuffer
 import kotlin.math.*
 
 /**
- * [v1.5.9] 渲染工具類 (幾何校準版)
- * 修正：八字圓裁切算法對齊新座標系，修復地面貼圖鏡像。
+ * [v1.7.6] 渲染工具類 (FBO 強化版)
  */
 object RenderUtils {
     private val boxBuffer = createBuffer(3 * 36)
-    private val rectBuffer = createBuffer(3 * 4)
+    private val rectBuffer = createBuffer(3 * 12) // [v1.7.6] 擴容：支持 drawRectOutline 的 5 個頂點 (5*3=15)
     private val texBuffer = createBuffer(2 * 4)
     private val lineBuffer = createBuffer(3 * 4)
     private val circleBuffer = createBuffer((120 + 2) * 3)
@@ -63,15 +62,23 @@ object RenderUtils {
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
     }
 
-    /** [重要修復] 修正 UV 座標映射，消除貼圖鏡像反置 */
+    /** [v1.7.6] 繪製線框矩形 */
+    fun drawRectOutline(posH: Int, colorH: Int, mvpH: Int, mvpMatrix: FloatArray, x: Float, y: Float, z: Float, w: Float, h: Float, color: FloatArray, thickness: Float = 1.5f) {
+        GLES20.glLineWidth(thickness)
+        val v = floatArrayOf(x-w/2, y, z+h/2, x+w/2, y, z+h/2, x+w/2, y, z-h/2, x-w/2, y, z-h/2, x-w/2, y, z+h/2)
+        rectBuffer.clear(); rectBuffer.put(v).position(0)
+        GLES20.glVertexAttribPointer(posH, 3, GLES20.GL_FLOAT, false, 0, rectBuffer)
+        GLES20.glEnableVertexAttribArray(posH)
+        GLES20.glUniform4fv(colorH, 1, color, 0)
+        GLES20.glUniformMatrix4fv(mvpH, 1, false, mvpMatrix, 0)
+        GLES20.glDrawArrays(GLES20.GL_LINE_STRIP, 0, 5)
+    }
+
     fun drawTexturedRect(posH: Int, texH: Int, texCoordH: Int, mvpH: Int, mvpMatrix: FloatArray, x: Float, y: Float, z: Float, w: Float, d: Float, textureId: Int) {
         val v = floatArrayOf(x-w/2, y, z+d/2, x+w/2, y, z+d/2, x-w/2, y, z-d/2, x+w/2, y, z-d/2)
         rectBuffer.clear(); rectBuffer.put(v).position(0)
-        
-        // 修正後的 UV：反轉 X 軸，消除鏡像反置
         val uv = floatArrayOf(1f, 0f, 0f, 0f, 1f, 1f, 0f, 1f)
         texBuffer.clear(); texBuffer.put(uv).position(0)
-
         GLES20.glUniformMatrix4fv(mvpH, 1, false, mvpMatrix, 0)
         GLES20.glVertexAttribPointer(posH, 3, GLES20.GL_FLOAT, false, 0, rectBuffer)
         GLES20.glEnableVertexAttribArray(posH)
@@ -80,6 +87,37 @@ object RenderUtils {
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId)
         GLES20.glUniform1i(texH, 0)
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
+        GLES20.glDisableVertexAttribArray(texCoordH)
+    }
+
+    /** [v1.7.6] 繪製全屏或指定區域的平面矩形 (用於 FBO 合成) */
+    fun drawScreenQuad(posH: Int, texH: Int, texCoordH: Int, mvpH: Int, textureId: Int, x: Float, y: Float, w: Float, h: Float, viewWidth: Int, viewHeight: Int) {
+        val glX = (x / viewWidth) * 2f - 1f
+        val glY = 1f - ((y + h) / viewHeight) * 2f
+        val glW = (w / viewWidth) * 2f
+        val glH = (h / viewHeight) * 2f
+
+        val v = floatArrayOf(glX, glY + glH, 0f, glX + glW, glY + glH, 0f, glX, glY, 0f, glX + glW, glY, 0f)
+        rectBuffer.clear(); rectBuffer.put(v).position(0)
+        
+        // FBO 紋理通常是倒置的，這裡直接在 UV 座標中修正
+        val uv = floatArrayOf(0f, 1f, 1f, 1f, 0f, 0f, 1f, 0f)
+        texBuffer.clear(); texBuffer.put(uv).position(0)
+
+        // [關鍵修復] 必須使用單位矩陣，否則 Quad 會被 3D 場景的殘留 MVP 矩陣投射到錯誤位置
+        val identity = FloatArray(16); Matrix.setIdentityM(identity, 0)
+        GLES20.glUniformMatrix4fv(mvpH, 1, false, identity, 0)
+
+        GLES20.glVertexAttribPointer(posH, 3, GLES20.GL_FLOAT, false, 0, rectBuffer)
+        GLES20.glEnableVertexAttribArray(posH)
+        GLES20.glVertexAttribPointer(texCoordH, 2, GLES20.GL_FLOAT, false, 0, texBuffer)
+        GLES20.glEnableVertexAttribArray(texCoordH)
+        
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId)
+        GLES20.glUniform1i(texH, 0)
+
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
         GLES20.glDisableVertexAttribArray(texCoordH)
     }
@@ -111,7 +149,6 @@ object RenderUtils {
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, pts+2)
     }
 
-    /** [核心修復] 修正八字圓裁切邏輯，將 Z 軸參考點對齊至當前圓心 (Z=z) */
     fun drawCircleOutline(posH: Int, colorH: Int, mvpH: Int, mvpMatrix: FloatArray, x: Float, y: Float, z: Float, r: Float, color: FloatArray) {
         val pts = 120; val otherX = if (x < 0) 6f else -6f; val thickness = 0.18f
         batchLineBuffer.clear(); var vertexCount = 0
@@ -119,10 +156,7 @@ object RenderUtils {
             val a1 = (i.toFloat() / pts) * 2f * PI.toFloat(); val a2 = ((i + 1).toFloat() / pts) * 2f * PI.toFloat()
             val x1 = x + cos(a1) * r; val z1 = z + sin(a1) * r; val x2 = x + cos(a2) * r; val z2 = z + sin(a2) * r
             val midX = (x1 + x2) / 2f; val midZ = (z1 + z2) / 2f
-            
-            // 修正點：原本為 midZ.pow(2)，改為 (midZ - z).pow(2) 以適配平移後的中心
             val distToOtherSq = (midX - otherX).pow(2) + (midZ - z).pow(2)
-
             if (distToOtherSq < r * r) continue
             val dx = x2 - x1; val dz = z2 - z1; val len = sqrt(dx * dx + dz * dz)
             if (len == 0f) continue

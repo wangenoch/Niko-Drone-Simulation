@@ -31,6 +31,9 @@ import com.horizon.caadronesimulator.ui.hud.MiniStickVisual
 import com.horizon.caadronesimulator.ui.overlays.*
 import java.util.Locale
 
+import androidx.compose.ui.res.stringResource
+import com.horizon.caadronesimulator.R
+
 @Composable
 fun JoystickMappingScreen(
     mappingLY: ChannelMapping, mappingLX: ChannelMapping, mappingRY: ChannelMapping, mappingRX: ChannelMapping,
@@ -118,14 +121,21 @@ fun JoystickMappingScreen(
             Surface(modifier = Modifier.weight(1.1f), color = Color.White.copy(alpha = 0.03f), shape = RoundedCornerShape(12.dp)) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Button(onClick = onStartWizard, modifier = Modifier.weight(1f).height(34.dp), shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)), contentPadding = PaddingValues(horizontal = 4.dp)) { Text("引導 Wizard", fontSize = 10.sp) }
-                        Button(onClick = onStartCalibration, modifier = Modifier.weight(1f).height(34.dp), shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)), contentPadding = PaddingValues(horizontal = 4.dp)) { Text("重新校準", fontSize = 10.sp) }
-                        Button(onClick = onOpenAuxMapping, modifier = Modifier.weight(1f).height(34.dp), shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7E57C2)), contentPadding = PaddingValues(horizontal = 4.dp)) { Text("延伸設置", fontSize = 10.sp) }
+                        Button(onClick = onStartWizard, modifier = Modifier.weight(1f).height(34.dp), shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)), contentPadding = PaddingValues(horizontal = 4.dp)) { Text(stringResource(R.string.joystick_btn_wizard), fontSize = 10.sp) }
+                        Button(onClick = onStartCalibration, modifier = Modifier.weight(1f).height(34.dp), shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)), contentPadding = PaddingValues(horizontal = 4.dp)) { Text(stringResource(R.string.joystick_btn_recalibrate), fontSize = 10.sp) }
+                        Button(onClick = onOpenAuxMapping, modifier = Modifier.weight(1f).height(34.dp), shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7E57C2)), contentPadding = PaddingValues(horizontal = 4.dp)) { Text(stringResource(R.string.joystick_btn_aux), fontSize = 10.sp) }
                     }
                     Spacer(Modifier.height(10.dp))
                     val isMappingLockedByProtocol = state.hardwareProfile?.driver?.isMappingProtected == true && !state.isMappingUnlocked && !com.horizon.caadronesimulator.logic.HardwareRegistry.debugForceUnlockAll
                     
-                    listOf("油門", "航向", "俯仰", "橫滾").forEachIndexed { i, label ->
+                    val labels = listOf(
+                        stringResource(R.string.joystick_label_throttle_short),
+                        stringResource(R.string.joystick_label_rudder),
+                        stringResource(R.string.joystick_label_elevator),
+                        stringResource(R.string.joystick_label_aileron)
+                    )
+                    
+                    labels.forEachIndexed { i, label ->
                         val m = when(i) { 0 -> mappingLY; 1 -> mappingLX; 2 -> mappingRY; else -> mappingRX }
                         val k = when(i) { 0 -> "ly"; 1 -> "lx"; 2 -> "ry"; else -> "rx" }
                         CompactMappingRow(label, m, k, isAutoBinding, onStartBinding, onToggleInvert, onManualBind, inputMode, isMappingLockedByProtocol)
@@ -134,7 +144,7 @@ fun JoystickMappingScreen(
                     Spacer(Modifier.height(10.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { onModeChange(if(joystickMode > 1) joystickMode - 1 else 4) }, modifier = Modifier.size(24.dp)) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, null, tint = Color.Cyan, modifier = Modifier.size(16.dp)) }
-                        Text("Mode $joystickMode", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 12.dp))
+                        Text(stringResource(R.string.joystick_mode_selector, joystickMode), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 12.dp))
                         IconButton(onClick = { onModeChange(if(joystickMode < 4) joystickMode + 1 else 1) }, modifier = Modifier.size(24.dp)) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Color.Cyan, modifier = Modifier.size(16.dp)) }
                     }
                 }
@@ -144,9 +154,9 @@ fun JoystickMappingScreen(
             Surface(modifier = Modifier.weight(1.0f).fillMaxHeight(), color = Color.White.copy(alpha = 0.03f), shape = RoundedCornerShape(12.dp)) {
                 Column(modifier = Modifier.padding(12.dp).fillMaxHeight()) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("靈敏度/曲線", color = Color.Cyan, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.joystick_section_rates), color = Color.Cyan, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.weight(1f))
-                        TextButton(onClick = onResetRates, contentPadding = PaddingValues(0.dp), modifier = Modifier.height(22.dp)) { Text("重置", color = Color.Cyan, fontSize = 10.sp) }
+                        TextButton(onClick = onResetRates, contentPadding = PaddingValues(0.dp), modifier = Modifier.height(22.dp)) { Text(stringResource(R.string.action_reset), color = Color.Cyan, fontSize = 10.sp) }
                         Switch(checked = useGlobalRates, onCheckedChange = onToggleGlobalRates, modifier = Modifier.scale(0.5f))
                     }
                     
@@ -159,10 +169,10 @@ fun JoystickMappingScreen(
                             ProfessionalSlider("Expo", globalExpo, 0.0f..1.0f, onUpdateGlobalExpo)
                         } else {
                             Button(onClick = { onToggleShowIndividual(true) }, modifier = Modifier.fillMaxWidth().height(38.dp).padding(vertical = 2.dp), shape = RoundedCornerShape(20.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB39DDB))) { 
-                                Text("進階設定 ➔", fontSize = 11.sp, color = Color.Black, fontWeight = FontWeight.Bold) 
+                                Text(stringResource(R.string.joystick_btn_advanced), fontSize = 11.sp, color = Color.Black, fontWeight = FontWeight.Bold) 
                             }
                         }
-                        ProfessionalSlider("死區 DZ: " + "%.2f".format(Locale.US, joystickDeadzone), joystickDeadzone, 0.0f..0.3f, onUpdateDeadzone)
+                        ProfessionalSlider(stringResource(R.string.joystick_deadzone, joystickDeadzone), joystickDeadzone, 0.0f..0.3f, onUpdateDeadzone)
                     }
 
                     Spacer(Modifier.weight(1f)) // 這裡是關鍵：將剩餘空間推開，使 Checkbox 貼底
@@ -170,7 +180,7 @@ fun JoystickMappingScreen(
                     // 底部 Checkbox 區，在視覺水平線上與左側對齊
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(24.dp)) { 
                         Checkbox(checked = halfThrottle, onCheckedChange = onToggleHalfThrottle, colors = CheckboxDefaults.colors(checkedColor = Color.Cyan, uncheckedColor = Color.Gray), modifier = Modifier.scale(0.8f))
-                        Text("半油門模式", color = Color.White, fontSize = 11.sp)
+                        Text(stringResource(R.string.joystick_half_throttle), color = Color.White, fontSize = 11.sp)
                     }
                 }
             }
@@ -182,7 +192,9 @@ fun JoystickMappingScreen(
 fun CompactMappingRow(label: String, mapping: ChannelMapping, key: String, isBinding: String?, onStartBinding: (String) -> Unit, onToggleInvert: (String) -> Unit, onManualBind: (String, Int) -> Unit, inputMode: Int, isLocked: Boolean = false) {
     var showPicker by remember { mutableStateOf(false) }
     val isCurrentBinding = isBinding == key
-    val channelLabelText = if (mapping.axis == -1) "--" else if (inputMode == 1) "CH ${mapping.axis - 100}" else "AX ${mapping.axis}"
+    val chLabel = stringResource(R.string.joystick_label_ch)
+    val axisLabel = stringResource(R.string.joystick_label_axis)
+    val channelLabelText = if (mapping.axis == -1) "--" else if (inputMode == 1) "$chLabel ${mapping.axis - 100}" else "$axisLabel ${mapping.axis}"
 
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(28.dp)) {
         Text(label, color = Color.White, fontSize = 13.sp, modifier = Modifier.width(40.dp))
@@ -194,7 +206,7 @@ fun CompactMappingRow(label: String, mapping: ChannelMapping, key: String, isBin
         ) {
             Box(contentAlignment = Alignment.Center) { 
                 Text(
-                    text = if (isLocked) "協議已鎖定" else if (isCurrentBinding) "偵測中" else "點擊映射", 
+                    text = if (isLocked) stringResource(R.string.joystick_mapping_locked) else if (isCurrentBinding) stringResource(R.string.joystick_mapping_detecting) else stringResource(R.string.joystick_mapping_click), 
                     color = if (isLocked) Color.Gray else if (isCurrentBinding) Color.Cyan else Color(0xFF00B0FF), 
                     fontSize = 11.sp
                 ) 
@@ -220,10 +232,10 @@ fun CompactMappingRow(label: String, mapping: ChannelMapping, key: String, isBin
                     modifier = Modifier.background(Color(0xFF1B2535)).heightIn(max = 240.dp),
                     properties = androidx.compose.ui.window.PopupProperties(focusable = false)
                 ) {
-                    DropdownMenuItem(text = { Text("未設置", fontSize = 12.sp, color = Color.Gray) }, onClick = { onManualBind(key, -1); showPicker = false })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.joystick_mapping_unbound), fontSize = 12.sp, color = Color.Gray) }, onClick = { onManualBind(key, -1); showPicker = false })
                     HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
-                    if (inputMode == 1) { (1..24).forEach { ch -> DropdownMenuItem(text = { Text("CH $ch", fontSize = 12.sp) }, onClick = { onManualBind(key, 100 + ch); showPicker = false }) } } 
-                    else { (0..47).forEach { ax -> DropdownMenuItem(text = { Text("Axis $ax", fontSize = 12.sp) }, onClick = { onManualBind(key, ax); showPicker = false }) } }
+                    if (inputMode == 1) { (1..24).forEach { ch -> DropdownMenuItem(text = { Text("$chLabel $ch", fontSize = 12.sp) }, onClick = { onManualBind(key, 100 + ch); showPicker = false }) } } 
+                    else { (0..47).forEach { ax -> DropdownMenuItem(text = { Text("$axisLabel $ax", fontSize = 12.sp) }, onClick = { onManualBind(key, ax); showPicker = false }) } }
                 }
             }
         }

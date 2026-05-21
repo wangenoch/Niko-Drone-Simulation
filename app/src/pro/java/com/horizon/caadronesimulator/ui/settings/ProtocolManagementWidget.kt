@@ -15,6 +15,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
 
+import androidx.compose.ui.res.stringResource
+import com.horizon.caadronesimulator.R
+
 /**
  * [v1.3.5] 全通訊協議管理中樞
  * 實作通用協議鎖定、自動偵測與專屬硬體標籤顯示。
@@ -37,7 +40,7 @@ fun ProtocolManagementWidget(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                "協議管理: ",
+                stringResource(R.string.diag_label_protocol_mgmt) + ": ",
                 color = Color.Gray,
                 fontSize = 9.sp,
                 modifier = Modifier.width(60.dp)
@@ -74,7 +77,7 @@ fun ProtocolManagementWidget(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            if (lockedProtocol.isEmpty()) "自動偵測" else "鎖定: $lockedProtocol",
+                            if (lockedProtocol.isEmpty()) stringResource(R.string.diag_protocol_auto) else stringResource(R.string.diag_state_locked_short, lockedProtocol),
                             color = if (lockedProtocol.isEmpty()) Color.White else Color.Cyan,
                             fontSize = 8.sp
                         )
@@ -88,7 +91,7 @@ fun ProtocolManagementWidget(
                     properties = PopupProperties(focusable = false)
                 ) {
                     DropdownMenuItem(
-                        text = { Text("自動偵測 (推薦)", fontSize = 11.sp) },
+                        text = { Text(stringResource(R.string.diag_protocol_auto_rec), fontSize = 11.sp) },
                         onClick = { onUpdateLockedProtocol(""); protocolExpanded = false }
                     )
                     HorizontalDivider(color = Color(0x11FFFFFF))
@@ -107,7 +110,7 @@ fun ProtocolManagementWidget(
                     containerColor = Color(0xFF4CAF50).copy(alpha = 0.2f),
                     contentColor = Color.Green
                 ) {
-                    Text("UMBUS 高速模式", fontSize = 7.sp, modifier = Modifier.padding(2.dp))
+                    Text(stringResource(R.string.diag_label_umbus_fast), fontSize = 7.sp, modifier = Modifier.padding(2.dp))
                 }
             }
         }

@@ -34,7 +34,7 @@ class ConfigurationStore(private val context: Context) {
             putInt("joystickMode", state.joystickMode); putInt("inputMode", state.inputMode); putString("droneType", state.droneType)
             putBoolean("halfThrottle", state.halfThrottle); putFloat("joystickDeadzone", state.joystickDeadzone); putBoolean("isMuted", state.isMuted)
             putBoolean("enableVerticalDraft", state.enableVerticalDraft); putBoolean("showShadow", state.showShadow); putBoolean("showTutorial", state.showTutorial)
-            putBoolean("useSimplifiedMarkers", state.useSimplifiedMarkers); putBoolean("showSpecialTitle", state.showSpecialTitle); putString("customTitle", state.customTitle)
+            putBoolean("useSimplifiedMarkers", state.useSimplifiedMarkers); putBoolean("showSpecialTitle", state.showSpecialTitle); putString("currentTitleText", state.currentTitleText)
             putBoolean("useFlightLimit", state.useFlightLimit); putBoolean("enableZoomAssistant", state.enableZoomAssistant); putFloat("mainFOV", state.mainFOV)
             putBoolean("showSideRulers", state.showSideRulers); putBoolean("showGroundAnchor", state.showGroundAnchor); putBoolean("autoPiPRelocate", state.autoPiPRelocate)
             putBoolean("hasShownJoystickTutorial", state.hasShownJoystickTutorial); putBoolean("hasShownClimateTutorial", state.hasShownClimateTutorial); putBoolean("isMappingUnlocked", state.isMappingUnlocked)
@@ -43,12 +43,14 @@ class ConfigurationStore(private val context: Context) {
             putFloat("observerTilt", state.observerTilt); putBoolean("useGlobalRates", state.useGlobalRates); putBoolean("showIndividualRates", state.showIndividualRates)
             putFloat("globalRate", state.globalRate); putFloat("globalExpo", state.globalExpo); putInt("radarZoomMode", state.radarZoomMode)
             putBoolean("showVirtualJoysticks", state.showVirtualJoysticks); putInt("baudRate", state.baudRate); putInt("windLevel", state.windLevel)
-            putString("windDirection", state.windDirection); putInt("windVariation", state.windVariation); putInt("windDirVariation", state.windDirVariation)
-            putString("timeOfDay", state.timeOfDay); putFloat("shadowIntensity", state.shadowIntensity); putBoolean("useHardcorePhysics", state.useHardcorePhysics)
+            putString("cameraMode", state.cameraMode); putString("windDirection", state.windDirection)
+            putInt("windVariation", state.windVariation); putInt("windDirVariation", state.windDirVariation)
+            putString("timeOfDay", state.timeOfDay); putFloat("shadowIntensity", state.shadowIntensity)
             putBoolean("isSunSimEnabled", state.isSunSimEnabled); putFloat("sunPosition", state.sunPosition)
             putBoolean("showClouds", state.showClouds); putFloat("cloudDensity", state.cloudDensity); putBoolean("showMountains", state.showMountains)
             putBoolean("useStrictLanding", state.useStrictLanding); putBoolean("optimizationPromptIgnored", state.optimizationPromptIgnored)
-            apply()
+            putString("appLanguage", state.appLanguage)
+            commit() // [關鍵修復] 使用 commit() 確保語系設定立即落地，防止 Activity 重啟時讀取到舊數據
         }
         
         val targetPrefs = if (state.inputMode == 1) {
@@ -108,7 +110,7 @@ class ConfigurationStore(private val context: Context) {
             this.isMuted = prefs.getBoolean("isMuted", false); this.enableVerticalDraft = prefs.getBoolean("enableVerticalDraft", false)
             this.showShadow = prefs.getBoolean("showShadow", true); this.showTutorial = prefs.getBoolean("showTutorial", true)
             this.useSimplifiedMarkers = prefs.getBoolean("useSimplifiedMarkers", true); this.showSpecialTitle = prefs.getBoolean("showSpecialTitle", true)
-            this.customTitle = prefs.getString("customTitle", "") ?: ""; this.useFlightLimit = prefs.getBoolean("useFlightLimit", true)
+            this.currentTitleText = prefs.getString("currentTitleText", "") ?: ""; this.useFlightLimit = prefs.getBoolean("useFlightLimit", true)
             this.enableZoomAssistant = prefs.getBoolean("enableZoomAssistant", true); this.mainFOV = prefs.getFloat("mainFOV", 45f)
             this.showSideRulers = prefs.getBoolean("showSideRulers", true); this.showGroundAnchor = prefs.getBoolean("showGroundAnchor", false)
             this.autoPiPRelocate = prefs.getBoolean("autoPiPRelocate", true); this.hasShownJoystickTutorial = prefs.getBoolean("hasShownJoystickTutorial", false)
@@ -117,12 +119,43 @@ class ConfigurationStore(private val context: Context) {
             this.lockedProtocol = loadedProtocol; this.showVirtualJoysticks = prefs.getBoolean("showVirtualJoysticks", false)
             this.reverseSliderSides = prefs.getBoolean("reverseSliderSides", true); this.observerHeight = prefs.getFloat("observerHeight", 6.0f)
             this.observerTilt = prefs.getFloat("observerTilt", 0f); this.shadowIntensity = prefs.getFloat("shadowIntensity", 0.5f)
-            this.windLevel = prefs.getInt("windLevel", 0); this.windDirection = prefs.getString("windDirection", "無") ?: "無"
+            this.windLevel = prefs.getInt("windLevel", 0) 
+            
+            // [v1.7.6] 語系狀態遷移 (Migration)：處理舊版中文字串
+            val rawCamMode = prefs.getString("cameraMode", AppConfig.VisualDefaults.CAMERA_MODE) ?: AppConfig.VisualDefaults.CAMERA_MODE
+            this.cameraMode = when(rawCamMode) {
+                "站位視角 (追蹤)" -> AppConfig.CAM_MODE_STATION_TRACK
+                "站位視角 (智慧)" -> AppConfig.CAM_MODE_STATION_SMART
+                "站位視角 (固定)" -> AppConfig.CAM_MODE_STATION_FIXED
+                "跟隨視角" -> AppConfig.CAM_MODE_FOLLOW
+                "FPV 視角" -> AppConfig.CAM_MODE_FPV
+                "觀察員視角 (實驗性)" -> AppConfig.CAM_MODE_OBS
+                else -> rawCamMode
+            }
+
+            val rawWindDir = prefs.getString("windDirection", AppConfig.EnvironmentDefaults.WIND_DIRECTION) ?: AppConfig.EnvironmentDefaults.WIND_DIRECTION
+            this.windDirection = when(rawWindDir) {
+                "無" -> AppConfig.WIND_DIR_NONE; "北風" -> AppConfig.WIND_DIR_N; "東北風" -> AppConfig.WIND_DIR_NE
+                "東風" -> AppConfig.WIND_DIR_E; "東南風" -> AppConfig.WIND_DIR_SE; "南風" -> AppConfig.WIND_DIR_S
+                "西南風" -> AppConfig.WIND_DIR_SW; "西風" -> AppConfig.WIND_DIR_W; "西北風" -> AppConfig.WIND_DIR_NW
+                "隨機" -> AppConfig.WIND_DIR_RANDOM; else -> rawWindDir
+            }
+
+            val rawTime = prefs.getString("timeOfDay", AppConfig.TIME_NOON) ?: AppConfig.TIME_NOON
+            this.timeOfDay = when(rawTime) {
+                "早晨" -> AppConfig.TIME_MORNING; "中午" -> AppConfig.TIME_NOON; "下午" -> AppConfig.TIME_AFTERNOON
+                else -> rawTime
+            }
+
             this.windVariation = prefs.getInt("windVariation", 0); this.windDirVariation = prefs.getInt("windDirVariation", 0)
-            this.timeOfDay = prefs.getString("timeOfDay", "中午") ?: "中午"; this.useHardcorePhysics = prefs.getBoolean("useHardcorePhysics", false)
+            this.useHardcorePhysics = prefs.getBoolean("useHardcorePhysics", false)
             this.isSunSimEnabled = prefs.getBoolean("isSunSimEnabled", false); this.sunPosition = prefs.getFloat("sunPosition", 0.5f)
             this.showClouds = prefs.getBoolean("showClouds", true); this.cloudDensity = prefs.getFloat("cloudDensity", 0.5f); this.showMountains = prefs.getBoolean("showMountains", true)
             this.useStrictLanding = prefs.getBoolean("useStrictLanding", true); this.optimizationPromptIgnored = prefs.getBoolean("optimizationPromptIgnored", false)
+            
+            // [v1.7.6] 語言讀取優化：若 SharedPreferences 為空，則優先參考系統語言
+            val defaultLang = if (java.util.Locale.getDefault().language.startsWith("zh")) "zh" else "en"
+            this.appLanguage = prefs.getString("appLanguage", defaultLang) ?: defaultLang
             
             this.rateT = targetPrefs.getFloat("rateT", 1.0f)
             this.rateY = targetPrefs.getFloat("rateY", 1.0f); this.rateP = targetPrefs.getFloat("rateP", 1.0f); this.rateR = targetPrefs.getFloat("rateR", 1.0f)
@@ -136,7 +169,15 @@ class ConfigurationStore(private val context: Context) {
 
     private fun performInitialSetup(state: DroneState) {
         val hasTouchScreen = context.packageManager.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)
+        
+        // [v1.7.6] 首次啟動：自動識別系統語言
+        val sysLang = java.util.Locale.getDefault().language
+        val initialLang = if (sysLang.startsWith("zh")) "zh" else "en"
+        
         state.apply { 
+            appLanguage = initialLang
+            currentTitleText = AppConfig.getDefaultSpecialTitle(initialLang)
+
             if (hasTouchScreen) { 
                 showVirtualJoysticks = true
                 globalRate = AppConfig.JoystickDefaults.RATE

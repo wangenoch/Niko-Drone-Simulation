@@ -1,0 +1,430 @@
+<resources>
+    <string name="app_name">Niko Drone Simulator</string>
+
+    <!-- Common Actions -->
+    <string name="action_ok">OK</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_close">Close</string>
+    <string name="action_save">Save</string>
+    <string name="action_reset">Reset</string>
+    <string name="action_restore_defaults">Restore Factory Defaults</string>
+    <string name="action_apply">Apply Now</string>
+    <string name="action_general">General</string>
+    <string name="action_ignore">Ignore</string>
+    <string name="action_arm">Arm</string>
+    <string name="action_disarm">Disarm</string>
+    <string name="action_scan">Scan Connection</string>
+    <string name="action_disconnect">Disconnect</string>
+    <string name="action_clear">Clear</string>
+    <string name="action_export">Export Report</string>
+    <string name="action_force_unlock">Force Unlock</string>
+    <string name="action_reset_all">Restore All Defaults</string>
+    <string name="action_restart">Restart</string>
+    <string name="action_finish">Finish &amp; Return</string>
+    <string name="action_skip">Skip</string>
+    <string name="action_enter_settings">Enter Settings</string>
+    <string name="action_ignore_temp">Ignore for now</string>
+    <string name="action_ignore_perm">Don\'t ask again</string>
+    <string name="action_save_apply">Save &amp; Apply</string>
+    <string name="action_open_factory_app">🚀 Open Factory App</string>
+    <string name="action_cancel_wizard">Cancel Setup</string>
+    <string name="action_confirm_neutral">Confirm Neutral</string>
+    <string name="action_save_finish">Save &amp; Finish</string>
+
+    <!-- HUD Labels -->
+    <string name="hud_altitude">ALT</string>
+    <string name="hud_speed">SPD</string>
+    <string name="hud_distance">DIST</string>
+    <string name="hud_altitude_short">ALT</string>
+    <string name="hud_speed_short">SPD</string>
+    <string name="hud_distance_short">DIST</string>
+    <string name="hud_pitch_short">P</string>
+    <string name="hud_tilt_short">TILT</string>
+    <string name="hud_rate_short">R</string>
+    <string name="hud_expo_short">E</string>
+    <string name="hud_unit_m">m</string>
+    <string name="hud_unit_ms">m/s</string>
+    <string name="hud_environment">ENV</string>
+    <string name="hud_motor">Motor</string>
+    <string name="hud_motor_locked">Locked</string>
+    <string name="hud_motor_active">Active</string>
+    <string name="hud_boundary_warning">Warning: Near Airspace Boundary</string>
+    <string name="hud_signal_ok">Signal OK</string>
+    <string name="hud_signal_waiting">Waiting for Signal…</string>
+    <string name="hud_no_wind">No Wind</string>
+    <string name="hud_wind_level">L%1$d</string>
+
+    <!-- Mission & Evaluator -->
+    <string name="mission_spot_timer_mode_name">Spot Timing</string>
+    <string name="mission_spot_timer_takeoff">Take off to visual height</string>
+    <string name="mission_spot_timer_too_low">⚠️ Altitude too low (Current: %1$.1fm)</string>
+    <string name="mission_spot_timer_too_high">⚠️ Altitude too high (Current: %1$.1fm)</string>
+    <string name="mission_spot_timer_yaw_error">H-Point Yaw error too large (Diff: %1$.0f°)</string>
+    <string name="mission_spot_timer_yaw_error_generic">Align with baseline (Diff %1$.0f°)</string>
+    <string name="mission_spot_timer_wait_stable">Rotating… Wait for stability</string>
+    <string name="mission_spot_timer_searching">Searching for target point…</string>
+    <string name="mission_spot_timer_perfect">Perfect! H-Point Hover qualified</string>
+    <string name="mission_spot_timer_success">Congratulations! Hover qualified</string>
+    <string name="mission_spot_timer_prefix_h">H-Point Precision Timing</string>
+    <string name="mission_spot_timer_prefix_generic">Spot Timing</string>
+
+    <!-- Joystick Settings -->
+    <string name="joystick_label_throttle">Throttle</string>
+    <string name="joystick_label_yaw">Yaw</string>
+    <string name="joystick_label_pitch">Pitch</string>
+    <string name="joystick_label_roll">Roll</string>
+    <string name="joystick_label_throttle_short">Throttle</string>
+    <string name="joystick_label_yaw_short">Yaw</string>
+    <string name="joystick_label_pitch_short">Pitch</string>
+    <string name="joystick_label_roll_short">Roll</string>
+    <string name="joystick_label_aileron">AIL</string>
+    <string name="joystick_label_elevator">ELE</string>
+    <string name="joystick_label_rudder">RUD</string>
+    <string name="joystick_settings_title">Controller &amp; Handfeel Settings</string>
+    <string name="joystick_mode_selector">Control Mode %1$d</string>
+    <string name="joystick_deadzone">Deadzone DZ: %1$.2f</string>
+    <string name="joystick_btn_wizard">Wizard</string>
+    <string name="joystick_btn_recalibrate">Recalibrate</string>
+    <string name="joystick_btn_aux">Aux Settings</string>
+    <string name="joystick_section_rates">Sensitivity/Rates</string>
+    <string name="joystick_btn_advanced">Advanced Settings ➔</string>
+    <string name="joystick_half_throttle">Half-Throttle Mode</string>
+    <string name="joystick_mapping_locked">Protocol Locked</string>
+    <string name="joystick_mapping_detecting">Detecting</string>
+    <string name="joystick_mapping_click">Click to Map</string>
+    <string name="joystick_mapping_unbound">Unbound</string>
+    <string name="joystick_input_external">External</string>
+    <string name="joystick_input_internal">Internal</string>
+    <string name="joystick_fast_lock">Fast Lock</string>
+    <string name="joystick_tab_title">Stick</string>
+    <string name="joystick_mode_hint">Current Mode: [Mode %1$d %2$s]</string>
+    <string name="joystick_mode_1">Mode 1</string>
+    <string name="joystick_mode_2">Mode 2</string>
+    <string name="joystick_mode_3">Mode 3</string>
+    <string name="joystick_mode_4">Mode 4</string>
+    <string name="joystick_rate_up">Up</string>
+    <string name="joystick_rate_down">Down</string>
+    <string name="joystick_aux_title">Aux Function Mapping &amp; Settings</string>
+    <string name="joystick_aux_hint">Flip switches or click bars to map channels.</string>
+    <string name="joystick_aux_safety">🔒 Safety &amp; Arming</string>
+    <string name="joystick_aux_camera">👁️ Camera &amp; Gimbal Control</string>
+    <string name="joystick_label_arm">Motor Arming</string>
+    <string name="joystick_label_hold">Throttle Hold</string>
+    <string name="joystick_label_flight_mode">Flight Mode</string>
+    <string name="joystick_label_obs_height">Observer Height</string>
+    <string name="joystick_label_obs_tilt">Observer Tilt</string>
+    <string name="joystick_label_fpv_tilt">FPV Gimbal Tilt</string>
+    <string name="joystick_aux_heli_only">※ Experimental: Currently for HELI only</string>
+    <string name="joystick_aux_future_mode">※ Reserved: Future support for POS/ATTI switch</string>
+    <string name="joystick_wizard_title">Setup Wizard</string>
+    <string name="joystick_wizard_waiting">Linked! Release sticks to center (%1$d)…</string>
+    <string name="joystick_wizard_step1">Push LEFT stick UP to max</string>
+    <string name="joystick_wizard_step2">Push LEFT stick RIGHT to max</string>
+    <string name="joystick_wizard_step3">Push RIGHT stick UP to max</string>
+    <string name="joystick_wizard_step4">Push RIGHT stick RIGHT to max</string>
+    <string name="joystick_calib_title">Stick Calibration - Step %1$d</string>
+    <string name="joystick_label_ch">CH</string>
+    <string name="joystick_label_axis">Axis</string>
+
+    <!-- Tactical Menu -->
+    <string name="menu_camera_mode">Nav</string>
+    <string name="menu_zoom_factor">Zoom Factor</string>
+    <string name="menu_click_to_switch">Click to Switch</string>
+    <string name="menu_show_obstacles">Show Obstacles</string>
+    <string name="menu_hide_obstacles">Hide Obstacles</string>
+    <string name="menu_show_shadow">Show Shadow</string>
+    <string name="menu_hide_shadow">Hide Shadow</string>
+    <string name="menu_show_path">Show Flight Path</string>
+    <string name="menu_hide_path">Hide Flight Path</string>
+    <string name="menu_enable_zoom">Enable Zoom Assistant</string>
+    <string name="menu_disable_zoom">Disable Zoom Assistant</string>
+    <string name="menu_expand">Expand</string>
+
+    <!-- Diagnostic & Professional -->
+    <string name="diag_title">Hardware Connection &amp; Mode Settings</string>
+    <string name="diag_status_active">Connected (Stable)</string>
+    <string name="diag_status_searching">Searching for hardware…</string>
+    <string name="diag_status_linked">Establishing link…</string>
+    <string name="diag_status_idle">IDLE</string>
+    <string name="diag_state_locked">🔒 Manual Locked</string>
+    <string name="diag_state_locked_short">Locked: %1$s</string>
+    <string name="diag_state_scanning">🔎 Auto Scanning</string>
+    <string name="diag_state_engaged">🚀 Hardware Found</string>
+    <string name="diag_state_awaiting_perm">🔑 Awaiting Permission</string>
+    <string name="diag_state_standby">Standby</string>
+    <string name="diag_state_silent">🚫 Silent Mode</string>
+    <string name="diag_label_path">Hardware Path</string>
+    <string name="diag_path_auto">Auto Detect</string>
+    <string name="diag_path_auto_rec">Auto Scan (Rec)</string>
+    <string name="diag_label_link_type">Link Type</string>
+    <string name="diag_label_protocol_mgmt">Protocol Management</string>
+    <string name="diag_protocol_auto">Auto Detect Protocol</string>
+    <string name="diag_protocol_auto_rec">Auto Detect (Rec)</string>
+    <string name="diag_label_conflict">Conflict</string>
+    <string name="diag_label_baud">Baud Rate</string>
+    <string name="diag_baud_rec">%1$d (Rec)</string>
+    <string name="diag_label_net_proto">Network Protocol</string>
+    <string name="diag_label_net_conn">Network Connection</string>
+    <string name="diag_label_pps">Packet Rate</string>
+    <string name="diag_label_jitter">Signal Jitter</string>
+    <string name="diag_label_stability">Stability</string>
+    <string name="diag_label_buffer">Buffer Status</string>
+    <string name="diag_label_density">Data Density</string>
+    <string name="diag_label_signal_status">Signal Status</string>
+    <string name="diag_monitor_hid">HID Axis Monitor</string>
+    <string name="diag_monitor_serial">Serial Channel Stream (15 FPS)</string>
+    <string name="diag_system_log">System Log</string>
+    <string name="diag_realtime_monitor">Real-time Monitor</string>
+    <string name="diag_new_hw_detected">New USB Hardware Detected</string>
+    <string name="diag_btn_set_internal">Set Internal</string>
+    <string name="diag_btn_set_external">Set External</string>
+    <string name="diag_unknown_device">Unknown Device</string>
+    <string name="diag_label_umbus_fast">UMBUS High Speed</string>
+    <string name="diag_label_dual_row">48-CH DUAL ROW</string>
+    <string name="diag_status_waiting_data">Waiting for data stream…</string>
+    <string name="diag_net_connected">Network: Connected</string>
+    <string name="diag_net_listening">Network: Listening</string>
+    <string name="diag_protocol_si_exp">SIYI MK15 (Exp)</string>
+    <string name="diag_status_active_desc">Status: Normal Operation</string>
+    <string name="diag_status_linked_desc">Linked (Waiting for signal…)</string>
+    <string name="diag_status_searching_desc">Detecting protocol &amp; hardware…</string>
+    <string name="diag_status_waiting_scan">Waiting to scan connection</string>
+
+    <!-- Settings Screens -->
+    <string name="settings_title_env">Environment &amp; Climate Simulation</string>
+    <string name="settings_title_drone">Drone Model Selection</string>
+    <string name="settings_title_camera">Visual Navigation &amp; Interface</string>
+    <string name="settings_title_system">System &amp; Advanced Settings</string>
+    <string name="settings_apply_physics">Apply Realistic Physics</string>
+    <string name="settings_btn_tutorial">Tutorial</string>
+    <string name="settings_expert_unlock_title">Unlock Expert Mode</string>
+    <string name="settings_expert_unlock_desc">This mode is for instructors and developers only.</string>
+    <string name="settings_expert_unlock_hint">Passcode Hint: 12345678</string>
+    <string name="settings_expert_unlock_label">Passcode</string>
+    <string name="settings_expert_unlock_btn">Unlock</string>
+    <string name="settings_tab_drone">Model</string>
+    <string name="settings_auto_connect">Auto-Detect Hardware on Startup</string>
+    <string name="settings_hide_status_bar">Hide Android Status Bar</string>
+    <string name="settings_pause_in_settings">Pause Simulation in Settings</string>
+    <string name="settings_strict_landing">Strict Landing Safety Standard</string>
+    <string name="settings_strict_landing_desc">Crash if impact > 2.2m/s with warnings</string>
+    <string name="settings_expert_active">Expert Mode is already active</string>
+    <string name="settings_dev_label">Developer: </string>
+    <string name="settings_version_label">Version: </string>
+    <string name="settings_language">Language</string>
+    <string name="settings_lang_zh">繁體中文</string>
+    <string name="settings_lang_en">English</string>
+
+    <!-- Climate Settings -->
+    <string name="climate_wind_physics">Wind Physics</string>
+    <string name="climate_label_level">Level</string>
+    <string name="climate_wind_directions">Wind Direction (Grid)</string>
+    <string name="climate_dir_n">North</string>
+    <string name="climate_dir_s">South</string>
+    <string name="climate_dir_e">East</string>
+    <string name="climate_dir_w">West</string>
+    <string name="climate_dir_ne">Northeast</string>
+    <string name="climate_dir_nw">Northwest</string>
+    <string name="climate_dir_se">Southeast</string>
+    <string name="climate_dir_sw">Southwest</string>
+    <string name="climate_dir_random">Random</string>
+    <string name="climate_wind_tuning">Airflow Tuning</string>
+    <string name="climate_wind_var">Speed Variance</string>
+    <string name="climate_dir_var">Dir Variance</string>
+    <string name="climate_vertical_draft">Vertical Draft (Alt Correction)</string>
+    <string name="climate_hardcore_physics">Adv. Atmosphere Physics (Exp)</string>
+    <string name="climate_visual_details">Visuals &amp; Details</string>
+    <string name="climate_sun_pos">Sun Position</string>
+    <string name="climate_time_morning">Morning</string>
+    <string name="climate_time_noon">Noon</string>
+    <string name="climate_time_afternoon">Afternoon</string>
+    <string name="climate_shadow_intensity">Shadow Intensity: %1$.1f</string>
+    <string name="climate_weather_preset">Weather Presets</string>
+    <string name="climate_weather_clear">Clear</string>
+    <string name="climate_weather_cirrus">Cirrus</string>
+    <string name="climate_weather_cumulus">Accumulus</string>
+    <string name="climate_weather_stratus">Stratus</string>
+    <string name="climate_cloud_density">Cloud Density</string>
+    <string name="climate_show_mountains">Show Mountains</string>
+
+    <!-- Visual Navigation Settings -->
+    <string name="visual_camera_section">Camera &amp; View</string>
+    <string name="visual_label_fov">Field of View (FOV)</string>
+    <string name="visual_label_zoom">Zoom Factor</string>
+    <string name="visual_enable_zoom_assistant">Auto-Zoom Assistant</string>
+    <string name="visual_hud_section">HUD Elements</string>
+    <string name="visual_special_title">Top Special Title</string>
+    <string name="visual_side_sliders">Show Side Sliders</string>
+    <string name="visual_side_rulers">Show Alt/Spd Rulers</string>
+    <string name="visual_reverse_sliders">Reverse Slider Sides</string>
+    <string name="visual_nav_section">Navigation Assist</string>
+    <string name="visual_ground_anchor">AR Ground Anchor (H-Point)</string>
+    <string name="visual_pip_relocate">Auto PiP Relocation</string>
+    <string name="visual_nav_hint">Settings apply instantly to navigation system.</string>
+    <string name="visual_edit_title">Edit Special Title</string>
+    <string name="visual_edit_title_desc">Enter text to display above takeoff point:</string>
+    <string name="visual_edit_title_placeholder">e.g. Niko Drone Team</string>
+    <string name="visual_cam_mode_station_track">Station (Track)</string>
+    <string name="visual_cam_mode_station_smart">Station (Smart)</string>
+    <string name="visual_cam_mode_station_fixed">Station (Fixed)</string>
+    <string name="visual_cam_mode_follow">Follow Mode</string>
+    <string name="visual_cam_mode_fpv">FPV Mode</string>
+    <string name="visual_cam_mode_obs">Observer (Exp)</string>
+    <string name="visual_label_auto">AUTO</string>
+    <string name="visual_label_zoom_short">Zoom Factor</string>
+    <string name="visual_label_fpv_tilt">FPV Gimbal Tilt</string>
+
+    <!-- Drone Selection -->
+    <string name="drone_selection_detail_title">Specs (%1$s)</string>
+    <string name="drone_selection_current">Selected</string>
+    <string name="drone_selection_hold">Throttle Hold</string>
+
+    <!-- Troubleshooting & Status -->
+    <string name="status_app_not_installed">Hardware App not installed</string>
+    <string name="status_app_not_supported">Hardware App launch not supported</string>
+    <string name="status_crash">Drone Crashed</string>
+    <string name="status_motor_locked">Motor Locked</string>
+    <string name="status_ok">OK</string>
+    <string name="status_no_signal">NO SIGNAL</string>
+
+    <!-- Safety & System Messages (IDs) -->
+    <string name="safety_msg_pass">✅ System Check Passed</string>
+    <string name="safety_msg_warn_off">⚠️ Safety Warn: Switch Arming OFF first</string>
+    <string name="safety_msg_warn_throttle">⚠️ Safety Alert: Throttle NOT zero (%1$.0f%%)</string>
+    <string name="safety_msg_warn_hold">⚠️ Safety Warn: Switch to HOLD first</string>
+    <string name="safety_msg_hold_ready">✅ Kill System Ready</string>
+    <string name="safety_flight_mode_atti">ATTI Mode</string>
+    <string name="safety_flight_mode_pos">POS Mode</string>
+    <string name="safety_flight_mode_acro">ACRO Mode</string>
+    <string name="safety_flight_mode_prefix">Mode Switched ➔ %1$s</string>
+    <string name="safety_msg_armed">Unlocked</string>
+    <string name="safety_msg_disarmed">Locked</string>
+    <string name="safety_msg_auto_disarm">Auto Disarm</string>
+
+    <string name="sys_msg_cancel">Connection Cancelled</string>
+    <string name="sys_msg_logcat_required">📋 Enable [Real-time Logcat] to collect data</string>
+    <string name="sys_msg_perm_required">🔐 Storage permission required for logs</string>
+    <string name="sys_msg_init_data">⏳ Collecting data, retry in seconds</string>
+    <string name="sys_msg_internal_hw">🔗 Internal Hardware detected &amp; linked</string>
+    <string name="sys_msg_hid_fallback">No external pad, switched to virtual sticks</string>
+    <string name="sys_msg_heavy_landing">⚠️ Heavy Landing (%1$.1f m/s), try smoother</string>
+    <string name="sys_msg_alt_limit">Altitude Limit 30m reached</string>
+    <string name="sys_msg_wizard_done">Setup Wizard Finished</string>
+    <string name="sys_msg_crash_extreme">❌ Extreme Crash (Speed: %1$.1f m/s)</string>
+    <string name="sys_msg_crash_structural">⚠️ Structural Impact (Speed: %1$.1f m/s)</string>
+    <string name="sys_msg_restore_done">Defaults Restored</string>
+    <string name="sys_msg_video_syncing">Syncing video data...</string>
+    <string name="sys_msg_logcat_fail">Logcat start failed: %1$s</string>
+    <string name="log_export_success">✅ Log saved to Downloads folder</string>
+    <string name="log_export_fallback">📋 Permission denied for public storage. Log saved to private directory:\n%1$s</string>
+    <string name="log_export_fail">❌ Export failed: %1$s</string>
+    <string name="log_export_create_fail">Failed to create file entity</string>
+    <string name="log_msg_state_change">System State Change ➔ %1$s</string>
+    <string name="log_msg_manual_baud">Manual Locked Baud: %1$d</string>
+    <string name="log_msg_manual_path">Manual Locked Path: %1$s</string>
+    <string name="log_msg_reset_auto">Reset to Auto-Detect Mode</string>
+    <string name="log_msg_manual_protocol">Manual Locked Protocol: %1$s</string>
+    <string name="log_msg_umbus_smart">UMBUS Smart-Link: Auto-filled /dev/ttyS0 @ 921600</string>
+    <string name="log_msg_manual_scan">User manually started scan...</string>
+    <string name="log_msg_probing">🔍 Probing internal path: %1$s @ %2$d</string>
+    <string name="log_msg_open_ok">✅ Physical layer opened successfully: %1$s</string>
+    <string name="log_msg_open_fail">❌ Open failed: %1$s</string>
+    <string name="radar_zoom_global">Global</string>
+    <string name="radar_zoom_auto">Auto</string>
+    <string name="radar_zoom_precise">Precise</string>
+    <string name="radar_zoom_dynamic">Dynamic</string>
+
+    <!-- Overlays -->
+    <string name="notice_title_update">🚀 Feature Update Report</string>
+    <string name="notice_intro_error">Failed to load update details, please check README.md in root.</string>
+    <string name="notice_known_issues">⚠️ Known Issues</string>
+    <string name="notice_special_thanks">🎁 Special Thanks</string>
+    <string name="notice_scroll_hint">Scroll down for more</string>
+    <string name="collision_title">💥 Collision Detected!</string>
+    <string name="collision_btn_restart">Restart</string>
+    <string name="optimization_title">🚀 Optimized Protocol Detected</string>
+    <string name="optimization_desc">System detected you are using %1$s. Auto-apply optimized protocol and mapping?</string>
+
+    <!-- Network Settings -->
+    <string name="net_title">Network Connection Settings</string>
+    <string name="net_label_proto">Connection Protocol</string>
+    <string name="net_label_ip">Listening Address (IP)</string>
+    <string name="net_label_port">Communication Port</string>
+    <string name="net_ip_local">Localhost</string>
+    <string name="net_ip_all">Any</string>
+
+    <!-- Troubleshooting -->
+    <string name="trouble_title">Internal Connection Troubleshooting</string>
+    <string name="trouble_desc">Communication blocked. Please follow these steps to reactivate:</string>
+    <string name="trouble_step1_t">Open Factory App for Initialization</string>
+    <string name="trouble_step1_d">Click the button below to jump to the factory control interface.</string>
+    <string name="trouble_step2_t">Check Visual Status (Icon Guide)</string>
+    <string name="trouble_step2_d">Verify if the two icons in the bottom-left of the factory app are lit.</string>
+    <string name="trouble_status_ok">✅ Normal (Lit)</string>
+    <string name="trouble_status_err">❌ Error (Grey)</string>
+    <string name="trouble_warn_reboot">⚠️ If icons are grey, please "Reboot Controller Power" immediately.</string>
+    <string name="trouble_step3_t">Swipe away Factory App to Release Permission</string>
+    <string name="trouble_step3_d">Once lit, swipe away the factory app from "Recent Tasks". Otherwise, the simulator cannot access the serial port.</string>
+
+    <!-- Tutorials -->
+    <string name="tutorial_click_continue">Tap to continue (%1$d/%2$d)</string>
+    <string name="tutorial_skip_nav">Skip Tour</string>
+    <string name="tutorial_label_menu">Menu</string>
+    <string name="tutorial_label_radar">Visual Radar</string>
+    <string name="tutorial_label_data">Flight Data</string>
+    <string name="tutorial_label_arm">Unlock Motors</string>
+
+    <string name="tut_welcome_t1">Welcome to Niko Drone Simulator</string>
+    <string name="tut_welcome_d1">This is a professional flight training system designed to help you master drone licensing procedures and physics.</string>
+    <string name="tut_welcome_t2">Tactical Toolbar</string>
+    <string name="tut_welcome_d2">Tap top-right to open toolbar. Includes:\n• Data Toggle: Show/Hide HUD\n• Audio: Mute/Unmute motor/env sounds\n• Virtual Sticks: On-screen touch controls\n• Views: Track/Follow/FPV switch\n• Settings: Mapping &amp; model selection\n• Reset: Instant return to home</string>
+    <string name="tut_welcome_t3">Visual Radar HUD</string>
+    <string name="tut_welcome_d3">Bottom-left shows position &amp; heading. Red zones are out of bounds; keep flight within limits.</string>
+    <string name="tut_welcome_t4">Flight Status Monitoring</string>
+    <string name="tut_welcome_d4">Bottom bar shows Alt, Speed, and Distance. Max Alt is 30m; warnings trigger if exceeded.</string>
+    <string name="tut_welcome_t5">Arming &amp; Launch</string>
+    <string name="tut_welcome_d5">On ground, tap top ARM button or use CSC (Inner-Bottom) on physical sticks to unlock.</string>
+    <string name="tut_welcome_t6">Ready to Fly!</string>
+    <string name="tut_welcome_d6">Try arming the motors and perform your first takeoff. Good luck!</string>
+
+    <string name="tut_joy_t1">Controller Setup Guide</string>
+    <string name="tut_joy_d1">Configure your external remote here to ensure precise flight control.</string>
+    <string name="tut_joy_t2">Input Mode Selection</string>
+    <string name="tut_joy_d2">Switch between External Pad or Internal System. Pro-integrated remotes use Internal mode.</string>
+    <string name="tut_joy_t3">Hardware Scan &amp; Link</string>
+    <string name="tut_joy_d3">Tap to start hardware detection. Once linked, RX values will begin updating.</string>
+    <string name="tut_joy_t4">One-Tap Setup Wizard</string>
+    <string name="tut_joy_d4">Recommended for beginners! Follow system prompts to map sticks sequentially.</string>
+    <string name="tut_joy_t5">Stick Calibration Tool</string>
+    <string name="tut_joy_d5">If sticks don\'t center or lack travel, use this to define physical ranges.</string>
+    <string name="tut_joy_t6">Single Axis Auto-Bind</string>
+    <string name="tut_joy_d6">Tap "Auto" and move a stick to quickly map specific channels.</string>
+    <string name="tut_joy_t7">Inversion Switches</string>
+    <string name="tut_joy_d7">Reverse axes if needed (e.g., if pushing up results in descent).</string>
+    <string name="tut_joy_t8">Control Mode Switch</string>
+    <string name="tut_joy_d8">Switch between Mode 1 (Japan) or Mode 2 (USA) control schemes.</string>
+    <string name="tut_joy_t9">Sensitivity &amp; Rates</string>
+    <string name="tut_joy_d9">Adjust Rates &amp; Expo to optimize feel, or enter Advanced settings for fine-tuning.</string>
+
+    <string name="tut_clim_t1">Climate &amp; Env Tour</string>
+    <string name="tut_clim_d1">Configure simulation parameters to challenge yourself with various conditions.</string>
+    <string name="tut_clim_t2">Wind Level Selection</string>
+    <string name="tut_clim_d2">Set average wind speed. Higher levels cause more drift, requiring precise correction.</string>
+    <string name="tut_clim_t3">Wind Direction System</string>
+    <string name="tut_clim_d3">Choose wind source. "Random" challenges you with unpredictable gusts.</string>
+    <string name="tut_clim_t4">Intensity &amp; Turbulence</string>
+    <string name="tut_clim_d4">Adjust wind variability. High intensity simulates harsh, gusty weather.</string>
+    <string name="tut_clim_t5">Time &amp; Lighting</string>
+    <string name="tut_clim_d5">Switch environment light. Note how shadow directions change with time of day.</string>
+    <string name="tut_clim_t6">Shadow Intensity</string>
+    <string name="tut_clim_d6">Adjust ground shadow density to better judge height and position in different terrains.</string>
+
+    <!-- Model Config -->
+    <string name="model_config_title">Advanced Model Config</string>
+    <string name="model_config_desc">Enter custom handfeel curve settings for [%1$s]?</string>
+
+    <!-- Model Names and Fallbacks -->
+    <string name="model_name_heli">Helicopter (HELI)</string>
+    <string name="model_name_heavy">Heavy Lift (Heavy)</string>
+    <string name="model_name_small">Small Drone (Small)</string>
+</resources>

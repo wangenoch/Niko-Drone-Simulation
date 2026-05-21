@@ -22,14 +22,17 @@ import kotlinx.coroutines.launch
  * [v1.7.6] 模擬器主入口 - 效能極致優化版
  * 職責：管理組件生命週期與高頻渲染回調，作為 Pro (專業) 與 Store (合規) 鏈路的總掛載點。
  */
-class MainActivity : ComponentActivity() {
+import java.util.Locale
+import android.content.res.Configuration
+
+class MainActivity : androidx.activity.ComponentActivity() {
     
     // --- 系統權限組件 ---
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { isGranted: Boolean ->
         if (isGranted) saveDiagnosticLog()
-        else droneState.systemMessage = "Permission required for export"
+        else droneState.systemMessage = "PERM_REQUIRED"
     }
 
     // --- 核心狀態與邏輯組件 ---
@@ -44,6 +47,14 @@ class MainActivity : ComponentActivity() {
     private lateinit var configStore: ConfigurationStore
     private lateinit var usbSerialManager: com.horizon.caadronesimulator.logic.UsbSerialManager
 
+    private fun updateLocale(lang: String) {
+        val locale = Locale(lang)
+        Locale.setDefault(locale)
+        val config = Configuration(resources.configuration)
+        config.setLocale(locale)
+        resources.updateConfiguration(config, resources.displayMetrics)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
@@ -51,6 +62,10 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         configStore = ConfigurationStore(this)
         configStore.loadSettings(droneState)
+        
+        // [v1.7.6] 套用手動選擇的語言
+        updateLocale(droneState.appLanguage)
+
         updateSystemUI()
 
         // 2. [v1.7.6] Store (上架合規) 鏈路初始化：負責 USB OTG 與 網路通訊
@@ -133,7 +148,28 @@ class MainActivity : ComponentActivity() {
                         com.horizon.caadronesimulator.logic.ProHardwareBridge.onStop()
                     }
                 },
-                onUpdateSystemUI = { updateSystemUI() }
+                onUpdateSystemUI = { updateSystemUI() },
+                onLanguageChange = { lang ->
+                    // 1. 識別是否正處於預設標題 (以便自動轉換)
+                    val oldDefault = com.horizon.caadronesimulator.model.AppConfig.getDefaultSpecialTitle(droneState.appLanguage)
+                    val isUsingDefault = droneState.currentTitleText == oldDefault || droneState.currentTitleText.isEmpty()
+                    
+                    // 2. 切換語言
+                    droneState.appLanguage = lang
+                    
+                    // 3. 如果原本是預設標題，自動切換至新語言的預設值
+                    if (isUsingDefault) {
+                        droneState.currentTitleText = com.horizon.caadronesimulator.model.AppConfig.getDefaultSpecialTitle(lang)
+                    }
+
+                    // 4. [同步寫入磁碟] 確保重啟後 loadSettings 讀到的是最新語系
+                    configStore.saveSettings(droneState)
+                    
+                    // 5. [狀態清理] 清除歷史日誌，防止中文日誌殘留在 Singleton 中
+                    droneState.diagnosticLog = ""
+
+                    recreate()
+                }
             )
         }
     }

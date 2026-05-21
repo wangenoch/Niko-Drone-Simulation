@@ -7,6 +7,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
+import androidx.compose.ui.res.stringResource
+import com.horizon.caadronesimulator.R
 import com.horizon.caadronesimulator.audio.DroneSoundManager
 import com.horizon.caadronesimulator.logic.DroneViewModel
 import com.horizon.caadronesimulator.logic.UsbSerialManager
@@ -42,7 +44,8 @@ fun MainAppScreen(
     onUpdateBaudRate: (Int) -> Unit,
     onUpdateInputMode: (Int) -> Unit,
     onToggleNetworkConnection: (Boolean) -> Unit,
-    onUpdateSystemUI: () -> Unit
+    onUpdateSystemUI: () -> Unit,
+    onLanguageChange: (String) -> Unit = {}
 ) {
     var isStatusVisible by remember { mutableStateOf(true) }
     var tutorialTargets by remember { mutableStateOf<Map<String, Rect>>(emptyMap()) }
@@ -76,14 +79,17 @@ fun MainAppScreen(
         configStore.saveSettings(droneState) 
     }
 
-    // 2. 環境與氣象同步 [v1.7.3 效能修復]
-    LaunchedEffect(droneState.weatherMode, droneState.timeOfDay, droneState.showClouds, droneState.showMountains,
-                   droneState.windLevel, droneState.windDirection, droneState.windVariation, droneState.windDirVariation,
-                   droneState.showShadow, droneState.shadowIntensity, droneState.showObstacles, droneState.useHardcorePhysics,
-                   droneState.isSunSimEnabled, droneState.sunPosition, droneState.observerTilt, droneState.cloudDensity,
-                   droneState.useSimplifiedMarkers, droneState.showSpecialTitle, droneState.customTitle,
-                   droneState.useFlightLimit, droneState.mainFOV, droneState.showGroundAnchor, droneState.isThrottleHoldActive,
-                   droneState.isMotorLocked) {
+    // 3. 全域渲染屬性同步 [v1.7.6 修正：加入完整環境與物理鍵，確保及時響應切換]
+    LaunchedEffect(
+        droneState.weatherMode, droneState.timeOfDay, droneState.showClouds,
+        droneState.showMountains, droneState.windLevel, droneState.windDirection,
+        droneState.windVariation, droneState.windDirVariation, droneState.showShadow,
+        droneState.shadowIntensity, droneState.showObstacles, droneState.useHardcorePhysics,
+        droneState.isSunSimEnabled, droneState.sunPosition, droneState.observerTilt,
+        droneState.cloudDensity, droneState.useSimplifiedMarkers, droneState.showSpecialTitle,
+        droneState.currentTitleText, droneState.useFlightLimit, droneState.mainFOV,
+        droneState.showGroundAnchor, droneState.isThrottleHoldActive, droneState.isMotorLocked
+    ) {
         renderer.weatherMode = droneState.weatherMode
         renderer.timeOfDay = droneState.timeOfDay
         renderer.showClouds = droneState.showClouds
@@ -102,14 +108,14 @@ fun MainAppScreen(
         renderer.cloudDensity = droneState.cloudDensity
         renderer.useSimplifiedMarkers = droneState.useSimplifiedMarkers
         renderer.showSpecialTitle = droneState.showSpecialTitle
-        renderer.currentTitleText = droneState.customTitle.ifBlank { AppConfig.SPECIAL_TITLE }
+        renderer.currentTitleText = droneState.currentTitleText.ifBlank { AppConfig.getDefaultSpecialTitle(droneState.appLanguage) }
         renderer.useFlightLimit = droneState.useFlightLimit
         renderer.mainFOV = droneState.mainFOV
         renderer.showGroundAnchor = droneState.showGroundAnchor
         renderer.isThrottleHoldActive = droneState.isThrottleHoldActive 
         renderer.isMotorLocked = droneState.isMotorLocked
 
-        if (droneState.windDirection == "隨機" && droneState.env.randomWindAngle == 0f) {
+        if (droneState.windDirection == AppConfig.WIND_DIR_RANDOM && droneState.env.randomWindAngle == 0f) {
             renderer.rerollWindDirection()
         }
     }
@@ -140,10 +146,11 @@ fun MainAppScreen(
         if (droneState.lastInZoomZone) droneState.isMenuExpanded = false
     }
 
+    val videoSyncMsg = stringResource(R.string.sys_msg_video_syncing)
     LaunchedEffect(droneState.cameraMode) {
         if (droneState.isSettingsLoaded) {
             viewModel.applyCameraModeDefaults(droneState, droneState.cameraMode)
-            viewModel.startSwitchBuffer(droneState, "視訊數據同步中...")
+            viewModel.startSwitchBuffer(droneState, videoSyncMsg)
         }
     }
 
@@ -174,7 +181,7 @@ fun MainAppScreen(
             onUpdateState = { action -> droneState.action() },
             modifier = Modifier.zIndex(10f),
             onToggleStatus = { isStatusVisible = !isStatusVisible },
-            onUpdatePipRect = { rect -> renderer.pipRect = rect?.let { android.graphics.Rect(it.left.toInt(), it.top.toInt(), it.right.toInt(), it.bottom.toInt()) } },
+            onUpdatePipRect = { rect -> renderer.pipRect = rect },
             onUpdateZoomPipRect = { rect -> renderer.zoomPipRect = rect?.let { android.graphics.Rect(it.left.toInt(), it.top.toInt(), it.right.toInt(), it.bottom.toInt()) } }
         )
         
@@ -186,7 +193,7 @@ fun MainAppScreen(
         )
 
         // [v1.7.6] 通用飛行邏輯調度器：管理基礎 UI 與判定邏輯
-        StandardFlightLogic(
+        com.horizon.caadronesimulator.ui.StandardFlightLogic(
             droneState = droneState,
             stickInputState = stickInputState,
             viewModel = viewModel,
@@ -194,7 +201,7 @@ fun MainAppScreen(
         )
 
         // [v1.7.6] 專業版功能派發器：僅管理 Pro 硬體專屬功能
-        ProFeatureDispatcher(
+        com.horizon.caadronesimulator.ui.ProFeatureDispatcher(
             droneState = droneState,
             internalComm = com.horizon.caadronesimulator.logic.ProHardwareBridge.internalCommManager
         )
@@ -216,7 +223,8 @@ fun MainAppScreen(
             onExportLog = onExportLog,
             onUpdateBaudRate = onUpdateBaudRate,
             onUpdateInputMode = onUpdateInputMode,
-            onToggleNetworkConnection = onToggleNetworkConnection
+            onToggleNetworkConnection = onToggleNetworkConnection,
+            onLanguageChange = onLanguageChange
         )
     }
 }
