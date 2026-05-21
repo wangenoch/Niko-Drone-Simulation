@@ -425,6 +425,9 @@
 
     <!-- Model Names and Fallbacks -->
     <string name="model_name_heli">Helicopter (HELI)</string>
+    <string name="specs_heli_900_desc">Note: High CG design with 22-inch rotors for extreme flight stability.</string>
+    <string name="specs_t4_heavy_desc">Note: Heavy-lift model optimized for T4 licensing standards.</string>
+    <string name="specs_quad_desc">Note: Standard quadcopter for responsive flight practice.</string>
     <string name="model_name_heavy">Heavy Lift (Heavy)</string>
     <string name="model_name_small">Small Drone (Small)</string>
 </resources>

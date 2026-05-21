@@ -56,7 +56,7 @@ object PhysicsEngine {
         val maxAlt = spec.groundOffset + 30.0f
         var systemMsg: String? = null
         if (atmos.useFlightLimit && nextY > maxAlt) { 
-            nextY = maxAlt; state.velY = 0f; systemMsg = "已達限高 30m" 
+            nextY = maxAlt; state.velY = 0f; systemMsg = "ALT_LIMIT"
         }
 
         // --- 3. [1:1 Git] 姿態與旋轉 ---

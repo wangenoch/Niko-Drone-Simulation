@@ -89,9 +89,8 @@ interface DroneModule {
     // --- 翻譯層 B：UI 文字格式化 ---
     fun getFormattedSpecs(): String {
         val h = hardwareSpecs
-        val labelWheelbase = if (h.type == DroneType.SRH) "旋翼" else "軸距"
-        val line1 = "$labelWheelbase ${h.wheelbaseMm}mm / 槳距 ${h.propDiameterInch}inch / 螺距 ${h.propPitchInch}inch / 馬達 ${h.motorKv}KV"
-        val line2 = "最大起飛重量 ${h.takeoffWeightKg}kg / 最大酬載 ${h.payloadKg}kg / 滯空時間約 ${h.flightTimeMin}min"
+        val line1 = "DIM: ${h.wheelbaseMm}mm / PROP: ${h.propDiameterInch}inch / PITCH: ${h.propPitchInch}inch / KV: ${h.motorKv}"
+        val line2 = "WT: ${h.takeoffWeightKg}kg / LOAD: ${h.payloadKg}kg / TIME: ${h.flightTimeMin}min"
         return "$line1\n$line2"
     }
 }

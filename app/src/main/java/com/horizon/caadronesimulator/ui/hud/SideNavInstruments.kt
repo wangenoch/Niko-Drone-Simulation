@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.horizon.caadronesimulator.R
+import com.horizon.caadronesimulator.model.AppConfig
 import com.horizon.caadronesimulator.model.DroneState
 import java.util.Locale
 
@@ -34,21 +35,21 @@ fun SideNavInstruments(
     
     // [v1.7.6] 佈局精修：將拉桿垂直縮短並置中，確保不會干涉位於 TopStart 或 BottomStart 的雷達視窗
     Box(modifier = modifier.fillMaxSize().padding(horizontal = 16.dp).padding(top = 130.dp, bottom = 130.dp)) {
-        // 左側標尺
-        Box(modifier = Modifier.align(if(isReversed) Alignment.CenterEnd else Alignment.CenterStart).fillMaxHeight().width(50.dp)) {
+        // [v1.7.6] 位置對調：高度標尺改為左側 (預設)，抬頭標尺改為右側 (預設)
+        Box(modifier = Modifier.align(if(isReversed) Alignment.CenterStart else Alignment.CenterEnd).fillMaxHeight().width(50.dp)) {
             HeightRuler(
                 value = state.observerHeight,
-                onValueChange = { h -> onUpdateState { observerHeight = h; if(cameraMode == "觀察員視角 (實驗性)") lastManualTouchTime = System.currentTimeMillis() } },
+                onValueChange = { h -> onUpdateState { observerHeight = h; if(cameraMode == AppConfig.CAM_MODE_OBS) lastManualTouchTime = System.currentTimeMillis() } },
                 showRuler = state.showSideRulers,
                 isAuto = (state.mappingObsHeight.axis != -1)
             )
         }
 
-        // 右側標尺
-        Box(modifier = Modifier.align(if(isReversed) Alignment.CenterStart else Alignment.CenterEnd).fillMaxHeight().width(50.dp)) {
+        // [v1.7.6] 位置對調：抬頭標尺改為右側 (預設)
+        Box(modifier = Modifier.align(if(isReversed) Alignment.CenterEnd else Alignment.CenterStart).fillMaxHeight().width(50.dp)) {
             PitchRuler(
                 value = state.observerTilt,
-                onValueChange = { t -> onUpdateState { observerTilt = t; if(cameraMode == "觀察員視角 (實驗性)") lastManualTouchTime = System.currentTimeMillis() } },
+                onValueChange = { t -> onUpdateState { observerTilt = t; if(cameraMode == AppConfig.CAM_MODE_OBS) lastManualTouchTime = System.currentTimeMillis() } },
                 showRuler = state.showSideRulers,
                 isAuto = (state.mappingObsTilt.axis != -1)
             )

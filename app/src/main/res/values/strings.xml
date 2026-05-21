@@ -425,6 +425,9 @@
 
     <!-- Model Names and Fallbacks -->
     <string name="model_name_heli">直昇機 (HELI)</string>
+    <string name="specs_heli_900_desc">說明：採用高重心設計與 22 吋大型旋翼，具備極高的飛行穩定性。</string>
+    <string name="specs_t4_heavy_desc">說明：專業考照負重機型，針對 T4 規格進行優化。</string>
+    <string name="specs_quad_desc">說明：標準穿越機/練習機，反應靈敏。</string>
     <string name="model_name_heavy">大型機 (Heavy)</string>
     <string name="model_name_small">小型機 (Small)</string>
 </resources>

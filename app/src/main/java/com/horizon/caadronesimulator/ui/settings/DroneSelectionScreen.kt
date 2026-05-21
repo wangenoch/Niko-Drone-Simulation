@@ -98,8 +98,14 @@ fun DroneSelectionScreen(
                         lineHeight = 14.sp
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = Color(0x1AFFFFFF))
+                    val desc = when(module.hardwareSpecs.description) {
+                        "SPECS_HELI_900_DESC" -> stringResource(R.string.specs_heli_900_desc)
+                        "SPECS_T4_HEAVY_DESC" -> stringResource(R.string.specs_t4_heavy_desc)
+                        "SPECS_QUAD_DESC" -> stringResource(R.string.specs_quad_desc)
+                        else -> module.hardwareSpecs.description
+                    }
                     Text(
-                        text = module.hardwareSpecs.description,
+                        text = desc,
                         color = Color.White.copy(alpha = 0.5f),
                         fontSize = 10.sp,
                         lineHeight = 14.sp

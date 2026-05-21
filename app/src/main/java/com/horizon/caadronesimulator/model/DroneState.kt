@@ -9,7 +9,7 @@ import com.horizon.caadronesimulator.model.AppConfig
 data class ChannelMapping(
     val axis: Int = -1,
     val inverted: Boolean = false,
-    val label: String = "未設定",
+    val label: String = "UNSET",
     val min: Float = -1f,
     val max: Float = 1f,
     val center: Float = 0f
@@ -53,8 +53,8 @@ class DroneState {
     // --- 2. 硬件通訊域 ---
     class HardwareDomain {
         var inputMode by mutableIntStateOf(-1); var connectionStatus by mutableStateOf(ConnectionStatus.IDLE); var commDecisionState by mutableStateOf(CommDecisionState.IDLE)
-        var detectedProtocol by mutableStateOf("未知"); var activeSerialPath by mutableStateOf("None"); var usbSerialConnected by mutableStateOf(false)
-        var controllerConnected by mutableStateOf(false); var activeHidName by mutableStateOf("通用手把"); var activeAxisLabel by mutableStateOf("NONE")
+        var detectedProtocol by mutableStateOf("UNKNOWN"); var activeSerialPath by mutableStateOf("None"); var usbSerialConnected by mutableStateOf(false)
+        var controllerConnected by mutableStateOf(false); var activeHidName by mutableStateOf("GENERIC_JOYSTICK"); var activeAxisLabel by mutableStateOf("NONE")
         var packetsPerSecond by mutableIntStateOf(0); var isSignalActive by mutableStateOf(false); var isAutoConnectEnabled by mutableStateOf(AppConfig.SystemDefaults.AUTO_CONNECT_ENABLED)
         var newHardwareDetected: android.hardware.usb.UsbDevice? by mutableStateOf(null); var isHardwareController by mutableStateOf(false)
         var rawBytesCount by mutableIntStateOf(0); var bufferUsage by mutableStateOf("0/512"); var jitter by mutableStateOf("0.0 ms")
@@ -228,24 +228,24 @@ class DroneState {
     }
     val modelGene = ModelGene()
 
-    class ControllerProfile(defaultLabel: String = "未設定") {
+    class ControllerProfile(defaultLabel: String = "UNSET") {
         var mappingLY by mutableStateOf(ChannelMapping(-1, false, defaultLabel))
         var mappingLX by mutableStateOf(ChannelMapping(-1, false, defaultLabel))
         var mappingRY by mutableStateOf(ChannelMapping(-1, false, defaultLabel))
         var mappingRX by mutableStateOf(ChannelMapping(-1, false, defaultLabel))
-        var mappingHold by mutableStateOf(ChannelMapping(-1, false, "熄火開關"))
-        var mappingArm by mutableStateOf(ChannelMapping(-1, false, "解鎖開關"))
-        var mappingObsHeight by mutableStateOf(ChannelMapping(-1, false, "站位高度"))
-        var mappingObsTilt by mutableStateOf(ChannelMapping(-1, false, "抬頭角度"))
-        var mappingFpvTilt by mutableStateOf(ChannelMapping(-1, false, "FPV 雲台"))
-        var mappingFlightMode by mutableStateOf(ChannelMapping(-1, false, "飛行模式"))
+        var mappingHold by mutableStateOf(ChannelMapping(-1, false, "HOLD_SWITCH"))
+        var mappingArm by mutableStateOf(ChannelMapping(-1, false, "ARM_SWITCH"))
+        var mappingObsHeight by mutableStateOf(ChannelMapping(-1, false, "OBS_HEIGHT"))
+        var mappingObsTilt by mutableStateOf(ChannelMapping(-1, false, "OBS_TILT"))
+        var mappingFpvTilt by mutableStateOf(ChannelMapping(-1, false, "FPV_TILT"))
+        var mappingFlightMode by mutableStateOf(ChannelMapping(-1, false, "FLIGHT_MODE"))
         var rateT by mutableFloatStateOf(1.0f)
         var rateY by mutableFloatStateOf(1.0f); var rateP by mutableFloatStateOf(1.0f); var rateR by mutableFloatStateOf(1.0f)
         var expoT by mutableFloatStateOf(0.0f); var expoY by mutableFloatStateOf(0.0f); var expoP by mutableFloatStateOf(0.0f); var expoR by mutableFloatStateOf(0.0f)
     }
 
-    val internalProfile = ControllerProfile("內置系統")
-    val externalProfile = ControllerProfile("外接軸向")
+    val internalProfile = ControllerProfile("INTERNAL_SYSTEM")
+    val externalProfile = ControllerProfile("EXTERNAL_AXIS")
     val activeProfile get() = if (inputMode == 1) internalProfile else externalProfile
 
     var rateT: Float get() = activeProfile.rateT; set(v) { activeProfile.rateT = v }

@@ -71,7 +71,7 @@ object HardwareRegistry {
 
     fun getGenericProfile() = HardwareProfile(
         id = "GENERIC_MOBILE",
-        brandName = "標準行動裝置",
+        brandName = "GENERIC_MOBILE",
         isProfessionalRemote = false
     )
 

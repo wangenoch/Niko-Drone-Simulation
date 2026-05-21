@@ -63,10 +63,10 @@ object ReadmeParser {
                     .map { it.trim().removePrefix("*").replace("\\*\\*".toRegex(), "").trim() }
 
                 when {
-                    sectionTitle.contains("已知問題") || sectionTitle.contains("Known Issues") -> {
+                    sectionTitle.contains("Known Issues") || sectionTitle.contains("已知問題") -> {
                         knownIssues.addAll(items)
                     }
-                    sectionTitle.contains("特別感謝") || sectionTitle.contains("Special Thanks") -> {
+                    sectionTitle.contains("Special Thanks") || sectionTitle.contains("特別感謝") -> {
                         specialThanks.addAll(items)
                     }
                     else -> {

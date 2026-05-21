@@ -125,22 +125,22 @@ object InputCoordinator {
                 "lx" -> state.mappingLX = m.copy(label = labels[1], inverted = mv < 0)
                 "ry" -> state.mappingRY = m.copy(label = labels[2], inverted = mv < 0)
                 "rx" -> state.mappingRX = m.copy(label = labels[3], inverted = mv < 0)
-                "hold" -> state.mappingHold = m.copy(label = "熄火開關")
-                "arm" -> state.mappingArm = m.copy(label = "解鎖開關")
-                "obsHeight" -> state.mappingObsHeight = m.copy(label = "站位高度")
-                "obsTilt" -> state.mappingObsTilt = m.copy(label = "抬頭角度")
-                "fpvTilt" -> state.mappingFpvTilt = m.copy(label = "FPV 雲台")
-                "flightMode" -> state.mappingFlightMode = m.copy(label = "飛行模式")
+                "hold" -> state.mappingHold = m.copy(label = "HOLD_SWITCH")
+                "arm" -> state.mappingArm = m.copy(label = "ARM_SWITCH")
+                "obsHeight" -> state.mappingObsHeight = m.copy(label = "OBS_HEIGHT")
+                "obsTilt" -> state.mappingObsTilt = m.copy(label = "OBS_TILT")
+                "fpvTilt" -> state.mappingFpvTilt = m.copy(label = "FPV_TILT")
+                "flightMode" -> state.mappingFlightMode = m.copy(label = "FLIGHT_MODE")
             }
             state.isAutoBinding = null
         }
     }
 
     private fun getLabelsForMode(mode: Int): List<String> = when(mode) {
-        1 -> listOf("俯仰 Pitch", "航向 Yaw", "油門 Throttle", "橫滾 Roll")
-        3 -> listOf("油門 Throttle", "橫滾 Roll", "俯仰 Pitch", "航向 Yaw")
-        4 -> listOf("俯仰 Pitch", "橫滾 Roll", "油門 Throttle", "航向 Yaw")
-        else -> listOf("油門 Throttle", "航向 Yaw", "俯仰 Pitch", "橫滾 Roll")
+        1 -> listOf("PITCH", "YAW", "THROTTLE", "ROLL")
+        3 -> listOf("THROTTLE", "ROLL", "PITCH", "YAW")
+        4 -> listOf("PITCH", "ROLL", "THROTTLE", "YAW")
+        else -> listOf("THROTTLE", "YAW", "PITCH", "ROLL")
     }
 
     private fun handleSetupWizard(event: MotionEvent, state: DroneState) {
