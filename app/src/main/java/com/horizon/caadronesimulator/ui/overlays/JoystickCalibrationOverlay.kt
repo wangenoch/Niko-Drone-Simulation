@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.horizon.caadronesimulator.ui.hud.MiniStickVisual
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 
 import androidx.compose.ui.res.stringResource
 import com.horizon.caadronesimulator.R
@@ -37,18 +38,19 @@ fun JoystickCalibrationOverlay(
     onFinish: () -> Unit
 ) {
     if (!isCalibrating) return
+    val themeColors = NikoTheme.colors
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xCC000000))
+            .background(Color.Black.copy(alpha = 0.8f))
             .zIndex(1100f),
         contentAlignment = Alignment.Center
     ) {
         Surface(
-            color = Color(0xFF222222),
+            color = themeColors.panel,
             shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, Color(0xFF4CAF50))
+            border = BorderStroke(1.dp, themeColors.status)
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
@@ -56,7 +58,7 @@ fun JoystickCalibrationOverlay(
             ) {
                 Text(
                     text = stringResource(R.string.joystick_calib_title, calibrationStep),
-                    color = Color(0xFF4CAF50),
+                    color = themeColors.status,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -73,9 +75,13 @@ fun JoystickCalibrationOverlay(
                 
                 Button(
                     onClick = { if (calibrationStep == 1) onNextStep() else onFinish() },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                    colors = ButtonDefaults.buttonColors(containerColor = themeColors.status)
                 ) {
-                    Text(if (calibrationStep == 1) stringResource(R.string.action_confirm_neutral) else stringResource(R.string.action_save_finish))
+                    Text(
+                        text = if (calibrationStep == 1) stringResource(R.string.action_confirm_neutral) else stringResource(R.string.action_save_finish),
+                        color = if (themeColors.isLight) Color.White else Color.Black,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }

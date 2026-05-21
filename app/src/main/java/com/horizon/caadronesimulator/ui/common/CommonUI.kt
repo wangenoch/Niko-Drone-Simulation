@@ -17,11 +17,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 
 @Composable
 fun StatusLine(label: String, value: String, color: Color) {
     Row { 
-        Text(label, color = Color.White, fontSize = 13.sp)
+        Text(label, color = NikoTheme.colors.textPrimary, fontSize = 13.sp)
         Spacer(modifier = Modifier.width(6.dp))
         Text(value, color = color, fontSize = 13.sp) 
     }
@@ -29,17 +30,18 @@ fun StatusLine(label: String, value: String, color: Color) {
 
 @Composable
 fun ControlBtn(icon: Any, onClick: () -> Unit) {
+    val themeColors = NikoTheme.colors
     IconButton(
         onClick = onClick, 
         modifier = Modifier
             .size(45.dp)
-            .background(Color(0xAA333333), RoundedCornerShape(8.dp))
-            .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
+            .background(themeColors.panel, RoundedCornerShape(8.dp))
+            .border(1.dp, themeColors.divider, RoundedCornerShape(8.dp))
             .padding(4.dp)
     ) { 
         when (icon) {
-            is String -> Text(icon, fontSize = 20.sp)
-            is ImageVector -> Icon(icon, contentDescription = null, tint = Color.White)
+            is String -> Text(icon, color = themeColors.textPrimary, fontSize = 20.sp)
+            is ImageVector -> Icon(icon, contentDescription = null, tint = themeColors.textPrimary)
         }
     }
 }

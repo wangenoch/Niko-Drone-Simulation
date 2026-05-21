@@ -23,6 +23,7 @@ import com.horizon.caadronesimulator.model.DroneState
 import com.horizon.caadronesimulator.model.StickInputState
 import com.horizon.caadronesimulator.ui.settings.NetworkSettingsOverlay
 import com.horizon.caadronesimulator.ui.settings.UnifiedSettingsScreen
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 import com.horizon.caadronesimulator.ui.tutorial.ClimateSettingsTutorial
 import com.horizon.caadronesimulator.ui.tutorial.JoystickSettingsTutorial
 import com.horizon.caadronesimulator.ui.tutorial.WelcomeTutorial
@@ -49,7 +50,8 @@ fun OverlayDispatcher(
     onUpdateBaudRate: (Int) -> Unit,
     onUpdateInputMode: (Int) -> Unit,
     onToggleNetworkConnection: (Boolean) -> Unit,
-    onLanguageChange: (String) -> Unit = {}
+    onLanguageChange: (String) -> Unit = {},
+    onThemeChange: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -82,6 +84,7 @@ fun OverlayDispatcher(
             onOpenNetworkSettings = { droneState.showNetworkSettingsDialog = true },
             onRestoreDefaults = onRestoreDefaults,
             onLanguageChange = onLanguageChange,
+            onThemeChange = onThemeChange,
             availablePorts = usbSerialManager.listAvailableSerialPorts(),
             onTargetPositioned = { name, rect -> onUpdateTutorialTargets(name, rect) }
         )
@@ -193,16 +196,17 @@ fun OverlayDispatcher(
 
     // 12. 攝影機切換進度條
     if (droneState.isSwitchingMode) {
-        Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(0.1f)).clickable { /* 攔截點擊 */ }, contentAlignment = Alignment.Center) {
+        val themeColors = NikoTheme.colors
+        Box(modifier = Modifier.fillMaxSize().background(themeColors.background.copy(alpha = 0.5f)).clickable { /* 攔截點擊 */ }, contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 CircularProgressIndicator(
                     progress = { droneState.switchProgress },
-                    color = Color.Cyan,
+                    color = themeColors.primary,
                     strokeWidth = 3.dp,
                     modifier = Modifier.size(54.dp)
                 )
                 Spacer(Modifier.height(12.dp))
-                Text(droneState.switchMessage, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                Text(droneState.switchMessage, color = themeColors.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             }
         }
     }

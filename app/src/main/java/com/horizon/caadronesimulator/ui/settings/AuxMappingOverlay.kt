@@ -18,6 +18,7 @@ import androidx.compose.ui.zIndex
 import com.horizon.caadronesimulator.R
 import com.horizon.caadronesimulator.model.ChannelMapping
 import com.horizon.caadronesimulator.model.DroneState
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 
 @Composable
 fun AuxMappingOverlay(
@@ -27,11 +28,12 @@ fun AuxMappingOverlay(
     onToggleInvert: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val themeColors = NikoTheme.colors
     // [v1.5.2 修正] 採用全螢幕沉浸式架構，與 RatesOverlay 同圖層且獨立於捲動容器之外
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.9f)) // 稍深的背景增強專注感
+            .background(themeColors.background.copy(alpha = 0.9f)) // 稍深的背景增強專注感
             .clickable(enabled = false) {}
             .zIndex(1000f),
         contentAlignment = Alignment.Center
@@ -40,21 +42,21 @@ fun AuxMappingOverlay(
             modifier = Modifier
                 .fillMaxWidth(0.95f)
                 .fillMaxHeight(0.95f),
-            color = Color(0xFF111111),
+            color = themeColors.panel,
             shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, Color.Cyan.copy(alpha = 0.3f))
+            border = BorderStroke(1.dp, themeColors.divider)
         ) {
             Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp).fillMaxSize()) {
                 // Header
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().height(40.dp)) {
-                    Text(stringResource(R.string.joystick_aux_title), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.joystick_aux_title), color = themeColors.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.weight(1f))
                     IconButton(onClick = onDismiss, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.size(24.dp))
+                        Icon(Icons.Default.Close, null, tint = themeColors.textPrimary, modifier = Modifier.size(24.dp))
                     }
                 }
                 
-                Text(stringResource(R.string.joystick_aux_hint), color = Color.Gray, fontSize = 11.sp)
+                Text(stringResource(R.string.joystick_aux_hint), color = themeColors.textSecondary, fontSize = 11.sp)
                 Spacer(Modifier.height(16.dp))
 
                 // 映射區域
@@ -64,8 +66,8 @@ fun AuxMappingOverlay(
                 ) {
                     // 左側：安全防護
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(stringResource(R.string.joystick_aux_safety), color = Color.Cyan, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                        Surface(color = Color.White.copy(alpha = 0.05f), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.joystick_aux_safety), color = themeColors.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Surface(color = themeColors.textPrimary.copy(alpha = 0.05f), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
                             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 AuxMappingLine(stringResource(R.string.joystick_label_arm), state.mappingArm, "arm", state.isAutoBinding, onStartBinding, onToggleInvert, onManualBind, state.inputMode)
                                 
@@ -74,7 +76,7 @@ fun AuxMappingOverlay(
                                     AuxMappingLine(stringResource(R.string.joystick_label_hold), state.mappingHold, "hold", state.isAutoBinding, onStartBinding, onToggleInvert, onManualBind, state.inputMode)
                                     Text(
                                         text = stringResource(R.string.joystick_aux_heli_only), 
-                                        color = Color.Yellow.copy(alpha = 0.6f), 
+                                        color = themeColors.accent.copy(alpha = 0.6f), 
                                         fontSize = 9.sp,
                                         modifier = Modifier.padding(start = 45.dp, top = 2.dp)
                                     )
@@ -85,7 +87,7 @@ fun AuxMappingOverlay(
                                     AuxMappingLine(stringResource(R.string.joystick_label_flight_mode), state.mappingFlightMode, "flightMode", state.isAutoBinding, onStartBinding, onToggleInvert, onManualBind, state.inputMode)
                                     Text(
                                         text = stringResource(R.string.joystick_aux_future_mode), 
-                                        color = Color.Gray.copy(alpha = 0.8f), 
+                                        color = themeColors.textSecondary.copy(alpha = 0.8f), 
                                         fontSize = 9.sp,
                                         modifier = Modifier.padding(start = 45.dp, top = 2.dp)
                                     )
@@ -96,8 +98,8 @@ fun AuxMappingOverlay(
 
                     // 右側：站位與視角
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(stringResource(R.string.joystick_aux_camera), color = Color.Cyan, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                        Surface(color = Color.White.copy(alpha = 0.05f), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.joystick_aux_camera), color = themeColors.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Surface(color = themeColors.textPrimary.copy(alpha = 0.05f), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
                             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 AuxMappingLine(stringResource(R.string.joystick_label_obs_height), state.mappingObsHeight, "obsHeight", state.isAutoBinding, onStartBinding, onToggleInvert, onManualBind, state.inputMode)
                                 AuxMappingLine(stringResource(R.string.joystick_label_obs_tilt), state.mappingObsTilt, "obsTilt", state.isAutoBinding, onStartBinding, onToggleInvert, onManualBind, state.inputMode)
@@ -111,10 +113,10 @@ fun AuxMappingOverlay(
                 Button(
                     onClick = onDismiss, 
                     modifier = Modifier.fillMaxWidth().height(44.dp), 
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Cyan),
+                    colors = ButtonDefaults.buttonColors(containerColor = themeColors.primary),
                     shape = RoundedCornerShape(12.dp)
                 ) { 
-                    Text(stringResource(R.string.action_finish), color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(stringResource(R.string.action_finish), color = if(themeColors.isLight) Color.White else Color.Black, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
             }
         }
@@ -123,5 +125,5 @@ fun AuxMappingOverlay(
 
 @Composable
 fun AuxMappingLine(label: String, mapping: ChannelMapping, key: String, isBinding: String?, onStartBinding: (String) -> Unit, onToggleInvert: (String) -> Unit, onManualBind: (String, Int) -> Unit, inputMode: Int) {
-    CompactMappingRow(label, mapping, key, isBinding, onStartBinding, onToggleInvert, onManualBind, inputMode)
+    CompactMappingRow(label, mapping, key, isBinding, onStartBinding, onToggleInvert, onManualBind, inputMode, labelWidth = 65.dp)
 }

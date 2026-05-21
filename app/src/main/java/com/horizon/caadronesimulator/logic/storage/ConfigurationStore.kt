@@ -50,6 +50,7 @@ class ConfigurationStore(private val context: Context) {
             putBoolean("showClouds", state.showClouds); putFloat("cloudDensity", state.cloudDensity); putBoolean("showMountains", state.showMountains)
             putBoolean("useStrictLanding", state.useStrictLanding); putBoolean("optimizationPromptIgnored", state.optimizationPromptIgnored)
             putString("appLanguage", state.appLanguage)
+            putString("appTheme", state.appTheme)
             commit() // [關鍵修復] 使用 commit() 確保語系設定立即落地，防止 Activity 重啟時讀取到舊數據
         }
         
@@ -156,6 +157,7 @@ class ConfigurationStore(private val context: Context) {
             // [v1.7.6] 語言讀取優化：若 SharedPreferences 為空，則優先參考系統語言
             val defaultLang = if (java.util.Locale.getDefault().language.startsWith("zh")) "zh" else "en"
             this.appLanguage = prefs.getString("appLanguage", defaultLang) ?: defaultLang
+            this.appTheme = prefs.getString("appTheme", AppConfig.THEME_CLASSIC) ?: AppConfig.THEME_CLASSIC
             
             this.rateT = targetPrefs.getFloat("rateT", 1.0f)
             this.rateY = targetPrefs.getFloat("rateY", 1.0f); this.rateP = targetPrefs.getFloat("rateP", 1.0f); this.rateR = targetPrefs.getFloat("rateR", 1.0f)

@@ -6,7 +6,7 @@ package com.horizon.caadronesimulator.model
  */
 object AppConfig {
     // --- 基礎資訊 ---
-    const val CURRENT_VERSION = "1.6.0"
+    const val CURRENT_VERSION = "1.7.7"
     const val RELEASE_DATE = "2026-05"
     const val DEVELOPER = "Enoch Wang"
 
@@ -43,6 +43,10 @@ object AppConfig {
     const val TIME_MORNING = "MORNING"
     const val TIME_NOON = "NOON"
     const val TIME_AFTERNOON = "AFTERNOON"
+
+    /** [v1.7.7] 主題內部 ID */
+    const val THEME_CLASSIC = "CLASSIC"
+    const val THEME_LIGHT = "LIGHT"
 
     /** 搖桿手感全域預設標準 */
     object JoystickDefaults {

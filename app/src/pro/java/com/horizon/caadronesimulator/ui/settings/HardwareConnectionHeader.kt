@@ -2,6 +2,7 @@ package com.horizon.caadronesimulator.ui.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -19,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import com.horizon.caadronesimulator.model.DroneState
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 
 import androidx.compose.ui.res.stringResource
 import com.horizon.caadronesimulator.R
@@ -39,7 +41,7 @@ fun HardwareConnectionHeader(
     if (state.isExpertModeLocked) return
 
     Surface(
-        color = Color.White.copy(alpha = 0.05f), 
+        color = NikoTheme.colors.textPrimary.copy(alpha = 0.05f), 
         shape = RoundedCornerShape(12.dp), 
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -48,21 +50,21 @@ fun HardwareConnectionHeader(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.diag_title), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.diag_title), color = NikoTheme.colors.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(color = Color.Black.copy(alpha = 0.5f), shape = RoundedCornerShape(6.dp)) {
+                    Surface(color = NikoTheme.colors.panel, shape = RoundedCornerShape(6.dp), border = BorderStroke(1.dp, NikoTheme.colors.divider)) {
                         Row(modifier = Modifier.padding(2.dp)) {
                             listOf(stringResource(R.string.joystick_input_external), stringResource(R.string.joystick_input_internal)).forEachIndexed { idx, name ->
                                 val isSel = inputMode == idx
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(4.dp))
-                                        .background(if(isSel) Color(0xFF333333) else Color.Transparent)
-                                        .border(if(isSel) 1.dp else 0.dp, if(isSel) Color.Gray else Color.Transparent, RoundedCornerShape(4.dp))
+                                        .background(if(isSel) NikoTheme.colors.primary.copy(alpha = 0.2f) else Color.Transparent)
+                                        .border(if(isSel) 1.dp else 0.dp, if(isSel) NikoTheme.colors.primary else Color.Transparent, RoundedCornerShape(4.dp))
                                         .clickable { onUpdateInputMode(idx) }
                                         .padding(horizontal = 12.dp, vertical = 2.dp)
                                 ) {
-                                    Text(name, color = if(isSel) Color.White else Color.Gray, fontSize = 11.sp)
+                                    Text(name, color = if(isSel) NikoTheme.colors.textPrimary else NikoTheme.colors.textSecondary, fontSize = 11.sp)
                                 }
                             }
                         }
@@ -70,7 +72,7 @@ fun HardwareConnectionHeader(
                     Spacer(Modifier.width(16.dp))
                     Text(
                         text = if (isSignalActive) stringResource(R.string.hud_signal_ok) else stringResource(R.string.hud_signal_waiting), 
-                        color = if (isSignalActive) Color.Green else Color.Red, 
+                        color = if (isSignalActive) NikoTheme.colors.status else NikoTheme.colors.warning, 
                         fontSize = 11.sp
                     )
                 }
@@ -82,12 +84,12 @@ fun HardwareConnectionHeader(
                     verticalAlignment = Alignment.CenterVertically, 
                     modifier = Modifier.clickable { state.isExpertModeLocked = true }
                 ) {
-                    Text(stringResource(R.string.joystick_fast_lock), color = Color.Yellow.copy(0.6f), fontSize = 10.sp)
+                    Text(stringResource(R.string.joystick_fast_lock), color = NikoTheme.colors.safety.copy(0.6f), fontSize = 10.sp)
                     Switch(
                         checked = false,
                         onCheckedChange = { state.isExpertModeLocked = true }, 
                         modifier = Modifier.scale(0.55f), 
-                        colors = SwitchDefaults.colors(checkedThumbColor = Color.Yellow)
+                        colors = SwitchDefaults.colors(checkedThumbColor = NikoTheme.colors.safety)
                     )
                 }
                 
@@ -96,13 +98,13 @@ fun HardwareConnectionHeader(
                     onClick = { onToggleHardwareMonitor(!showHardwareMonitor) },
                     modifier = Modifier
                         .size(36.dp)
-                        .background(if (showHardwareMonitor) Color.Cyan.copy(alpha = 0.2f) else Color(0xFF222222), CircleShape)
-                        .border(1.dp, if (showHardwareMonitor) Color.Cyan else Color.White.copy(alpha = 0.1f), CircleShape)
+                        .background(if (showHardwareMonitor) NikoTheme.colors.primary.copy(alpha = 0.2f) else NikoTheme.colors.panel, CircleShape)
+                        .border(1.dp, if (showHardwareMonitor) NikoTheme.colors.primary else NikoTheme.colors.divider, CircleShape)
                 ) {
                     Icon(
                         Icons.Default.BugReport, 
                         null, 
-                        tint = if (showHardwareMonitor) Color.Cyan else Color.White, 
+                        tint = if (showHardwareMonitor) NikoTheme.colors.primary else NikoTheme.colors.textPrimary,
                         modifier = Modifier.size(18.dp)
                     )
                 }

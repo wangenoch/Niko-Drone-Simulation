@@ -209,9 +209,16 @@
     <string name="settings_strict_landing">專業考核降落安全標準</string>
     <string name="settings_strict_landing_desc">開啟後落地速度 > 2.2m/s 即損毀，並實施分級警告</string>
     <string name="settings_expert_active">專家模式已在開啟狀態</string>
+    <string name="settings_theme_title">主題</string>
+    <string name="settings_theme_detail_title">主題詳細說明 (%1$s)</string>
+    <string name="settings_theme_classic_desc">這是一個經典的深色主題，採用深天藍色作為主色調，適合在低光照環境下使用，能有效降低眼睛疲勞並提升對比度。</string>
+    <string name="settings_theme_light_desc">明亮專業主題採用高對比度的白底設計，適合在室外或強光環境下使用，提供清晰的視覺反饋與專業的配色方案。</string>
     <string name="settings_dev_label">開發者：</string>
     <string name="settings_version_label">版本：</string>
     <string name="settings_language">介面語言 (Language)</string>
+    <string name="settings_theme">主題樣式 (Theme)</string>
+    <string name="settings_theme_classic">經典 (Classic)</string>
+    <string name="settings_theme_light">明亮 (Light)</string>
     <string name="settings_lang_zh">繁體中文</string>
     <string name="settings_lang_en">English</string>
 

@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import com.horizon.caadronesimulator.R
 import com.horizon.caadronesimulator.model.AppConfig
 import com.horizon.caadronesimulator.model.DroneState
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 import java.util.Locale
 
 /**
@@ -36,7 +37,7 @@ fun SideNavInstruments(
     // [v1.7.6] 佈局精修：將拉桿垂直縮短並置中，確保不會干涉位於 TopStart 或 BottomStart 的雷達視窗
     Box(modifier = modifier.fillMaxSize().padding(horizontal = 16.dp).padding(top = 130.dp, bottom = 130.dp)) {
         // [v1.7.6] 位置對調：高度標尺改為左側 (預設)，抬頭標尺改為右側 (預設)
-        Box(modifier = Modifier.align(if(isReversed) Alignment.CenterStart else Alignment.CenterEnd).fillMaxHeight().width(50.dp)) {
+        Box(modifier = Modifier.align(if(isReversed) Alignment.CenterStart else Alignment.CenterEnd).fillMaxHeight().width(60.dp)) {
             HeightRuler(
                 value = state.observerHeight,
                 onValueChange = { h -> onUpdateState { observerHeight = h; if(cameraMode == AppConfig.CAM_MODE_OBS) lastManualTouchTime = System.currentTimeMillis() } },
@@ -46,7 +47,7 @@ fun SideNavInstruments(
         }
 
         // [v1.7.6] 位置對調：抬頭標尺改為右側 (預設)
-        Box(modifier = Modifier.align(if(isReversed) Alignment.CenterEnd else Alignment.CenterStart).fillMaxHeight().width(50.dp)) {
+        Box(modifier = Modifier.align(if(isReversed) Alignment.CenterEnd else Alignment.CenterStart).fillMaxHeight().width(60.dp)) {
             PitchRuler(
                 value = state.observerTilt,
                 onValueChange = { t -> onUpdateState { observerTilt = t; if(cameraMode == AppConfig.CAM_MODE_OBS) lastManualTouchTime = System.currentTimeMillis() } },
@@ -60,17 +61,23 @@ fun SideNavInstruments(
 @Composable
 private fun HeightRuler(value: Float, onValueChange: (Float) -> Unit, showRuler: Boolean, isAuto: Boolean) {
     var internalValue by remember(value) { mutableFloatStateOf(value) }
+    val themeColors = NikoTheme.colors
     
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .background(themeColors.panel.copy(alpha = 0.75f), RoundedCornerShape(10.dp)) // 使用主題背板，增加透明度
+            .padding(horizontal = 6.dp, vertical = 12.dp)
+    ) {
         if (showRuler) {
-            Text(stringResource(R.string.hud_altitude_short), color = if(isAuto) Color.Cyan else Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-            Text(String.format(Locale.US, "%.1fm", internalValue), color = Color.Cyan, fontSize = 10.sp)
+            Text(stringResource(R.string.hud_altitude_short), color = if(isAuto) themeColors.primary else themeColors.textPrimary, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+            Text(String.format(Locale.US, "%.1fm", internalValue), color = themeColors.primary, fontSize = 10.sp)
         }
         
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
             if (showRuler) {
                 Column(modifier = Modifier.fillMaxHeight().padding(vertical = 10.dp), verticalArrangement = Arrangement.SpaceBetween) {
-                    repeat(7) { i -> Box(modifier = Modifier.width(if(i%2==0) 8.dp else 4.dp).height(1.dp).background(Color.White.copy(0.3f))) }
+                    repeat(7) { i -> Box(modifier = Modifier.width(if(i%2==0) 8.dp else 4.dp).height(1.dp).background(themeColors.textPrimary.copy(0.3f))) }
                 }
             }
 
@@ -87,7 +94,7 @@ private fun HeightRuler(value: Float, onValueChange: (Float) -> Unit, showRuler:
                     },
                 contentAlignment = Alignment.Center
             ) {
-                Box(modifier = Modifier.fillMaxHeight().width(4.dp).background(Color.White.copy(0.1f), RoundedCornerShape(2.dp)))
+                Box(modifier = Modifier.fillMaxHeight().width(4.dp).background(themeColors.textPrimary.copy(0.15f), RoundedCornerShape(2.dp)))
                 
                 Slider(
                     value = internalValue,
@@ -95,28 +102,34 @@ private fun HeightRuler(value: Float, onValueChange: (Float) -> Unit, showRuler:
                     valueRange = 1.6f..25.0f,
                     enabled = false,
                     modifier = Modifier.fillMaxHeight().width(20.dp).rotate(-90f),
-                    colors = SliderDefaults.colors(disabledThumbColor = if(isAuto) Color.Cyan else Color.White, disabledActiveTrackColor = Color.Transparent, disabledInactiveTrackColor = Color.Transparent)
+                    colors = SliderDefaults.colors(disabledThumbColor = if(isAuto) themeColors.primary else themeColors.textPrimary, disabledActiveTrackColor = Color.Transparent, disabledInactiveTrackColor = Color.Transparent)
                 )
             }
         }
-        if (isAuto) Text(stringResource(R.string.visual_label_auto), color = Color.Cyan, fontSize = 8.sp, fontWeight = FontWeight.Black)
+        if (isAuto) Text(stringResource(R.string.visual_label_auto), color = themeColors.primary, fontSize = 8.sp, fontWeight = FontWeight.Black)
     }
 }
 
 @Composable
 private fun PitchRuler(value: Float, onValueChange: (Float) -> Unit, showRuler: Boolean, isAuto: Boolean) {
     var internalValue by remember(value) { mutableFloatStateOf(value) }
+    val themeColors = NikoTheme.colors
     
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .background(themeColors.panel.copy(alpha = 0.75f), RoundedCornerShape(10.dp)) // 使用主題背板
+            .padding(horizontal = 6.dp, vertical = 12.dp)
+    ) {
         if (showRuler) {
-            Text(stringResource(R.string.hud_tilt_short), color = if(isAuto) Color.Cyan else Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-            Text(String.format(Locale.US, "%.0f°", internalValue), color = Color.Cyan, fontSize = 10.sp)
+            Text(stringResource(R.string.hud_tilt_short), color = if(isAuto) themeColors.primary else themeColors.textPrimary, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+            Text(String.format(Locale.US, "%.0f°", internalValue), color = themeColors.primary, fontSize = 10.sp)
         }
         
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
             if (showRuler) {
                 Column(modifier = Modifier.fillMaxHeight().padding(vertical = 10.dp), verticalArrangement = Arrangement.SpaceBetween) {
-                    repeat(7) { i -> Box(modifier = Modifier.width(if(i%2==0) 8.dp else 4.dp).height(1.dp).background(Color.White.copy(0.3f))) }
+                    repeat(7) { i -> Box(modifier = Modifier.width(if(i%2==0) 8.dp else 4.dp).height(1.dp).background(themeColors.textPrimary.copy(0.3f))) }
                 }
             }
 
@@ -133,7 +146,7 @@ private fun PitchRuler(value: Float, onValueChange: (Float) -> Unit, showRuler: 
                     },
                 contentAlignment = Alignment.Center
             ) {
-                Box(modifier = Modifier.fillMaxHeight().width(4.dp).background(Color.White.copy(0.1f), RoundedCornerShape(2.dp)))
+                Box(modifier = Modifier.fillMaxHeight().width(4.dp).background(themeColors.textPrimary.copy(0.15f), RoundedCornerShape(2.dp)))
                 
                 Slider(
                     value = internalValue,
@@ -141,10 +154,10 @@ private fun PitchRuler(value: Float, onValueChange: (Float) -> Unit, showRuler: 
                     valueRange = -30f..85f,
                     enabled = false,
                     modifier = Modifier.fillMaxHeight().width(20.dp).rotate(-90f),
-                    colors = SliderDefaults.colors(disabledThumbColor = if(isAuto) Color.Cyan else Color.White, disabledActiveTrackColor = Color.Transparent, disabledInactiveTrackColor = Color.Transparent)
+                    colors = SliderDefaults.colors(disabledThumbColor = if(isAuto) themeColors.primary else themeColors.textPrimary, disabledActiveTrackColor = Color.Transparent, disabledInactiveTrackColor = Color.Transparent)
                 )
             }
         }
-        if (isAuto) Text(stringResource(R.string.visual_label_auto), color = Color.Cyan, fontSize = 8.sp, fontWeight = FontWeight.Black)
+        if (isAuto) Text(stringResource(R.string.visual_label_auto), color = themeColors.primary, fontSize = 8.sp, fontWeight = FontWeight.Black)
     }
 }

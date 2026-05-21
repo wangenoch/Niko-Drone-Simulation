@@ -209,9 +209,16 @@
     <string name="settings_strict_landing">Strict Landing Safety Standard</string>
     <string name="settings_strict_landing_desc">Crash if impact > 2.2m/s with warnings</string>
     <string name="settings_expert_active">Expert Mode is already active</string>
+    <string name="settings_theme_title">Theme</string>
+    <string name="settings_theme_detail_title">Theme Details (%1$s)</string>
+    <string name="settings_theme_classic_desc">A classic dark theme with Deep Sky Blue accents. Ideal for low-light environments, reducing eye strain while maintaining high contrast.</string>
+    <string name="settings_theme_light_desc">A professional light theme designed for high visibility in outdoor or bright conditions. Features high-contrast elements for clear feedback.</string>
     <string name="settings_dev_label">Developer: </string>
     <string name="settings_version_label">Version: </string>
     <string name="settings_language">Language</string>
+    <string name="settings_theme">UI Theme</string>
+    <string name="settings_theme_classic">Classic</string>
+    <string name="settings_theme_light">Light</string>
     <string name="settings_lang_zh">繁體中文</string>
     <string name="settings_lang_en">English</string>
 

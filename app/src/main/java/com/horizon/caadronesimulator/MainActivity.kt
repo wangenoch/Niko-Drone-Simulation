@@ -18,6 +18,8 @@ import com.horizon.caadronesimulator.ui.MainAppScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
+
 /**
  * [v1.7.6] 模擬器主入口 - 效能極致優化版
  * 職責：管理組件生命週期與高頻渲染回調，作為 Pro (專業) 與 Store (合規) 鏈路的總掛載點。
@@ -99,78 +101,85 @@ class MainActivity : androidx.activity.ComponentActivity() {
 
         // 6. UI 視圖層載入
         setContent {
-            MainAppScreen(
-                droneState = droneState, 
-                stickInputState = stickInputState, 
-                renderer = renderer, 
-                soundManager = soundManager, 
-                usbSerialManager = usbSerialManager, // 傳遞 Store 鏈路管理器
-                configStore = configStore,
-                viewModel = viewModel, 
-                showSplash = showSplash, 
-                onCloseSplash = { showSplash = false }, 
-                onResetFlight = { viewModel.resetFlight(droneState, renderer) }, 
-                onRerollWind = { renderer.rerollWindDirection() },
-                onRestoreDefaults = { 
-                    viewModel.restoreFactorySettings(droneState, renderer)
-                    configStore.wipeAllSettings()
-                    configStore.saveSettings(droneState) 
-                    updateSystemUI()
-                    com.horizon.caadronesimulator.logic.ProHardwareBridge.onStop()
-                    droneState.inputMode = -1 
-                },
-                onExportLog = { saveDiagnosticLog() }, 
-                onUpdateBaudRate = { b -> 
-                    droneState.baudRate = b
-                    com.horizon.caadronesimulator.logic.ProHardwareBridge.internalCommManager.setBaudRate(b)
-                    configStore.saveSettings(droneState) 
-                },
-                onUpdateInputMode = { m ->
-                    // 手動輸入模式切換邏輯
-                    if (droneState.isInteractionLocked) return@MainAppScreen
-                    if (droneState.inputMode != m) {
-                        droneState.isInteractionLocked = true; droneState.inputMode = m; configStore.saveSettings(droneState)
-                        droneState.isUsbStickyActive = false
+            NikoTheme(themeId = droneState.appTheme) {
+                MainAppScreen(
+                    droneState = droneState, 
+                    stickInputState = stickInputState, 
+                    renderer = renderer, 
+                    soundManager = soundManager, 
+                    usbSerialManager = usbSerialManager, // 傳遞 Store 鏈路管理器
+                    configStore = configStore,
+                    viewModel = viewModel, 
+                    showSplash = showSplash, 
+                    onCloseSplash = { showSplash = false }, 
+                    onResetFlight = { viewModel.resetFlight(droneState, renderer) }, 
+                    onRerollWind = { renderer.rerollWindDirection() },
+                    onRestoreDefaults = { 
+                        viewModel.restoreFactorySettings(droneState, renderer)
+                        configStore.wipeAllSettings()
+                        configStore.saveSettings(droneState) 
+                        updateSystemUI()
+                        com.horizon.caadronesimulator.logic.ProHardwareBridge.onStop()
+                        droneState.inputMode = -1 
+                    },
+                    onExportLog = { saveDiagnosticLog() }, 
+                    onUpdateBaudRate = { b -> 
+                        droneState.baudRate = b
+                        com.horizon.caadronesimulator.logic.ProHardwareBridge.internalCommManager.setBaudRate(b)
+                        configStore.saveSettings(droneState) 
+                    },
+                    onUpdateInputMode = { m ->
+                        // 手動輸入模式切換邏輯
+                        if (droneState.isInteractionLocked) return@MainAppScreen
+                        if (droneState.inputMode != m) {
+                            droneState.isInteractionLocked = true; droneState.inputMode = m; configStore.saveSettings(droneState)
+                            droneState.isUsbStickyActive = false
+                            
+                            com.horizon.caadronesimulator.logic.ProHardwareBridge.onStop()
+                            if (m == -1 || m == 2) { droneState.isArmSafetyPassed = true; droneState.isHoldSafetyPassed = true; droneState.isThrottleHoldActive = false } 
+                            else { droneState.isArmSafetyPassed = false; droneState.isHoldSafetyPassed = false }
+                            if (m == 1) lifecycleScope.launch { delay(300); com.horizon.caadronesimulator.logic.ProHardwareBridge.internalCommManager.scanAndConnect() }
+                            lifecycleScope.launch { delay(1000); droneState.isInteractionLocked = false }
+                        }
+                    },
+                    onToggleNetworkConnection = { active ->
+                        // 網路通訊鏈路開關
+                        if (active) { 
+                            com.horizon.caadronesimulator.logic.ProHardwareBridge.internalCommManager.setLockedPath("NETWORK")
+                            com.horizon.caadronesimulator.logic.ProHardwareBridge.internalCommManager.scanAndConnect() 
+                        } else { 
+                            com.horizon.caadronesimulator.logic.ProHardwareBridge.onStop()
+                        }
+                    },
+                    onUpdateSystemUI = { updateSystemUI() },
+                    onLanguageChange = { lang ->
+                        // 1. 識別是否正處於預設標題 (以便自動轉換)
+                        val oldDefault = com.horizon.caadronesimulator.model.AppConfig.getDefaultSpecialTitle(droneState.appLanguage)
+                        val isUsingDefault = droneState.currentTitleText == oldDefault || droneState.currentTitleText.isEmpty()
                         
-                        com.horizon.caadronesimulator.logic.ProHardwareBridge.onStop()
-                        if (m == -1 || m == 2) { droneState.isArmSafetyPassed = true; droneState.isHoldSafetyPassed = true; droneState.isThrottleHoldActive = false } 
-                        else { droneState.isArmSafetyPassed = false; droneState.isHoldSafetyPassed = false }
-                        if (m == 1) lifecycleScope.launch { delay(300); com.horizon.caadronesimulator.logic.ProHardwareBridge.internalCommManager.scanAndConnect() }
-                        lifecycleScope.launch { delay(1000); droneState.isInteractionLocked = false }
-                    }
-                },
-                onToggleNetworkConnection = { active ->
-                    // 網路通訊鏈路開關
-                    if (active) { 
-                        com.horizon.caadronesimulator.logic.ProHardwareBridge.internalCommManager.setLockedPath("NETWORK")
-                        com.horizon.caadronesimulator.logic.ProHardwareBridge.internalCommManager.scanAndConnect() 
-                    } else { 
-                        com.horizon.caadronesimulator.logic.ProHardwareBridge.onStop()
-                    }
-                },
-                onUpdateSystemUI = { updateSystemUI() },
-                onLanguageChange = { lang ->
-                    // 1. 識別是否正處於預設標題 (以便自動轉換)
-                    val oldDefault = com.horizon.caadronesimulator.model.AppConfig.getDefaultSpecialTitle(droneState.appLanguage)
-                    val isUsingDefault = droneState.currentTitleText == oldDefault || droneState.currentTitleText.isEmpty()
-                    
-                    // 2. 切換語言
-                    droneState.appLanguage = lang
-                    
-                    // 3. 如果原本是預設標題，自動切換至新語言的預設值
-                    if (isUsingDefault) {
-                        droneState.currentTitleText = com.horizon.caadronesimulator.model.AppConfig.getDefaultSpecialTitle(lang)
-                    }
+                        // 2. 切換語言
+                        droneState.appLanguage = lang
+                        
+                        // 3. 如果原本是預設標題，自動切換至新語言的預設值
+                        if (isUsingDefault) {
+                            droneState.currentTitleText = com.horizon.caadronesimulator.model.AppConfig.getDefaultSpecialTitle(lang)
+                        }
 
-                    // 4. [同步寫入磁碟] 確保重啟後 loadSettings 讀到的是最新語系
-                    configStore.saveSettings(droneState)
-                    
-                    // 5. [狀態清理] 清除歷史日誌，防止中文日誌殘留在 Singleton 中
-                    droneState.diagnosticLog = ""
+                        // 4. [同步寫入磁碟] 確保重啟後 loadSettings 讀到的是最新語系
+                        configStore.saveSettings(droneState)
+                        
+                        // 5. [狀態清理] 清除歷史日誌，防止中文日誌殘留在 Singleton 中
+                        droneState.diagnosticLog = ""
 
-                    recreate()
-                }
-            )
+                        recreate()
+                    },
+                    onThemeChange = { theme ->
+                        droneState.appTheme = theme
+                        configStore.saveSettings(droneState)
+                        // 主題切換不一定需要 recreate，因為 Compose 會自動觀察 state
+                    }
+                )
+            }
         }
     }
 

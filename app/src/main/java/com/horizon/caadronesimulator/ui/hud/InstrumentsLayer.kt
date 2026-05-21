@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import com.horizon.caadronesimulator.R
 import com.horizon.caadronesimulator.model.DroneState
 import com.horizon.caadronesimulator.model.DroneRegistry
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 import java.util.Locale
 import kotlin.math.*
 
@@ -72,8 +73,8 @@ fun PrecisionZoomView(
         modifier = modifier
             .size(150.dp, 100.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0x44111111))
-            .border(1.5.dp, Color(0xFFFF9800).copy(0.6f), RoundedCornerShape(12.dp))
+            .background(Color(0x44111111)) // 恢復深色半透明背景，確保不會遮擋 3D 渲染
+            .border(1.5.dp, NikoTheme.colors.primary.copy(0.6f), RoundedCornerShape(12.dp))
     ) {
         Box(
             modifier = Modifier
@@ -91,7 +92,7 @@ fun PrecisionZoomView(
 @Composable
 fun OsdView(state: DroneState, onUpdatePipRect: (android.graphics.Rect?) -> Unit, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val spec = DroneRegistry.getSpec(state.droneType)
-    Box(modifier = modifier.clip(RoundedCornerShape(12.dp)).background(Color(0xAA111111)).border(2.dp, Color(0xFFFF9800).copy(0.6f), RoundedCornerShape(12.dp)).clickable { onClick() }) {
+    Box(modifier = modifier.clip(RoundedCornerShape(12.dp)).background(Color(0xAA111111)).border(2.dp, NikoTheme.colors.primary.copy(0.6f), RoundedCornerShape(12.dp)).clickable { onClick() }) {
         Box(modifier = Modifier.fillMaxSize().padding(3.dp).onGloballyPositioned { coords ->
             val pos = coords.positionInWindow(); val size = coords.size
             // [v1.7.6] 修正：在 Compose 坐標系轉換為 Android Graphics Rect 時加入邊界緩衝
@@ -102,16 +103,18 @@ fun OsdView(state: DroneState, onUpdatePipRect: (android.graphics.Rect?) -> Unit
             val hText = String.format(Locale.US, "%.1f", (state.altitude - spec.groundOffset))
             val dText = String.format(Locale.US, "%.1f", state.horizontalDist)
 
+            val color = if(NikoTheme.colors.isLight) NikoTheme.colors.primary else Color.Green
+
             Column(modifier = Modifier.align(Alignment.CenterStart)) {
-                Text("${stringResource(R.string.hud_speed_short)}: $vText", color = Color.Green, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                Text("${stringResource(R.string.hud_pitch_short)}: ${state.pitch.toInt()}°", color = Color.Green, fontSize = 7.sp)
+                Text("${stringResource(R.string.hud_speed_short)}: $vText", color = color, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                Text("${stringResource(R.string.hud_pitch_short)}: ${state.pitch.toInt()}°", color = color, fontSize = 7.sp)
             }
             Column(modifier = Modifier.align(Alignment.CenterEnd), horizontalAlignment = Alignment.End) {
-                Text("${stringResource(R.string.hud_altitude_short)}: $hText", color = Color.Green, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                Text("${stringResource(R.string.hud_tilt_short)}: ${state.cameraTilt.toInt()}°", color = Color.Cyan, fontSize = 7.sp)
+                Text("${stringResource(R.string.hud_altitude_short)}: $hText", color = color, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                Text("${stringResource(R.string.hud_tilt_short)}: ${state.cameraTilt.toInt()}°", color = NikoTheme.colors.accent, fontSize = 7.sp)
             }
-            Text("${stringResource(R.string.hud_distance_short)}: ${dText}${stringResource(R.string.hud_unit_m)}", modifier = Modifier.align(Alignment.BottomCenter), color = Color.Green, fontSize = 8.sp)
-            Text("${state.yaw.toInt()}°", modifier = Modifier.align(Alignment.TopCenter), color = Color.Green, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+            Text("${stringResource(R.string.hud_distance_short)}: ${dText}${stringResource(R.string.hud_unit_m)}", modifier = Modifier.align(Alignment.BottomCenter), color = color, fontSize = 8.sp)
+            Text("${state.yaw.toInt()}°", modifier = Modifier.align(Alignment.TopCenter), color = color, fontSize = 9.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -119,16 +122,17 @@ fun OsdView(state: DroneState, onUpdatePipRect: (android.graphics.Rect?) -> Unit
 @Composable
 fun AttitudeView(state: DroneState, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val textMeasurer = rememberTextMeasurer()
-    Box(modifier = modifier.background(Color(0xAA111111), CircleShape).border(1.5.dp, Color(0xFF00BFFF), CircleShape).clickable { onClick() }) {
+    val themeColors = NikoTheme.colors
+    Box(modifier = modifier.background(themeColors.panel, CircleShape).border(1.5.dp, themeColors.primary, CircleShape).clickable { onClick() }) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val c = Offset(size.width / 2, size.height / 2); val r = size.minDimension / 2
             rotate(-state.yaw, c) {
                 for (i in 0 until 360 step 30) {
-                    val aR = Math.toRadians(i.toDouble() - 90.0).toFloat(); val isMain = i % 90 == 0; val len = if (isMain) 8.dp.toPx() else 4.dp.toPx(); val color = if (i == 0) Color.Red else Color.White.copy(0.6f)
+                    val aR = Math.toRadians(i.toDouble() - 90.0).toFloat(); val isMain = i % 90 == 0; val len = if (isMain) 8.dp.toPx() else 4.dp.toPx(); val color = if (i == 0) Color.Red else themeColors.textPrimary.copy(0.6f)
                     drawLine(color, Offset(c.x + cos(aR) * (r - 2.dp.toPx()), c.y + sin(aR) * (r - 2.dp.toPx())), Offset(c.x + cos(aR) * (r - 2.dp.toPx() - len), c.y + sin(aR) * (r - 2.dp.toPx() - len)), if (isMain) 2.dp.toPx() else 1.dp.toPx())
                     if (isMain) {
                         val label = when(i) { 0 -> "N"; 90 -> "E"; 180 -> "S"; 270 -> "W"; else -> "" }
-                        val textLayoutResult = textMeasurer.measure(text = label, style = TextStyle(color = if (i == 0) Color.Red else Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold))
+                        val textLayoutResult = textMeasurer.measure(text = label, style = TextStyle(color = if (i == 0) Color.Red else themeColors.textPrimary, fontSize = 10.sp, fontWeight = FontWeight.Bold))
                         val textPos = Offset(c.x + cos(aR) * (r - 14.dp.toPx()), c.y + sin(aR) * (r - 14.dp.toPx()))
                         rotate(state.yaw, textPos) { drawText(textLayoutResult = textLayoutResult, topLeft = Offset(textPos.x - textLayoutResult.size.width / 2, textPos.y - textLayoutResult.size.height / 2)) }
                     }
@@ -147,8 +151,8 @@ fun AttitudeView(state: DroneState, modifier: Modifier = Modifier, onClick: () -
             drawPath(tipPath, Color.Red)
             
             // [v1.7.6] 儀表文字標籤與高度位置修正
-            val heading = ((state.yaw % 360 + 360) % 360).toInt(); val hLayout = textMeasurer.measure("$heading°", TextStyle(color = Color.Cyan, fontSize = 10.sp, fontWeight = FontWeight.Bold))
-            drawRect(Color.Black.copy(0.4f), Offset(c.x - hLayout.size.width/2 - 2.dp.toPx(), size.height - 18.dp.toPx()), Size(hLayout.size.width.toFloat() + 4.dp.toPx(), 14.dp.toPx()))
+            val heading = ((state.yaw % 360 + 360) % 360).toInt(); val hLayout = textMeasurer.measure("$heading°", TextStyle(color = themeColors.accent, fontSize = 10.sp, fontWeight = FontWeight.Bold))
+            drawRect(themeColors.panel.copy(0.4f), Offset(c.x - hLayout.size.width/2 - 2.dp.toPx(), size.height - 18.dp.toPx()), Size(hLayout.size.width.toFloat() + 4.dp.toPx(), 14.dp.toPx()))
             drawText(textLayoutResult = hLayout, topLeft = Offset(c.x - hLayout.size.width / 2, size.height - 18.dp.toPx()))
         }
     }

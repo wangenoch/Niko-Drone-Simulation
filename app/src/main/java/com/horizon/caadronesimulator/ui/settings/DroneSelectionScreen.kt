@@ -21,6 +21,7 @@ import com.horizon.caadronesimulator.model.DroneRegistry
 
 import androidx.compose.ui.res.stringResource
 import com.horizon.caadronesimulator.R
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 
 /**
  * [v1.5.3] 機型選擇分頁 - 100% 數據驅動
@@ -70,7 +71,7 @@ fun DroneSelectionScreen(
         
         if (!isSmallDevice) {
             Surface(
-                color = Color(0x22FFFFFF),
+                color = NikoTheme.colors.textPrimary.copy(alpha = 0.05f),
                 shape = RoundedCornerShape(10.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -86,18 +87,18 @@ fun DroneSelectionScreen(
                     
                     Text(
                         text = stringResource(R.string.drone_selection_detail_title, localizedName),
-                        color = Color.Cyan,
+                        color = NikoTheme.colors.primary,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = module.getFormattedSpecs(),
-                        color = Color.LightGray,
+                        color = NikoTheme.colors.textSecondary,
                         fontSize = 10.sp,
                         lineHeight = 14.sp
                     )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = Color(0x1AFFFFFF))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = NikoTheme.colors.divider)
                     val desc = when(module.hardwareSpecs.description) {
                         "SPECS_HELI_900_DESC" -> stringResource(R.string.specs_heli_900_desc)
                         "SPECS_T4_HEAVY_DESC" -> stringResource(R.string.specs_t4_heavy_desc)
@@ -106,7 +107,7 @@ fun DroneSelectionScreen(
                     }
                     Text(
                         text = desc,
-                        color = Color.White.copy(alpha = 0.5f),
+                        color = NikoTheme.colors.textPrimary.copy(alpha = 0.7f),
                         fontSize = 10.sp,
                         lineHeight = 14.sp
                     )
@@ -136,12 +137,12 @@ fun RowScope.DroneTypeCard(
             .weight(1f)
             .height(170.dp)
             .background(
-                if (isSelected) Color(0xFF00BFFF).copy(alpha = 0.2f) else Color(0x1AFFFFFF),
+                if (isSelected) NikoTheme.colors.primary.copy(alpha = 0.2f) else NikoTheme.colors.textPrimary.copy(alpha = 0.05f),
                 RoundedCornerShape(16.dp)
             )
             .border(
                 2.dp,
-                if (isSelected) Color(0xFF00BFFF) else Color.Transparent,
+                if (isSelected) NikoTheme.colors.primary else Color.Transparent,
                 RoundedCornerShape(16.dp)
             )
             .combinedClickable(
@@ -155,7 +156,7 @@ fun RowScope.DroneTypeCard(
             Box(
                 modifier = Modifier
                     .size(64.dp)
-                    .background(if (isSelected) Color.Cyan else Color.DarkGray, CircleShape),
+                    .background(if (isSelected) NikoTheme.colors.primary else NikoTheme.colors.textSecondary.copy(alpha = 0.2f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 // [v1.5.3] 委派至機型模組繪製專屬圖示，徹底移除 ID 判斷
@@ -163,9 +164,9 @@ fun RowScope.DroneTypeCard(
                 module.RenderIcon(modifier = Modifier.size(40.dp), isSelected = isSelected)
             }
             Spacer(modifier = Modifier.height(12.dp))
-            Text(title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp, textAlign = TextAlign.Center)
+            Text(title, color = NikoTheme.colors.textPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp, textAlign = TextAlign.Center)
             if (isSelected) {
-                Text(stringResource(R.string.drone_selection_current), color = Color.Cyan, fontSize = 11.sp)
+                Text(stringResource(R.string.drone_selection_current), color = NikoTheme.colors.primary, fontSize = 11.sp)
                 
                 if (isHoldSupported && isHoldMapped) {
                     Row(
@@ -176,10 +177,10 @@ fun RowScope.DroneTypeCard(
                             checked = isHoldEnabled,
                             onCheckedChange = { onToggleHold(it) },
                             modifier = Modifier.scale(0.6f).height(20.dp),
-                            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color.Cyan)
+                            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = NikoTheme.colors.primary)
                         )
                         Spacer(Modifier.width(4.dp))
-                        Text(stringResource(R.string.drone_selection_hold), color = if(isHoldEnabled) Color.Cyan else Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.drone_selection_hold), color = if(isHoldEnabled) NikoTheme.colors.primary else NikoTheme.colors.textSecondary, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }

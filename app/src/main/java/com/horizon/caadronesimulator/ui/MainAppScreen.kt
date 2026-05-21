@@ -45,7 +45,8 @@ fun MainAppScreen(
     onUpdateInputMode: (Int) -> Unit,
     onToggleNetworkConnection: (Boolean) -> Unit,
     onUpdateSystemUI: () -> Unit,
-    onLanguageChange: (String) -> Unit = {}
+    onLanguageChange: (String) -> Unit = {},
+    onThemeChange: (String) -> Unit = {}
 ) {
     var isStatusVisible by remember { mutableStateOf(true) }
     var tutorialTargets by remember { mutableStateOf<Map<String, Rect>>(emptyMap()) }
@@ -224,7 +225,8 @@ fun MainAppScreen(
             onUpdateBaudRate = onUpdateBaudRate,
             onUpdateInputMode = onUpdateInputMode,
             onToggleNetworkConnection = onToggleNetworkConnection,
-            onLanguageChange = onLanguageChange
+            onLanguageChange = onLanguageChange,
+            onThemeChange = onThemeChange
         )
     }
 }

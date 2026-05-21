@@ -16,7 +16,7 @@ data class ChannelMapping(
 )
 
 enum class SettingsTab {
-    CONTROLLER, ENVIRONMENT, DRONE_SELECTION, CAMERA, SYSTEM
+    CONTROLLER, ENVIRONMENT, DRONE_SELECTION, CAMERA, SYSTEM, THEME
 }
 
 enum class ConnectionStatus {
@@ -103,6 +103,7 @@ class DroneState {
     // --- 配置與全局狀態 ---
     var droneType by mutableStateOf("QUAD_STANDARD"); var joystickMode by mutableIntStateOf(2); var isMuted by mutableStateOf(AppConfig.SystemDefaults.IS_MUTED); var showShadow by mutableStateOf(AppConfig.SystemDefaults.SHOW_SHADOW); var shadowIntensity by mutableFloatStateOf(AppConfig.EnvironmentDefaults.SHADOW_INTENSITY)
     var appLanguage by mutableStateOf("zh") // [v1.7.6] 語言設定：zh 或 en
+    var appTheme by mutableStateOf(AppConfig.THEME_CLASSIC) // [v1.7.7] 主題設定
     var showObstacles by mutableStateOf(AppConfig.SystemDefaults.SHOW_OBSTACLES); var hideStatusBar by mutableStateOf(AppConfig.SystemDefaults.HIDE_STATUS_BAR); var pauseInSettings by mutableStateOf(AppConfig.SystemDefaults.PAUSE_IN_SETTINGS); var applyPhysicalSpecs by mutableStateOf(AppConfig.SystemDefaults.APPLY_PHYSICAL_SPECS); var useFlightLimit by mutableStateOf(AppConfig.SystemDefaults.USE_FLIGHT_LIMIT)
     var useSimplifiedMarkers by mutableStateOf(true); var showSpecialTitle by mutableStateOf(AppConfig.VisualDefaults.SHOW_SPECIAL_TITLE); var customTitle by mutableStateOf(""); var settingsTab by mutableStateOf(SettingsTab.CONTROLLER); var showSettings by mutableStateOf(false)
     var showHardwareMonitor by mutableStateOf(false); var isInteractionLocked by mutableStateOf(false)

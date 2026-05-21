@@ -93,6 +93,7 @@ class DroneViewModel : ViewModel() {
             motorRpmFactor = 0f
             
             // 2. 狀態旗標重置
+            isNearBoundary = false
             isCollision = false
             isMotorLocked = true
             flightPath = emptyList()

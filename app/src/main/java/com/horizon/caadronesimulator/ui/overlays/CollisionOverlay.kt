@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.horizon.caadronesimulator.R
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 
 /**
  * [v1.2.68] 發生碰撞後的覆蓋層
@@ -25,24 +26,25 @@ fun CollisionOverlay(
     onReset: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val themeColors = NikoTheme.colors
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xBB000000))
+            .background(themeColors.background.copy(alpha = 0.8f))
             .clickable(enabled = false) {}, 
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = stringResource(R.string.collision_title),
-                color = Color.Red,
+                color = themeColors.warning,
                 fontSize = 40.sp,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(40.dp))
             Button(
                 onClick = { onReset() },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),
+                colors = ButtonDefaults.buttonColors(containerColor = themeColors.primary),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .width(200.dp)
@@ -50,7 +52,7 @@ fun CollisionOverlay(
             ) {
                 Text(
                     text = stringResource(R.string.collision_btn_restart),
-                    color = Color.White,
+                    color = if(themeColors.isLight) Color.White else Color.Black,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )

@@ -16,6 +16,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
@@ -26,6 +27,7 @@ fun VirtualJoystick(
     onDragStateChange: (Boolean) -> Unit = {},
     onValueChange: (Float, Float) -> Unit
 ) {
+    val themeColors = NikoTheme.colors
     val maxRadius = 70.dp
     val density = LocalDensity.current
     val maxPx = with(density) { maxRadius.toPx() }
@@ -42,15 +44,15 @@ fun VirtualJoystick(
     Box(
         modifier = Modifier
             .size(150.dp)
-            .background(Color(0x44FFFFFF), CircleShape)
-            .border(2.dp, Color(0x66FFFFFF), CircleShape),
+            .background(themeColors.textPrimary.copy(alpha = 0.1f), CircleShape)
+            .border(2.dp, themeColors.textPrimary.copy(alpha = 0.2f), CircleShape),
         contentAlignment = Alignment.Center
     ) {
         Box(
             modifier = Modifier
                 .offset { IntOffset(internalOffset.x.roundToInt(), internalOffset.y.roundToInt()) }
                 .size(60.dp)
-                .background(Color(0xAAFFFFFF), CircleShape)
+                .background(themeColors.textPrimary.copy(alpha = 0.4f), CircleShape)
                 .shadow(4.dp, CircleShape)
                 .pointerInput(Unit) {
                     detectDragGestures(
@@ -80,9 +82,20 @@ fun VirtualJoystick(
 }
 
 @Composable
-fun MiniStickVisual(inputMode: Int, inverted: Boolean, value: Float, alpha: Float) {
-    Box(modifier = Modifier.width(40.dp).height(8.dp).background(Color.DarkGray.copy(alpha = 0.3f), RoundedCornerShape(4.dp))) {
-        val pos = (value + 1f) / 2f
-        Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(pos).background(if (inverted) Color.Red.copy(alpha) else Color.Cyan.copy(alpha), RoundedCornerShape(4.dp)))
+fun MiniStickVisual(joystickMode: Int, isLeft: Boolean, stickX: Float, stickY: Float) {
+    val themeColors = NikoTheme.colors
+    Box(
+        modifier = Modifier
+            .size(60.dp)
+            .background(themeColors.textPrimary.copy(alpha = 0.1f), CircleShape)
+            .border(1.dp, themeColors.divider, CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .offset(x = (stickX * 20).dp, y = -(stickY * 20).dp)
+                .size(14.dp)
+                .background(themeColors.primary, CircleShape)
+        )
     }
 }

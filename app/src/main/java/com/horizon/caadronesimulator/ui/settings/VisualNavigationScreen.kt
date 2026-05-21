@@ -20,6 +20,7 @@ import java.util.Locale
 import androidx.compose.ui.res.stringResource
 import com.horizon.caadronesimulator.R
 import com.horizon.caadronesimulator.model.AppConfig
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 
 /**
  * [v1.5.9] 視訊導航與介面配置頁面
@@ -48,7 +49,8 @@ fun VisualNavigationScreen(
     onToggleGroundAnchor: (Boolean) -> Unit,
     onTogglePiPRelocate: (Boolean) -> Unit,
     onToggleZoomAssistant: (Boolean) -> Unit,
-    onSave: () -> Unit = {}
+    onSave: () -> Unit = {},
+    onManualInteraction: () -> Unit = {}
 ) {
     var showTitleDialog by remember { mutableStateOf(false) }
 
@@ -61,14 +63,14 @@ fun VisualNavigationScreen(
         // 1. 📷 鏡頭與視角
         Surface(
             modifier = Modifier.weight(1.2f),
-            color = Color(0x1AFFFFFF),
+            color = NikoTheme.colors.textPrimary.copy(alpha = 0.05f),
             shape = RoundedCornerShape(8.dp)
         ) {
             Column(modifier = Modifier.padding(10.dp)) {
-                Text(stringResource(R.string.visual_camera_section), color = Color.Cyan, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.visual_camera_section), color = NikoTheme.colors.primary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                Text(stringResource(R.string.menu_camera_mode), color = Color.Gray, fontSize = 10.sp)
+                Text(stringResource(R.string.menu_camera_mode), color = NikoTheme.colors.textSecondary, fontSize = 10.sp)
                 Spacer(modifier = Modifier.height(4.dp))
                 
                 var expanded by remember { mutableStateOf(false) }
@@ -87,9 +89,9 @@ fun VisualNavigationScreen(
                             .fillMaxWidth()
                             .height(36.dp)
                             .clickable { expanded = true },
-                        color = Color.White.copy(alpha = 0.1f),
+                        color = NikoTheme.colors.textPrimary.copy(alpha = 0.1f),
                         shape = RoundedCornerShape(6.dp),
-                        border = BorderStroke(1.dp, Color.Cyan.copy(alpha = 0.3f))
+                        border = BorderStroke(1.dp, NikoTheme.colors.primary.copy(alpha = 0.3f))
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 12.dp),
@@ -97,8 +99,8 @@ fun VisualNavigationScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             val currentLabel = modes.find { it.first == cameraMode }?.second ?: cameraMode
-                            Text(text = currentLabel, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Icon(Icons.Default.ArrowDropDown, null, tint = Color.Cyan, modifier = Modifier.size(20.dp))
+                            Text(text = currentLabel, color = NikoTheme.colors.textPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Icon(Icons.Default.ArrowDropDown, null, tint = NikoTheme.colors.primary, modifier = Modifier.size(20.dp))
                         }
                     }
 
@@ -107,12 +109,12 @@ fun VisualNavigationScreen(
                         onDismissRequest = { expanded = false },
                         modifier = Modifier
                             .fillMaxWidth(0.45f)
-                            .background(Color(0xFF1B2535))
-                            .border(1.dp, Color.White.copy(0.1f), RoundedCornerShape(8.dp))
+                            .background(NikoTheme.colors.panel)
+                            .border(1.dp, NikoTheme.colors.divider, RoundedCornerShape(8.dp))
                     ) {
                         modes.forEach { (id, label) ->
                             DropdownMenuItem(
-                                text = { Text(label, color = if(cameraMode == id) Color.Cyan else Color.White, fontSize = 13.sp) },
+                                text = { Text(label, color = if(cameraMode == id) NikoTheme.colors.primary else NikoTheme.colors.textPrimary, fontSize = 13.sp) },
                                 onClick = {
                                     onUpdateCameraMode(id)
                                     expanded = false
@@ -126,32 +128,32 @@ fun VisualNavigationScreen(
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(stringResource(R.string.visual_label_fov), color = Color.White, fontSize = 11.sp)
-                        Text("${mainFOV.toInt()}°", color = Color.Cyan, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.visual_label_fov), color = NikoTheme.colors.textPrimary, fontSize = 11.sp)
+                        Text("${mainFOV.toInt()}°", color = NikoTheme.colors.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     }
                     Slider(
                         value = mainFOV,
-                        onValueChange = onUpdateFOV,
+                        onValueChange = { onUpdateFOV(it); onManualInteraction() },
                         onValueChangeFinished = onSave,
                         valueRange = 30f..110f,
                         modifier = Modifier.weight(2f).height(24.dp),
-                        colors = SliderDefaults.colors(thumbColor = Color.Cyan)
+                        colors = SliderDefaults.colors(thumbColor = NikoTheme.colors.primary, activeTrackColor = NikoTheme.colors.primary, inactiveTrackColor = NikoTheme.colors.divider)
                     )
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(stringResource(R.string.visual_label_zoom), color = Color.White, fontSize = 11.sp)
-                        Text("${String.format(Locale.US, "%.1f", zoomFactor)}x", color = Color.Cyan, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.visual_label_zoom), color = NikoTheme.colors.textPrimary, fontSize = 11.sp)
+                        Text("${String.format(Locale.US, "%.1f", zoomFactor)}x", color = NikoTheme.colors.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     }
                     Slider(
                         value = zoomFactor,
-                        onValueChange = onUpdateZoom,
+                        onValueChange = { onUpdateZoom(it); onManualInteraction() },
                         onValueChangeFinished = onSave,
                         valueRange = 0.5f..4.0f,
                         modifier = Modifier.weight(2f).height(24.dp),
-                        colors = SliderDefaults.colors(thumbColor = Color.Cyan)
+                        colors = SliderDefaults.colors(thumbColor = NikoTheme.colors.primary, activeTrackColor = NikoTheme.colors.primary, inactiveTrackColor = NikoTheme.colors.divider)
                     )
                 }
             }
@@ -160,7 +162,7 @@ fun VisualNavigationScreen(
         // 2. 🖥️ HUD 介面元素
         Surface(
             modifier = Modifier.weight(1f),
-            color = Color(0x1AFFFFFF),
+            color = NikoTheme.colors.textPrimary.copy(alpha = 0.05f),
             shape = RoundedCornerShape(8.dp)
         ) {
             Column(modifier = Modifier.padding(10.dp)) {
@@ -168,9 +170,9 @@ fun VisualNavigationScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().height(32.dp)) {
-                    Text(stringResource(R.string.visual_special_title), color = Color.White.copy(0.9f), fontSize = 11.sp, modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.visual_special_title), color = NikoTheme.colors.textPrimary.copy(0.9f), fontSize = 11.sp, modifier = Modifier.weight(1f))
                     if (showSpecialTitle) {
-                        Icon(Icons.Default.Edit, null, tint = Color.Yellow.copy(0.6f), modifier = Modifier.size(12.dp).padding(end = 4.dp).clickable { showTitleDialog = true })
+                        Icon(Icons.Default.Edit, null, tint = NikoTheme.colors.safety.copy(0.6f), modifier = Modifier.size(12.dp).padding(end = 4.dp).clickable { showTitleDialog = true })
                     }
                     Switch(
                         checked = showSpecialTitle,
@@ -180,14 +182,14 @@ fun VisualNavigationScreen(
                             onSave()
                         },
                         modifier = Modifier.scale(0.55f),
-                        colors = SwitchDefaults.colors(checkedThumbColor = Color.Cyan)
+                        colors = SwitchDefaults.colors(checkedThumbColor = NikoTheme.colors.primary)
                     )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().height(24.dp)) {
                     Spacer(Modifier.width(12.dp))
-                    Text(stringResource(R.string.visual_label_zoom_short), color = Color.Gray, fontSize = 9.sp, modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.visual_label_zoom_short), color = NikoTheme.colors.textSecondary, fontSize = 9.sp, modifier = Modifier.weight(1f))
                     TextButton(onClick = { onToggleSpecialTitle(true); showTitleDialog = true }, contentPadding = PaddingValues(0.dp), modifier = Modifier.height(24.dp)) {
-                        Text(currentTitleText.ifBlank { stringResource(R.string.visual_label_auto) }, color = Color.Cyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(currentTitleText.ifBlank { stringResource(R.string.visual_label_auto) }, color = NikoTheme.colors.primary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
@@ -204,7 +206,7 @@ fun VisualNavigationScreen(
         // 3. 🛰️ 導航輔助
         Surface(
             modifier = Modifier.weight(0.9f),
-            color = Color(0x1AFFFFFF),
+            color = NikoTheme.colors.textPrimary.copy(alpha = 0.05f),
             shape = RoundedCornerShape(8.dp)
         ) {
             Column(modifier = Modifier.padding(10.dp)) {
@@ -215,7 +217,7 @@ fun VisualNavigationScreen(
                 VisualSwitchItem(stringResource(R.string.visual_pip_relocate), autoPiPRelocate, onTogglePiPRelocate, onSave)
                 
                 Spacer(Modifier.weight(1f))
-                Text(stringResource(R.string.visual_nav_hint), color = Color.Gray, fontSize = 9.sp)
+                Text(stringResource(R.string.visual_nav_hint), color = NikoTheme.colors.textSecondary, fontSize = 9.sp)
             }
         }
     }
@@ -224,32 +226,32 @@ fun VisualNavigationScreen(
     if (showTitleDialog) {
         AlertDialog(
             onDismissRequest = { showTitleDialog = false },
-            title = { Text(stringResource(R.string.visual_edit_title), color = Color.White, fontSize = 16.sp) },
+            title = { Text(stringResource(R.string.visual_edit_title), color = NikoTheme.colors.textPrimary, fontSize = 16.sp) },
             text = {
                 Column {
-                    Text(stringResource(R.string.visual_edit_title_desc), color = Color.Gray, fontSize = 12.sp)
+                    Text(stringResource(R.string.visual_edit_title_desc), color = NikoTheme.colors.textSecondary, fontSize = 12.sp)
                     Spacer(Modifier.height(12.dp))
                     OutlinedTextField(
                         value = currentTitleText,
                         onValueChange = { onUpdateSpecialTitle(it) },
-                        placeholder = { Text(stringResource(R.string.visual_edit_title_placeholder), color = Color.DarkGray) },
+                        placeholder = { Text(stringResource(R.string.visual_edit_title_placeholder), color = NikoTheme.colors.textSecondary.copy(alpha = 0.5f)) },
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Cyan, 
-                            unfocusedBorderColor = Color.White.copy(0.2f),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
+                            focusedBorderColor = NikoTheme.colors.primary, 
+                            unfocusedBorderColor = NikoTheme.colors.divider,
+                            focusedTextColor = NikoTheme.colors.textPrimary,
+                            unfocusedTextColor = NikoTheme.colors.textPrimary
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             },
             confirmButton = {
-                Button(onClick = { showTitleDialog = false; onSave() }, colors = ButtonDefaults.buttonColors(containerColor = Color.Cyan)) {
-                    Text(stringResource(R.string.action_apply), color = Color.Black, fontWeight = FontWeight.Bold)
+                Button(onClick = { showTitleDialog = false; onSave() }, colors = ButtonDefaults.buttonColors(containerColor = NikoTheme.colors.primary)) {
+                    Text(stringResource(R.string.action_apply), color = if(NikoTheme.colors.isLight) Color.White else Color.Black, fontWeight = FontWeight.Bold)
                 }
             },
-            containerColor = Color(0xFF222222)
+            containerColor = NikoTheme.colors.panel
         )
     }
 }
@@ -257,12 +259,12 @@ fun VisualNavigationScreen(
 @Composable
 fun VisualSwitchItem(label: String, checked: Boolean, onToggle: (Boolean) -> Unit, onSave: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().height(32.dp)) {
-        Text(label, color = Color.White.copy(0.9f), fontSize = 11.sp, modifier = Modifier.weight(1f))
+        Text(label, color = NikoTheme.colors.textPrimary.copy(0.9f), fontSize = 11.sp, modifier = Modifier.weight(1f))
         Switch(
             checked = checked,
             onCheckedChange = { onToggle(it); onSave() },
             modifier = Modifier.scale(0.55f),
-            colors = SwitchDefaults.colors(checkedThumbColor = Color.Cyan)
+            colors = SwitchDefaults.colors(checkedThumbColor = NikoTheme.colors.primary)
         )
     }
 }

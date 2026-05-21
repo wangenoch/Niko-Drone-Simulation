@@ -25,6 +25,8 @@ import kotlin.math.*
 import androidx.compose.ui.res.stringResource
 import com.horizon.caadronesimulator.R
 
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
+
 /**
  * [v1.1 原始整合風格] 底部飛行狀態欄
  */
@@ -35,8 +37,6 @@ fun OriginalStatusHUD(
     onToggleVisible: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val lime = Color(0xFFC6FF00)
-
     if (!isVisible) {
         // [修正] 當隱藏時顯示小展開按鈕，確保使用者能再次開啟數據欄
         Box(
@@ -48,15 +48,15 @@ fun OriginalStatusHUD(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .size(44.dp, 20.dp)
-                    .background(Color(0xAA111111), RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
-                    .border(1.dp, Color(0x44FFFFFF), RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
+                    .background(NikoTheme.colors.panel.copy(alpha = 0.8f), RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
+                    .border(1.dp, NikoTheme.colors.divider, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
                     .clickable { onToggleVisible() },
                 contentAlignment = Alignment.Center
             ) {
                 androidx.compose.material3.Icon(
                     imageVector = Icons.Default.KeyboardArrowUp,
                     contentDescription = stringResource(R.string.menu_expand),
-                    tint = Color.White.copy(alpha = 0.6f),
+                    tint = NikoTheme.colors.textPrimary.copy(alpha = 0.6f),
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -72,8 +72,8 @@ fun OriginalStatusHUD(
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .background(Color(0xAA111111), RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                .border(1.dp, Color(0x44FFFFFF), RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                .background(NikoTheme.colors.panel.copy(alpha = 0.85f), RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                .border(1.dp, NikoTheme.colors.divider, RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
                 .padding(horizontal = 12.dp, vertical = 6.dp)
                 .clickable { onToggleVisible() },
             verticalAlignment = Alignment.CenterVertically,
@@ -83,13 +83,13 @@ fun OriginalStatusHUD(
             val relativeAltitude = (state.altitude - spec.groundOffset).coerceAtLeast(0f)
             
             // --- 1. 基本數據組 (左) ---
-            OriginalStatusItem(stringResource(R.string.hud_altitude), String.format(Locale.US, "%.1f", relativeAltitude), stringResource(R.string.hud_unit_m), if(relativeAltitude >= 29.8f) Color.Red else Color.Cyan)
+            OriginalStatusItem(stringResource(R.string.hud_altitude), String.format(Locale.US, "%.1f", relativeAltitude), stringResource(R.string.hud_unit_m), if(relativeAltitude >= 29.8f) NikoTheme.colors.warning else NikoTheme.colors.accent)
             OriginalStatusVerticalDivider()
-            OriginalStatusItem(stringResource(R.string.hud_speed), String.format(Locale.US, "%.1f", state.speed), stringResource(R.string.hud_unit_ms), Color.White)
+            OriginalStatusItem(stringResource(R.string.hud_speed), String.format(Locale.US, "%.1f", state.speed), stringResource(R.string.hud_unit_ms), NikoTheme.colors.textPrimary)
             OriginalStatusVerticalDivider()
             
             // [v1.7.6] 統一距離顯示：使用全域校準後的 horizontalDist (基準點 H 坪 0,0)
-            OriginalStatusItem(stringResource(R.string.hud_distance), String.format(Locale.US, "%.1f", state.horizontalDist), stringResource(R.string.hud_unit_m), if (state.isNearBoundary) Color.Red else Color.White)
+            OriginalStatusItem(stringResource(R.string.hud_distance), String.format(Locale.US, "%.1f", state.horizontalDist), stringResource(R.string.hud_unit_m), if (state.isNearBoundary) NikoTheme.colors.warning else NikoTheme.colors.textPrimary)
             
             OriginalStatusVerticalDivider()
 
@@ -113,10 +113,10 @@ fun OriginalStatusHUD(
 
             // --- 4. 馬達狀態組 (右) ---
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(stringResource(R.string.hud_motor), color = Color.Gray, fontSize = 8.sp)
+                Text(stringResource(R.string.hud_motor), color = NikoTheme.colors.textSecondary, fontSize = 8.sp)
                 Text(
                     text = if(state.isMotorLocked) stringResource(R.string.hud_motor_locked) else stringResource(R.string.hud_motor_active),
-                    color = if(state.isMotorLocked) Color.Red else lime,
+                    color = if(state.isMotorLocked) NikoTheme.colors.warning else NikoTheme.colors.status,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -125,7 +125,7 @@ fun OriginalStatusHUD(
             Icon(
                 imageVector = Icons.Default.KeyboardArrowDown,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.3f),
+                tint = NikoTheme.colors.textPrimary.copy(alpha = 0.3f),
                 modifier = Modifier.size(16.dp).offset(y = 2.dp)
             )
         }
@@ -135,16 +135,16 @@ fun OriginalStatusHUD(
 @Composable
 private fun OriginalStatusItem(label: String, value: String, unit: String, valueColor: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 2.dp)) {
-        Text(label, color = Color.Gray, fontSize = 8.sp)
+        Text(label, color = NikoTheme.colors.textSecondary, fontSize = 8.sp)
         Row(verticalAlignment = Alignment.Bottom) {
             Text(value, color = valueColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.width(2.dp))
-            Text(unit, color = Color.White, fontSize = 8.sp)
+            Text(unit, color = NikoTheme.colors.textPrimary, fontSize = 8.sp)
         }
     }
 }
 
 @Composable
 private fun OriginalStatusVerticalDivider() {
-    Box(modifier = Modifier.width(1.dp).height(18.dp).background(Color(0x22FFFFFF)))
+    Box(modifier = Modifier.width(1.dp).height(18.dp).background(NikoTheme.colors.divider))
 }

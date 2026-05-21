@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.horizon.caadronesimulator.model.AppConfig
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 
 import androidx.compose.ui.res.stringResource
 import com.horizon.caadronesimulator.R
@@ -65,11 +66,11 @@ fun ClimateSettingsScreen(
         // 左側：【物理氣流專區】
         Surface(
             modifier = Modifier.weight(1.2f),
-            color = Color(0x1AFFFFFF),
+            color = NikoTheme.colors.textPrimary.copy(alpha = 0.05f),
             shape = RoundedCornerShape(12.dp)
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
-                Text(stringResource(R.string.climate_wind_physics), color = Color.Cyan, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.climate_wind_physics), color = NikoTheme.colors.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
 
                 Spacer(Modifier.height(8.dp))
                 
@@ -78,13 +79,14 @@ fun ClimateSettingsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.onGloballyPositioned { onTargetPositioned("wind_level", it.boundsInRoot()) }
                 ) {
-                    Text("${stringResource(R.string.climate_label_level)}: $windLevel", color = Color.White, fontSize = 11.sp, modifier = Modifier.width(42.dp))
+                    Text("${stringResource(R.string.climate_label_level)}: $windLevel", color = NikoTheme.colors.textPrimary, fontSize = 11.sp, modifier = Modifier.width(42.dp))
                     Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                         (0..5).forEach { level ->
                             CompactChip(
                                 text = "$level", 
                                 selected = windLevel == level, 
                                 modifier = Modifier.weight(1f),
+                                selectedColor = NikoTheme.colors.primary,
                                 onClick = { 
                                     onUpdateWindLevel(level)
                                     if (level == 0) onUpdateWindDirection("無")
@@ -100,7 +102,7 @@ fun ClimateSettingsScreen(
                 // [智慧連動] 僅在風力 > 0 時顯示方位九宮格與拉桿
                 AnimatedVisibility(visible = windLevel > 0) {
                     Column {
-                        Text(stringResource(R.string.climate_wind_directions), color = Color.White.copy(0.7f), fontSize = 10.sp)
+                        Text(stringResource(R.string.climate_wind_directions), color = NikoTheme.colors.textSecondary, fontSize = 10.sp)
                         Spacer(Modifier.height(6.dp))
                         
                         // 3x3 九宮格佈局
@@ -120,7 +122,7 @@ fun ClimateSettingsScreen(
                                             text = if(id == AppConfig.WIND_DIR_RANDOM) "🎲" else label.replace("風", ""),
                                             selected = windDirection == id,
                                             modifier = Modifier.weight(1f),
-                                            selectedColor = if(id == AppConfig.WIND_DIR_RANDOM) Color.Yellow else Color.Cyan,
+                                            selectedColor = if(id == AppConfig.WIND_DIR_RANDOM) NikoTheme.colors.accent else NikoTheme.colors.primary,
                                             onClick = { 
                                                 if (id == AppConfig.WIND_DIR_RANDOM) onRerollWind()
                                                 onUpdateWindDirection(id); onSave() 
@@ -135,7 +137,7 @@ fun ClimateSettingsScreen(
 
                         // 氣流微調區 (僅在有風向時顯示)
                         if (windDirection != AppConfig.WIND_DIR_NONE) {
-                            Text(stringResource(R.string.climate_wind_tuning), color = Color.White.copy(0.7f), fontSize = 10.sp)
+                            Text(stringResource(R.string.climate_wind_tuning), color = NikoTheme.colors.textSecondary, fontSize = 10.sp)
                             Column(
                                 modifier = Modifier
                                     .padding(vertical = 4.dp)
@@ -150,7 +152,7 @@ fun ClimateSettingsScreen(
 
                 // [v1.6.1] 物理核心開關組：獨立於風力等級之外，始終顯示
                 Spacer(Modifier.height(12.dp))
-                HorizontalDivider(color = Color(0x11FFFFFF))
+                HorizontalDivider(color = NikoTheme.colors.divider)
                 Spacer(Modifier.height(8.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     WindToggleRow(stringResource(R.string.climate_vertical_draft), enableVerticalDraft, onToggleVerticalDraft, onSave)
@@ -162,20 +164,20 @@ fun ClimateSettingsScreen(
         // 右側：【視覺氣氛專區】
         Surface(
             modifier = Modifier.weight(1f),
-            color = Color(0x1AFFFFFF),
+            color = NikoTheme.colors.textPrimary.copy(alpha = 0.05f),
             shape = RoundedCornerShape(12.dp)
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
-                Text(stringResource(R.string.climate_visual_details), color = Color.Yellow, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.climate_visual_details), color = NikoTheme.colors.accent, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(8.dp))
 
                 // 太陽方位
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.climate_sun_pos), color = Color.White, fontSize = 11.sp, modifier = Modifier.weight(1f))
-                    Switch(checked = isSunSimEnabled, onCheckedChange = { onToggleSunSim(it); onSave() }, modifier = Modifier.scale(0.5f))
+                    Text(stringResource(R.string.climate_sun_pos), color = NikoTheme.colors.textPrimary, fontSize = 11.sp, modifier = Modifier.weight(1f))
+                    Switch(checked = isSunSimEnabled, onCheckedChange = { onToggleSunSim(it); onSave() }, modifier = Modifier.scale(0.5f), colors = SwitchDefaults.colors(checkedThumbColor = NikoTheme.colors.accent))
                 }
                 if (isSunSimEnabled) {
-                    Slider(value = sunPosition, onValueChange = onUpdateSunPosition, onValueChangeFinished = onSave, valueRange = 0f..1f, modifier = Modifier.height(24.dp), colors = SliderDefaults.colors(thumbColor = Color.Yellow, activeTrackColor = Color.Yellow.copy(0.5f)))
+                    Slider(value = sunPosition, onValueChange = onUpdateSunPosition, onValueChangeFinished = onSave, valueRange = 0f..1f, modifier = Modifier.height(24.dp), colors = SliderDefaults.colors(thumbColor = NikoTheme.colors.accent, activeTrackColor = NikoTheme.colors.accent.copy(0.5f), inactiveTrackColor = NikoTheme.colors.divider))
                 } else {
                     Row(
                         modifier = Modifier
@@ -189,7 +191,7 @@ fun ClimateSettingsScreen(
                             AppConfig.TIME_AFTERNOON to stringResource(R.string.climate_time_afternoon)
                         )
                         times.forEach { (id, label) ->
-                            CompactChip(text = label, selected = timeOfDay == id, modifier = Modifier.weight(1f), selectedColor = Color.Yellow, onClick = { onUpdateTimeOfDay(id); onSave() })
+                            CompactChip(text = label, selected = timeOfDay == id, modifier = Modifier.weight(1f), selectedColor = NikoTheme.colors.accent, onClick = { onUpdateTimeOfDay(id); onSave() })
                         }
                     }
                 }
@@ -197,7 +199,7 @@ fun ClimateSettingsScreen(
                 Spacer(Modifier.height(12.dp))
                 
                 // 陰影深淺
-                Text(stringResource(R.string.climate_shadow_intensity, shadowIntensity), color = Color.White, fontSize = 10.sp)
+                Text(stringResource(R.string.climate_shadow_intensity, shadowIntensity), color = NikoTheme.colors.textPrimary, fontSize = 10.sp)
                 Slider(
                     value = shadowIntensity, 
                     onValueChange = onUpdateShadowIntensity, 
@@ -205,13 +207,13 @@ fun ClimateSettingsScreen(
                     modifier = Modifier
                         .height(24.dp)
                         .onGloballyPositioned { onTargetPositioned("shadow", it.boundsInRoot()) }, 
-                    colors = SliderDefaults.colors(thumbColor = Color.Yellow)
+                    colors = SliderDefaults.colors(thumbColor = NikoTheme.colors.accent, activeTrackColor = NikoTheme.colors.accent, inactiveTrackColor = NikoTheme.colors.divider)
                 )
 
-                HorizontalDivider(color = Color(0x11FFFFFF), modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(color = NikoTheme.colors.divider, modifier = Modifier.padding(vertical = 12.dp))
 
                 // 氣象預設
-                Text(stringResource(R.string.climate_weather_preset), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.climate_weather_preset), color = NikoTheme.colors.textPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(6.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                     val weathers = listOf(stringResource(R.string.climate_weather_clear), stringResource(R.string.climate_weather_cirrus), stringResource(R.string.climate_weather_cumulus), stringResource(R.string.climate_weather_stratus))
@@ -220,7 +222,7 @@ fun ClimateSettingsScreen(
                             text = name, 
                             selected = weatherMode == idx, 
                             modifier = Modifier.weight(1f),
-                            selectedColor = Color(0xFFFFC107),
+                            selectedColor = NikoTheme.colors.safety,
                             onClick = { 
                                 onUpdateWeatherMode(idx)
                                 val hasCloud = idx > 0
@@ -238,8 +240,8 @@ fun ClimateSettingsScreen(
                 // 雲層密度
                 AnimatedVisibility(visible = weatherMode > 0) {
                     Column(modifier = Modifier.padding(top = 8.dp)) {
-                        Text(stringResource(R.string.climate_cloud_density), color = Color.Gray, fontSize = 10.sp)
-                        Slider(value = cloudDensity, onValueChange = onUpdateCloudDensity, onValueChangeFinished = onSave, valueRange = 0.1f..1f, modifier = Modifier.height(24.dp), colors = SliderDefaults.colors(thumbColor = Color.Cyan))
+                        Text(stringResource(R.string.climate_cloud_density), color = NikoTheme.colors.textSecondary, fontSize = 10.sp)
+                        Slider(value = cloudDensity, onValueChange = onUpdateCloudDensity, onValueChangeFinished = onSave, valueRange = 0.1f..1f, modifier = Modifier.height(24.dp), colors = SliderDefaults.colors(thumbColor = NikoTheme.colors.primary, activeTrackColor = NikoTheme.colors.primary, inactiveTrackColor = NikoTheme.colors.divider))
                     }
                 }
 
@@ -247,8 +249,8 @@ fun ClimateSettingsScreen(
 
                 // 功能開關組 (視覺類)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.climate_show_mountains), color = Color.White, fontSize = 10.sp, modifier = Modifier.weight(1f))
-                    Switch(checked = showMountains, onCheckedChange = { onToggleMountains(it); onSave() }, modifier = Modifier.scale(0.5f))
+                    Text(stringResource(R.string.climate_show_mountains), color = NikoTheme.colors.textPrimary, fontSize = 10.sp, modifier = Modifier.weight(1f))
+                    Switch(checked = showMountains, onCheckedChange = { onToggleMountains(it); onSave() }, modifier = Modifier.scale(0.5f), colors = SwitchDefaults.colors(checkedThumbColor = NikoTheme.colors.primary))
                 }
             }
         }
@@ -258,11 +260,11 @@ fun ClimateSettingsScreen(
 @Composable
 private fun WindSliderRow(label: String, value: Float, onValueChange: (Float) -> Unit, onSave: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(22.dp)) {
-        Text(label, color = Color.White.copy(0.6f), fontSize = 9.sp, modifier = Modifier.width(45.dp))
+        Text(label, color = NikoTheme.colors.textSecondary, fontSize = 9.sp, modifier = Modifier.width(45.dp))
         Slider(
             value = value, onValueChange = onValueChange, onValueChangeFinished = onSave, 
             valueRange = 0f..5f, steps = 4, modifier = Modifier.weight(1f),
-            colors = SliderDefaults.colors(thumbColor = Color.Cyan, activeTrackColor = Color.Cyan.copy(0.4f))
+            colors = SliderDefaults.colors(thumbColor = NikoTheme.colors.primary, activeTrackColor = NikoTheme.colors.primary.copy(0.4f), inactiveTrackColor = NikoTheme.colors.divider)
         )
     }
 }
@@ -270,25 +272,25 @@ private fun WindSliderRow(label: String, value: Float, onValueChange: (Float) ->
 @Composable
 private fun WindToggleRow(label: String, checked: Boolean, onToggle: (Boolean) -> Unit, onSave: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(26.dp)) {
-        Text(label, color = Color.White.copy(0.8f), fontSize = 10.sp, modifier = Modifier.weight(1f))
+        Text(label, color = NikoTheme.colors.textPrimary, fontSize = 10.sp, modifier = Modifier.weight(1f))
         Switch(
             checked = checked, 
             onCheckedChange = { onToggle(it); onSave() }, 
             modifier = Modifier.scale(0.45f),
-            colors = SwitchDefaults.colors(checkedThumbColor = Color.Cyan)
+            colors = SwitchDefaults.colors(checkedThumbColor = NikoTheme.colors.primary)
         )
     }
 }
 
 @Composable
-fun CompactChip(text: String, selected: Boolean, modifier: Modifier = Modifier, selectedColor: Color = Color.Cyan, onClick: () -> Unit) {
+fun CompactChip(text: String, selected: Boolean, modifier: Modifier = Modifier, selectedColor: Color = NikoTheme.colors.primary, onClick: () -> Unit) {
     Surface(
-        color = if (selected) selectedColor else Color(0x22FFFFFF),
+        color = if (selected) selectedColor else NikoTheme.colors.textPrimary.copy(alpha = 0.1f),
         shape = RoundedCornerShape(4.dp),
         modifier = modifier.height(24.dp).clickable { onClick() }
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Text(text = text, color = if (selected) Color.Black else Color.White, fontSize = 9.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
+            Text(text = text, color = if (selected) Color.White else NikoTheme.colors.textPrimary, fontSize = 9.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
         }
     }
 }

@@ -14,6 +14,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 import kotlinx.coroutines.delay
 
 /**
@@ -22,6 +23,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun SplashScreen(modifier: Modifier = Modifier, onTimeout: () -> Unit) {
     var visible by remember { mutableStateOf(false) }
+    val themeColors = NikoTheme.colors
     
     LaunchedEffect(Unit) {
         visible = true
@@ -40,12 +42,12 @@ fun SplashScreen(modifier: Modifier = Modifier, onTimeout: () -> Unit) {
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White),
+            .background(themeColors.background),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = "Niko Drone Simulator",
-            color = Color(0xFF1B4332),
+            color = themeColors.primary,
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.alpha(alpha)
