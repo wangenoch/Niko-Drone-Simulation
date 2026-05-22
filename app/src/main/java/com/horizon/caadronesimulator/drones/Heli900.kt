@@ -7,7 +7,7 @@ import com.horizon.caadronesimulator.model.DroneType
  */
 object Heli900 : DroneModule {
     override val id = "HELI_900"
-    override val name = "重型直昇機"
+    override val name = "SPECS_HELI_900_NAME"
     override val icon = "🚁"
     override val hardwareSpecs = ModelHardwareSpecs(type = DroneType.SRH, wheelbaseMm = 900, propDiameterInch = 22, propPitchInch = 7, motorKv = 280, takeoffWeightKg = 10.0f, payloadKg = 0f, flightTimeMin = 15, description = "SPECS_HELI_900_DESC")
     override val groundOffset = 0.25f

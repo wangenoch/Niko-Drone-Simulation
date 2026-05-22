@@ -110,11 +110,10 @@ object FieldRenderer {
         RenderUtils.drawBox(posH, colorH, mvpH, mvpMatrix, baseM, x, 1.5f, z, 0.1f, 3f, 0.1f, floatArrayOf(0.4f, 0.4f, 0.4f, 1f))
         if (windLevel > 0) {
             val flagM = baseM.copyOf(); Matrix.translateM(flagM, 0, x, 2.8f, z)
-            // [v1.7.6 最終極性對齊] 旗子旋轉校準
-            // 觀測結果：目前飛機與雲層運動已完全正確，但旗子在所有方向上都剛好相反。
-            // 修正：在原本的旋轉基礎上增加 180 度翻轉，使其「順風而行」。
+            // [v1.7.7 最終極性對齊] 旗子旋轉校準
+            // 修正：使用 90 - flow 進行映射，使旗子完全順風而行
             val currentFlowAngle = com.horizon.caadronesimulator.model.DroneState.getInstance().env.currentWindAngle
-            Matrix.rotateM(flagM, 0, (180f - currentFlowAngle) - 90f + 180f, 0f, 1f, 0f)
+            Matrix.rotateM(flagM, 0, 90f - currentFlowAngle, 0f, 1f, 0f)
             for (i in 0 until 4) {
                 val offX = i * 0.3f; val dip = (i * i * 0.05f) * (1f - windLevel * 0.15f)
                 val wobble = sin(flightTime * 5f + i) * 0.02f * windLevel; val size = 0.3f - i * 0.04f

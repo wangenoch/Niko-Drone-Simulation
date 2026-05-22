@@ -18,6 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,7 +42,8 @@ fun FlightInteractionLayer(
     state: DroneState,
     onUpdateState: (DroneState.() -> Unit) -> Unit,
     onReset: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onUpdateTutorialTargets: (String, androidx.compose.ui.geometry.Rect) -> Unit = { _, _ -> }
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         // --- 1. 著地安全控制 ---
@@ -56,7 +59,13 @@ fun FlightInteractionLayer(
             val isZoomInCenter = isInZoomZone && !isZoomRelocated
             val buttonTopPadding = if (isZoomInCenter) 175.dp else 85.dp
             
-            Box(modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = buttonTopPadding)) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(top = buttonTopPadding)
+                    .onGloballyPositioned { onUpdateTutorialTargets("arm", it.positionInWindow().let { pos -> androidx.compose.ui.geometry.Rect(pos.x, pos.y, pos.x + it.size.width, pos.y + it.size.height) }) }
+            ) {
                 Surface(
                     onClick = { onUpdateState { this.isMotorLocked = !this.isMotorLocked; this.lastInteractionTime = System.currentTimeMillis() } },
                     color = if (state.isMotorLocked) Color(0xAA4CAF50) else Color(0xAAF44336),
@@ -78,7 +87,10 @@ fun FlightInteractionLayer(
 
         // --- 2. 右上角功能選單 ---
         Row(
-            modifier = Modifier.align(Alignment.TopEnd).padding(top = 16.dp, end = 16.dp), 
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 16.dp, end = 16.dp)
+                .onGloballyPositioned { onUpdateTutorialTargets("menu", it.positionInWindow().let { pos -> androidx.compose.ui.geometry.Rect(pos.x, pos.y, pos.x + it.size.width, pos.y + it.size.height) }) },
             verticalAlignment = Alignment.Top, 
             horizontalArrangement = Arrangement.End
         ) {
@@ -205,7 +217,16 @@ fun FlightInteractionLayer(
 @Composable
 fun InteractionBtn(icon: ImageVector, isSelected: Boolean = false, tint: Color = if (isSelected) NikoTheme.colors.primary else NikoTheme.colors.textPrimary, onClick: () -> Unit) {
     val themeColors = NikoTheme.colors
+    val shapes = NikoTheme.shapes
     // 使用半透明玻璃背景替代純色，減少明亮模式下的眩光感
     val bgAlpha = if(themeColors.isLight) 0.8f else 0.7f
-    IconButton(onClick = onClick, modifier = Modifier.size(44.dp).background(themeColors.panel.copy(alpha = bgAlpha), CircleShape).border(1.dp, if (isSelected) themeColors.primary.copy(0.6f) else themeColors.divider, CircleShape)) { Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp)) }
+    IconButton(
+        onClick = onClick, 
+        modifier = Modifier
+            .size(44.dp)
+            .background(themeColors.panel.copy(alpha = bgAlpha), CircleShape) // 按鈕維持圓形，不強制圓角
+            .border(1.dp, if (isSelected) themeColors.primary.copy(0.6f) else themeColors.divider, CircleShape)
+    ) { 
+        Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp)) 
+    }
 }

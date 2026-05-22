@@ -3,7 +3,7 @@ package com.horizon.caadronesimulator.ui.theme
 import com.horizon.caadronesimulator.model.AppConfig
 
 /**
- * [v1.7.8] 主題註冊表 - 統一管理可用主題
+ * [v1.7.7] 主題註冊表 - 統一管理可用主題
  */
 object ThemeRegistry {
     private val THEMES = listOf(

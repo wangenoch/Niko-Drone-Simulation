@@ -31,7 +31,7 @@ import com.horizon.caadronesimulator.R
  * [v1.5.9] 定點計時評測器 - 高精確度校準版
  */
 class SpotTimerEvaluator : MissionEvaluator {
-    override val modeName: String = "定點計時" // 這裡通常由模式選擇器顯示，若需翻譯可由資源獲取
+    override val modeName: String = "SPOT" // 使用 ID，由 UI 轉譯
 
     override fun update(state: DroneState, dt: Float, spec: DroneSpecs) {
         if (!state.isSpotTimerEnabled) return
@@ -152,11 +152,23 @@ class SpotTimerEvaluator : MissionEvaluator {
         val translatedMessage = when(msgId) {
             "IDLE" -> if (state.isCollision) stringResource(R.string.status_crash) else if (state.isMotorLocked) stringResource(R.string.status_motor_locked) else stringResource(R.string.mission_spot_timer_takeoff)
             "SEARCHING" -> stringResource(R.string.mission_spot_timer_searching)
-            "TOO_LOW" -> stringResource(R.string.mission_spot_timer_too_low, param)
-            "TOO_HIGH" -> stringResource(R.string.mission_spot_timer_too_high, param)
+            "TOO_LOW" -> {
+                val pText = String.format(java.util.Locale.US, "%.1f", param)
+                stringResource(R.string.mission_spot_timer_too_low, pText)
+            }
+            "TOO_HIGH" -> {
+                val pText = String.format(java.util.Locale.US, "%.1f", param)
+                stringResource(R.string.mission_spot_timer_too_high, pText)
+            }
             "ROTATING" -> stringResource(R.string.mission_spot_timer_wait_stable)
-            "YAW_ERROR_H" -> stringResource(R.string.mission_spot_timer_yaw_error, param)
-            "YAW_ERROR_G" -> stringResource(R.string.mission_spot_timer_yaw_error_generic, param)
+            "YAW_ERROR_H" -> {
+                val pText = String.format(java.util.Locale.US, "%.0f", param)
+                stringResource(R.string.mission_spot_timer_yaw_error, pText)
+            }
+            "YAW_ERROR_G" -> {
+                val pText = String.format(java.util.Locale.US, "%.0f", param)
+                stringResource(R.string.mission_spot_timer_yaw_error_generic, pText)
+            }
             "PERFECT_H" -> stringResource(R.string.mission_spot_timer_perfect)
             "SUCCESS_G" -> stringResource(R.string.mission_spot_timer_success)
             "COUNTING_H" -> stringResource(R.string.mission_spot_timer_prefix_h) + ": " + "%.1fs".format(param)

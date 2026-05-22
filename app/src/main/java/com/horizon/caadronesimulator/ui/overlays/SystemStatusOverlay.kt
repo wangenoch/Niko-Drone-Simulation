@@ -21,6 +21,7 @@ import com.horizon.caadronesimulator.R
 import com.horizon.caadronesimulator.model.DroneState
 import com.horizon.caadronesimulator.model.StickInputState
 import com.horizon.caadronesimulator.ui.theme.NikoTheme
+import java.util.Locale
 import kotlinx.coroutines.delay
 
 /**
@@ -30,7 +31,8 @@ import kotlinx.coroutines.delay
 @Composable
 fun SystemStatusOverlay(
     state: DroneState,
-    stickState: StickInputState
+    stickState: StickInputState,
+    modifier: Modifier = Modifier
 ) {
     val rawMsg = state.systemMessage
     if (rawMsg.isNullOrBlank()) return
@@ -44,7 +46,10 @@ fun SystemStatusOverlay(
     val displayMessage = when(msgId) {
         "SAFETY_PASS" -> stringResource(R.string.safety_msg_pass)
         "SAFETY_WARN_OFF" -> stringResource(R.string.safety_msg_warn_off)
-        "SAFETY_WARN_THROTTLE" -> stringResource(R.string.safety_msg_warn_throttle, param)
+        "SAFETY_WARN_THROTTLE" -> {
+            val pText = String.format(Locale.US, "%.0f", param)
+            stringResource(R.string.safety_msg_warn_throttle, pText)
+        }
         "SAFETY_WARN_HOLD" -> stringResource(R.string.safety_msg_warn_hold)
         "SAFETY_HOLD_READY" -> stringResource(R.string.safety_msg_hold_ready)
         "FLIGHT_MODE_SWITCH" -> {
@@ -61,14 +66,23 @@ fun SystemStatusOverlay(
         "INIT_DATA" -> stringResource(R.string.sys_msg_init_data)
         "INTERNAL_HW" -> stringResource(R.string.sys_msg_internal_hw)
         "HID_FALLBACK" -> stringResource(R.string.sys_msg_hid_fallback)
-        "HEAVY_LANDING" -> stringResource(R.string.sys_msg_heavy_landing, param)
+        "HEAVY_LANDING" -> {
+            val sText = String.format(Locale.US, "%.1f", param)
+            stringResource(R.string.sys_msg_heavy_landing, sText)
+        }
         "ALT_LIMIT" -> stringResource(R.string.sys_msg_alt_limit)
         "WIZARD_DONE" -> stringResource(R.string.sys_msg_wizard_done)
         "APP_NOT_INSTALLED" -> stringResource(R.string.status_app_not_installed)
         "APP_NOT_SUPPORTED" -> stringResource(R.string.status_app_not_supported)
         "EXPERT_ACTIVE" -> stringResource(R.string.settings_expert_active)
-        "CRASH_EXTREME" -> stringResource(R.string.sys_msg_crash_extreme, param)
-        "CRASH_STRUCTURAL" -> stringResource(R.string.sys_msg_crash_structural, param)
+        "CRASH_EXTREME" -> {
+            val sText = String.format(Locale.US, "%.1f", param)
+            stringResource(R.string.sys_msg_crash_extreme, sText)
+        }
+        "CRASH_STRUCTURAL" -> {
+            val sText = String.format(Locale.US, "%.1f", param)
+            stringResource(R.string.sys_msg_crash_structural, sText)
+        }
         "RESTORE_DONE" -> stringResource(R.string.sys_msg_restore_done)
         "PERM_REQUIRED" -> stringResource(R.string.sys_msg_perm_required)
         "SAFETY_ARMED" -> stringResource(R.string.safety_msg_armed)
@@ -86,11 +100,11 @@ fun SystemStatusOverlay(
     }
 
     Box(
-        modifier = Modifier.fillMaxSize().padding(bottom = 75.dp), // 稍微上移一點避免與底部數據欄太近
+        modifier = modifier.fillMaxSize().padding(bottom = 75.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
         SurfaceWrapper(
-            color = themeColors.panel.copy(alpha = 0.85f), // 移除硬編碼 0xDD111111，改用主題玻璃背板
+            color = themeColors.panel.copy(alpha = 0.85f),
             shape = RoundedCornerShape(12.dp),
             border = BorderStroke(1.dp, themeColors.divider)
         ) {
@@ -111,7 +125,7 @@ fun SystemStatusOverlay(
                 Spacer(Modifier.width(12.dp))
                 Text(
                     text = displayMessage,
-                    color = themeColors.textPrimary, // 在明亮模式下會自動變成深色
+                    color = themeColors.textPrimary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )

@@ -71,10 +71,10 @@ fun CollisionOverlay(
             Spacer(modifier = Modifier.height(24.dp))
             
             // 飛行統計資訊
-            val minutes = (flightTime / 60).toInt()
-            val seconds = (flightTime % 60).toInt()
+            val minutes = (flightTime / 60).toInt().toString()
+            val seconds = (flightTime % 60).toInt().toString()
             Text(
-                text = "本次練習時長：${minutes}分 ${seconds}秒",
+                text = stringResource(R.string.stats_practice_duration, minutes, seconds),
                 color = Color.White.copy(alpha = 0.6f),
                 fontSize = 14.sp
             )

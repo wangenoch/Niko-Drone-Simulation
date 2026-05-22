@@ -20,7 +20,7 @@ import com.horizon.caadronesimulator.ui.theme.ThemeRegistry
 import com.horizon.caadronesimulator.ui.theme.NikoTheme
 
 /**
- * [v1.7.8] 主題選擇分頁 - 與機型選擇保持一致
+ * [v1.7.7] 主題選擇分頁 - 與機型選擇保持一致
  */
 @Composable
 fun ThemeSelectionScreen(
@@ -97,12 +97,12 @@ fun RowScope.ThemeCard(
             .height(140.dp)
             .background(
                 if (isSelected) NikoTheme.colors.primary.copy(alpha = 0.2f) else NikoTheme.colors.surface.copy(alpha = 0.5f),
-                RoundedCornerShape(16.dp)
+                NikoTheme.shapes.medium
             )
             .border(
                 2.dp,
                 if (isSelected) NikoTheme.colors.primary else Color.Transparent,
-                RoundedCornerShape(16.dp)
+                NikoTheme.shapes.medium
             )
             .clickable { onClick() }
             .padding(12.dp),

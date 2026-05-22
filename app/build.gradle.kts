@@ -36,7 +36,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true // [v1.7.7] 開啟代碼混淆與壓縮 (R8)
+            isShrinkResources = true // [v1.7.7] 移除未使用的資源檔
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

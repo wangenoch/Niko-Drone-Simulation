@@ -33,13 +33,16 @@ object PhysicsEngine {
         val showObstacles: Boolean
     )
 
-    fun step(dt: Float, state: DronePhysicsState, input: ControlInput, atmos: AtmosConfig, droneType: String): PhysicsResult {
+    // [v1.7.7] 物理平滑緩衝區
+    private var smoothWindAccX = 0f
+    private var smoothWindAccZ = 0f
+    private var smoothVDraft = 0f
+
+    fun step(dt: Float, state: DronePhysicsState, input: PhysicsEngine.ControlInput, atmos: AtmosConfig, droneType: String): PhysicsResult {
         val spec = DroneRegistry.getSpec(droneType)
         val mass = if (atmos.applyPhysicalSpecs) spec.physicsMass else 1.0f
-        val power = if (atmos.applyPhysicalSpecs) spec.physicsPower else 18.0f
-        val damping = if (atmos.applyPhysicalSpecs) spec.physicsDamping else 0.92f
-
-        // --- 1. [1:1 Git] 安全鎖熔斷 ---
+        
+        // --- 1. [1:1 Git] 安全鎖 ---
         if (atmos.isMotorLocked) {
             state.velX = 0f; state.velY = 0f; state.velZ = 0f
             state.visPitch = 0f; state.visRoll = 0f
@@ -48,9 +51,44 @@ object PhysicsEngine {
         }
 
         simulateBattery(dt, state, atmos.useFlightLimit, droneType)
+        WindManager.update(state.flightTime, atmos.windLevel, atmos.windVariation, atmos.useHardcore)
 
-        // --- 2. [1:1 Git] 垂直動力：速度追隨算法 ---
-        state.velY += ((input.throttle * 8.0f) - state.velY) * (5.0f / mass) * dt
+        // --- 2. [v1.7.7] 垂直動力：二階平滑物理模型 ---
+        val isAirborne = state.posY > spec.groundOffset + 0.01f
+        val tiltAngle = max(abs(state.visPitch), abs(state.visRoll))
+        val liftLossFactor = if (atmos.useHardcore && isAirborne) {
+            (1.0f - (tiltAngle / 45f) * 0.3f).coerceIn(0.7f, 1.0f)
+        } else 1.0f
+
+        val targetVelY = input.throttle * 8.0f * liftLossFactor
+        val verticalAcc = (targetVelY - state.velY) * (5.0f / mass)
+        state.velY += verticalAcc * dt
+        
+        // 垂直氣流注入：實施平滑過濾 (Low-Pass Filter) 與 物理斷路器
+        val vThreshold = 0.7f
+        val currentAltAboveGround = state.posY - spec.groundOffset
+        
+        if (atmos.enableVerticalDraft && currentAltAboveGround > vThreshold) {
+            val rawVDraft = WindManager.calculateVerticalDraft(
+                atmos.windLevel, atmos.windVariation, state.flightTime, 
+                atmos.useHardcore, droneType, atmos.applyPhysicalSpecs
+            )
+            // 慣性過濾：消除突發力量導致的卡頓感
+            smoothVDraft += (rawVDraft - smoothVDraft) * 8f * dt
+            
+            // [v1.7.7 校準] 漸進式淡入：從 0.7m 到 1.2m 之間線性增加力量
+            val fadeFactor = ((currentAltAboveGround - vThreshold) / 0.5f).coerceIn(0f, 1.0f)
+            
+            // [v1.7.7 校準] 垂直力矩倍率與硬上限 (G-Force Cap)
+            val massComp = if (atmos.applyPhysicalSpecs) sqrt(mass.toDouble()).toFloat() else 1.0f
+            val maxAccV = 5.0f // 硬上限 0.5G，防止一飛衝天
+            val appliedVDraftAcc = (smoothVDraft * 3.5f * massComp * fadeFactor).coerceIn(-maxAccV, maxAccV)
+            
+            state.velY += appliedVDraftAcc * dt
+        } else {
+            // [關鍵修復] 在低於閾值時強制歸零，防止「力量累積陷阱 (Inertial Windup)」
+            smoothVDraft = 0f
+        }
         
         var nextY = state.posY + state.velY * dt
         val maxAlt = spec.groundOffset + 30.0f
@@ -60,73 +98,56 @@ object PhysicsEngine {
         }
 
         // --- 3. [1:1 Git] 姿態與旋轉 ---
-        val isAirborne = state.posY > spec.groundOffset + 0.01f
         if (isAirborne) {
             state.yaw -= input.yaw * 120.0f * dt
         }
         
         val rad = Math.toRadians(state.yaw.toDouble()).toFloat()
         val cosY = cos(rad); val sinY = sin(rad)
-        
-        val rollInput = -input.roll
-        val pitchInput = -input.pitch
+        val rollInput = -input.roll; val pitchInput = -input.pitch
         
         if (isAirborne) {
             state.visPitch += (pitchInput * 25f - state.visPitch) * 8f * dt
             state.visRoll += (rollInput * 25f - state.visRoll) * 8f * dt
         } else {
-            state.visPitch = 0f
-            state.visRoll = 0f
+            state.visPitch = 0f; state.visRoll = 0f
         }
 
-        // --- 4. [1:1 Git] 水平位移：旋轉矩陣法 ---
-        val accX = (cosY * rollInput - sinY * pitchInput) * power
-        val accZ = (-sinY * rollInput - cosY * pitchInput) * power
+        // --- 4. [1:1 Git] 水平位移：平滑加速度模型 ---
+        // [v1.7.7 修正] 確保橫滾 (Roll) 極性正確：Roll 正值對應向右位移 (+X)
+        val accX = (cosY * (-rollInput) - sinY * pitchInput) * (if (atmos.applyPhysicalSpecs) spec.physicsPower else 18.0f)
+        val accZ = (-sinY * (-rollInput) - cosY * pitchInput) * (if (atmos.applyPhysicalSpecs) spec.physicsPower else 18.0f)
         
-        // [v1.5.9] 地面摩擦鎖定：僅在離地後應用水平加速度，防止地面爬行
-        if (state.posY > spec.groundOffset + 0.01f) {
+        if (isAirborne) {
             state.velX += accX * dt
             state.velZ += accZ * dt
         }
-
-        // --- 5. [保留] 天氣系統干擾 ---
         applyWind(dt, state, atmos, mass, spec.groundOffset)
 
         // --- 6. [1:1 Git] 阻尼與積分 ---
+        val damping = if (atmos.applyPhysicalSpecs) spec.physicsDamping else 0.92f
         state.velX *= (1.0f - (1.0f - damping) * 60f * dt).coerceIn(0f, 1f)
         state.velZ *= (1.0f - (1.0f - damping) * 60f * dt).coerceIn(0f, 1f)
         
-        // [v1.5.9] 正確邏輯順序：先計算預期位置與衝擊速度快照，再執行地面約束
         val nextX = state.posX + state.velX * dt
         val nextZ = state.posZ + state.velZ * dt
-        // [v1.5.9] 衝擊動量預存：在地面歸零前計算總合速度
         val preImpactTotalSpeed = sqrt(state.velX.pow(2) + state.velY.pow(2) + state.velZ.pow(2))
 
         // --- 7. [1:1 Git] 碰撞與地面處理 ---
-        // 關鍵：使用預期位置進行碰撞偵測，確保在速度歸零前完成判定
         val collisionImpact = checkCollision(droneType, nextX, nextY, nextZ, state.visPitch, state.visRoll, atmos.useStrictLanding, atmos.showObstacles)
         
         var isHardLanding = false
         if (nextY <= spec.groundOffset + 0.001f) {
-            // [v1.5.9] 真正的完全關閉：若關閉專業標準，則徹底跳過硬著陸判定
-            if (atmos.useStrictLanding) {
-                if (preImpactTotalSpeed > 2.2f) {
-                    isHardLanding = true
-                }
+            if (atmos.useStrictLanding && state.velY < 0f) {
+                if (preImpactTotalSpeed > 2.2f) isHardLanding = true
             }
-            
-            // 判定後強制執行座標與速度約束
             state.posY = spec.groundOffset
             state.velY = 0f; state.velX = 0f; state.velZ = 0f
         } else {
-            state.posY = nextY
-            state.posX = nextX
-            state.posZ = nextZ
+            state.posY = nextY; state.posX = nextX; state.posZ = nextZ
         }
 
         val isImpact = collisionImpact || isHardLanding
-        
-        // [v1.5.9] 移除物理層硬編碼的消息生成，改由 ViewModel 統一決定顯示邏輯
         if (isHardLanding && systemMsg == null) {
             systemMsg = if (preImpactTotalSpeed > 3.5f) "CRASH_EXTREME" else "CRASH_STRUCTURAL"
         }
@@ -135,37 +156,35 @@ object PhysicsEngine {
             isImpact = isImpact, 
             distanceH = sqrt(state.posX.pow(2) + state.posZ.pow(2)), 
             systemMessage = systemMsg, 
-            motorRpm = (input.throttle + 1f) / 2f,
-            impactSpeed = preImpactTotalSpeed
+            motorRpm = (input.throttle + 1f) / 2f, 
+            impactSpeed = preImpactTotalSpeed,
+            currentWindAngle = com.horizon.caadronesimulator.model.DroneState.getInstance().env.currentWindAngle // [v1.7.7] 導出風向角
         )
         stepResult = res
         return res
     }
 
     private fun applyWind(dt: Float, state: DronePhysicsState, atmos: AtmosConfig, mass: Float, groundOffset: Float) {
-        // [v1.5.9] 地面效應與高度風切：未起飛或低空時風力衰減
-        // 增加起飛門檻：高度低於 1cm 視為未起飛，完全封鎖風力受力，防止地面爬行
         if (state.posY <= groundOffset + 0.01f) return
-
-        val heightFactor = if (atmos.useHardcore) {
-            WindManager.calculateHeightFactor(state.posY, groundOffset)
-        } else 1.0f
-
+        val heightFactor = if (atmos.useHardcore) WindManager.calculateHeightFactor(state.posY, groundOffset) else 1.0f
         val wVec = WindManager.calculateWindVector(atmos.windLevel, atmos.windDirection, atmos.windVariation, atmos.windDirVariation, state.flightTime, com.horizon.caadronesimulator.model.DroneState.getInstance())
-        val gust = WindManager.calculateGust(atmos.windVariation, atmos.randomWindPhase, state.flightTime, atmos.windLevel, atmos.useHardcore)
         
-        // [v1.6.1] 憲法級風力受力：移除所有手動負號補丁，直接使用物理流向向量
-        val windAccX = (wVec[0] * atmos.windLevel * 0.85f * gust * heightFactor) / mass
-        val windAccZ = (wVec[1] * atmos.windLevel * 0.85f * gust * heightFactor) / mass
-        state.velX += windAccX * dt
-        state.velZ += windAccZ * dt
+        // [v1.7.7 建議標註]：
+        // 目前水平風力直接作用於加速度，尚未實施終端速度上限 (Terminal Velocity)。
+        // 建議未來加入 (velX.abs > 8.0) 斷路器，防止極端亂流下飛機被水平拋飛。
+        smoothWindAccX += (wVec[0] * 1.5f * heightFactor - smoothWindAccX) * 8f * dt
+        smoothWindAccZ += (wVec[1] * 1.5f * heightFactor - smoothWindAccZ) * 8f * dt
+        
+        state.velX += (smoothWindAccX / mass) * dt
+        state.velZ += (smoothWindAccZ / mass) * dt
     }
 
     private fun simulateBattery(dt: Float, state: DronePhysicsState, useLimit: Boolean, droneType: String) {
+        state.flightTime += dt // [關鍵修復] 移出判斷區，確保全域計時永不停止，從而驅動隨機脈衝事件
+        
         if (!useLimit) { state.batteryVoltage = 4.2f; state.batteryPercent = 100; return }
         
         val spec = DroneRegistry.getSpec(droneType)
-        state.flightTime += dt
         
         // 動態計算每秒耗電：(滿電 4.2V - 沒電 3.2V) / (分鐘數 * 60秒)
         val totalSeconds = (spec.flightTimeMin.toFloat() * 60f).coerceAtLeast(60f)
@@ -233,5 +252,12 @@ object PhysicsEngine {
     }
 
     data class ControlInput(val throttle: Float, val yaw: Float, val pitch: Float, val roll: Float)
-    data class PhysicsResult(val isImpact: Boolean, val distanceH: Float, val systemMessage: String?, val motorRpm: Float, val impactSpeed: Float = 0f)
+    data class PhysicsResult(
+        val isImpact: Boolean, 
+        val distanceH: Float, 
+        val systemMessage: String?, 
+        val motorRpm: Float, 
+        val impactSpeed: Float = 0f,
+        val currentWindAngle: Float = 0f // [v1.7.7] 導出實時風向角，供渲染器同步雲層與 HUD
+    )
 }

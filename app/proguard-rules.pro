@@ -1,21 +1,40 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# [v1.7.7] 工業級 R8 混淆與安全保護規則 (Niko Drone Simulator)
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# --- 1. 基本安全保護 ---
+-repackageclasses ''
+-allowaccessmodification
+-overloadaggressively
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# 隱藏所有原始碼檔名與行號，防止反編譯時洩漏邏輯結構
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# --- 2. 核心算法保護 (物理引擎與數據模型) ---
+# 這些類別會被混淆成亂碼 (a, b, c...)，保護商業機密
+-keep class com.horizon.caadronesimulator.logic.PhysicsEngine { *; } # 若有反射調用才需 keep，否則建議混淆
+-keepclassmembers class * {
+    @androidx.compose.runtime.Composable *;
+}
+
+# --- 3. 必須保留的進入點 (Keep Points) ---
+-keep class com.horizon.caadronesimulator.MainActivity { *; }
+
+# --- 4. 資源與 Compose 相容性 ---
+# 確保 Compose 的狀態管理與重組邏輯不被損壞
+-keepclassmembers class * extends androidx.lifecycle.ViewModel { *; }
+-keepclassmembers class **.R$* {
+    public static <fields>;
+}
+
+# --- 5. USB Serial 庫保護 ---
+# 第三方庫通常需要保留特定的 native 方法或序列化介面
+-keep class com.hoho.android.usbserial.** { *; }
+-dontwarn com.hoho.android.usbserial.**
+
+# --- 6. OpenGLES 渲染保護 ---
+# 確保渲染回調方法不被混淆導致 3D 畫面黑屏
+-keepclassmembers class * extends android.opengl.GLSurfaceView$Renderer {
+    public void onSurfaceCreated(...);
+    public void onSurfaceChanged(...);
+    public void onDrawFrame(...);
+}

@@ -65,6 +65,14 @@ class MainActivity : androidx.activity.ComponentActivity() {
         configStore = ConfigurationStore(this)
         configStore.loadSettings(droneState)
         
+        // [v1.7.6] 語言讀取優化：根據設定檔或系統語言初始化
+        configStore.loadSettings(droneState)
+        
+        // [v1.7.7] 首次啟動攔截：若未「手動」選擇過語言，則強制開啟選擇器
+        if (!configStore.isLanguageManuallySet()) {
+            droneState.showLanguageSelector = true
+        }
+
         // [v1.7.6] 套用手動選擇的語言
         updateLocale(droneState.appLanguage)
 
@@ -87,14 +95,18 @@ class MainActivity : androidx.activity.ComponentActivity() {
         soundManager = com.horizon.caadronesimulator.audio.DroneSoundManager(); soundManager.start()
 
         // 5. 3D 渲染引擎配置
-        renderer = DroneSimulationRenderer { alt, x, z, yaw, pitch, roll, speed, isImpact, volt, perc, _, ft, _, _, _ ->
-            // 每幀物理結果對接：由 Renderer 驅動降頻數據同步
-            com.horizon.caadronesimulator.logic.PhysicsEngine.stepResult?.let { res ->
-                droneState.motorRpmFactor = res.motorRpm
-                viewModel.syncFlightData(
-                    droneState, alt, x, z, yaw, pitch, roll, speed, isImpact, volt, perc, ft ?: 0f, res
-                )
-            }
+        renderer = DroneSimulationRenderer { alt, x, z, yaw, pitch, roll, speed, isImpact, volt, perc, _, ft, windAng, cU, cV ->
+            // 每幀物理結果對接：由 Renderer 驅動分流同步 (v1.7.7)
+            val res = com.horizon.caadronesimulator.logic.PhysicsEngine.stepResult
+            
+            // 流 A：動力學 (Dynamics)
+            viewModel.syncDynamics(droneState, x, alt, z, yaw, pitch, roll, speed, isImpact, res)
+            
+            // 流 B：環境 (Atmosphere) - 徹底修復斷連問題
+            viewModel.syncAtmosphere(droneState, res?.currentWindAngle ?: 0f, cU ?: 0f, cV ?: 0f)
+            
+            // 流 C：電力 (Power)
+            viewModel.syncPower(droneState, volt, perc, ft ?: 0f)
         }
         // 視覺投影位置更新 (分離物理數據以防止無限碰撞)
         renderer.onTitlePosUpdate = { pos -> droneState.specialTitleScreenPos = pos }
@@ -193,7 +205,8 @@ class MainActivity : androidx.activity.ComponentActivity() {
     override fun onStop() { 
         super.onStop()
         soundManager.stop()
-        // 停止所有背景通訊以節電
+        // [v1.7.8] 加固：背景自動斷開 Store 與 Pro 通訊，杜絕資源洩漏與背景崩潰
+        usbSerialManager.stopAll()
         com.horizon.caadronesimulator.logic.ProHardwareBridge.onStop() 
     }
 

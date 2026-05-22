@@ -28,6 +28,13 @@ class ConfigurationStore(private val context: Context) {
 
     fun isFirstLaunch(): Boolean = !prefs.contains("lastSeenVersion")
 
+    /** [v1.7.7] 檢查是否已手動完成語言選擇 (防止自動填入導致略過) */
+    fun isLanguageManuallySet(): Boolean = prefs.contains("has_selected_language")
+
+    fun setLanguageManuallySelected() {
+        prefs.edit().putBoolean("has_selected_language", true).apply()
+    }
+
     /** 保存全域設定 */
     fun saveSettings(state: DroneState) {
         prefs.edit().apply {
@@ -45,6 +52,7 @@ class ConfigurationStore(private val context: Context) {
             putBoolean("showVirtualJoysticks", state.showVirtualJoysticks); putInt("baudRate", state.baudRate); putInt("windLevel", state.windLevel)
             putString("cameraMode", state.cameraMode); putString("windDirection", state.windDirection)
             putInt("windVariation", state.windVariation); putInt("windDirVariation", state.windDirVariation)
+            putBoolean("useHardcorePhysics", state.useHardcorePhysics) // [關鍵修復] 持久化進階大氣物理開關
             putString("timeOfDay", state.timeOfDay); putFloat("shadowIntensity", state.shadowIntensity)
             putBoolean("isSunSimEnabled", state.isSunSimEnabled); putFloat("sunPosition", state.sunPosition)
             putBoolean("showClouds", state.showClouds); putFloat("cloudDensity", state.cloudDensity); putBoolean("showMountains", state.showMountains)
@@ -163,6 +171,18 @@ class ConfigurationStore(private val context: Context) {
             this.rateY = targetPrefs.getFloat("rateY", 1.0f); this.rateP = targetPrefs.getFloat("rateP", 1.0f); this.rateR = targetPrefs.getFloat("rateR", 1.0f)
             this.expoT = targetPrefs.getFloat("expoT", 0.0f); this.expoY = targetPrefs.getFloat("expoY", 0.0f); this.expoP = targetPrefs.getFloat("expoP", 0.0f); this.expoR = targetPrefs.getFloat("expoR", 0.0f)
             
+            // [關鍵修復] 補全通道映射載入邏輯：根據設備指紋自動恢復上一次的映射表
+            this.mappingLY = loadMapping(targetPrefs, "ly", this.mappingLY)
+            this.mappingLX = loadMapping(targetPrefs, "lx", this.mappingLX)
+            this.mappingRY = loadMapping(targetPrefs, "ry", this.mappingRY)
+            this.mappingRX = loadMapping(targetPrefs, "rx", this.mappingRX)
+            this.mappingHold = loadMapping(targetPrefs, "hold", this.mappingHold)
+            this.mappingArm = loadMapping(targetPrefs, "arm", this.mappingArm)
+            this.mappingObsHeight = loadMapping(targetPrefs, "obsHeight", this.mappingObsHeight)
+            this.mappingObsTilt = loadMapping(targetPrefs, "obsTilt", this.mappingObsTilt)
+            this.mappingFpvTilt = loadMapping(targetPrefs, "fpvTilt", this.mappingFpvTilt)
+            this.mappingFlightMode = loadMapping(targetPrefs, "flightMode", this.mappingFlightMode)
+
             loadModelSettings(this.droneType, this)
             this.isSettingsLoaded = true
         }
@@ -215,6 +235,11 @@ class ConfigurationStore(private val context: Context) {
             putFloat("rateY", state.modelGene.rateY); putFloat("expoY", state.modelGene.expoY)
             putFloat("rateP", state.modelGene.rateP); putFloat("expoP", state.modelGene.expoP)
             putFloat("rateR", state.modelGene.rateR); putFloat("expoR", state.modelGene.expoR)
+            
+            // [v1.7.7] 儲存機型專屬 FPV 視野
+            if (state.cameraMode == AppConfig.CAM_MODE_FPV) {
+                putFloat("fpv_fov", state.mainFOV)
+            }
             apply()
         }
     }
@@ -232,6 +257,15 @@ class ConfigurationStore(private val context: Context) {
             expoP = modelPrefs.getFloat("expoP", module.baseExpoP)
             rateR = modelPrefs.getFloat("rateR", module.baseRateR)
             expoR = modelPrefs.getFloat("expoR", module.baseExpoR)
+        }
+        
+        // [v1.7.7] 載入機型專屬 FPV 視野：實施「機型預設 -> 全域預設」階層
+        if (state.cameraMode == AppConfig.CAM_MODE_FPV) {
+            // 1. 優先嘗試讀取使用者對該機型的自定義設定
+            // 2. 若無，則讀取該機型的代碼預設 (如 T4: 110f)
+            // 3. 若機型無預設，則讀取全域預設 (AppConfig: 85f)
+            val modelFpvDefault = module.fpvFov 
+            state.mainFOV = modelPrefs.getFloat("fpv_fov", modelFpvDefault)
         }
     }
 }

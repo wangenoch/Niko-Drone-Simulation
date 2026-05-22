@@ -32,27 +32,43 @@ fun SideNavInstruments(
     if (!state.showSideSliders || state.showSettings) return
 
     val isReversed = state.reverseSliderSides
+    val isFpvMode = state.cameraMode == AppConfig.CAM_MODE_FPV
     
-    // [v1.7.6] 佈局精修：將拉桿垂直縮短並置中，確保不會干涉位於 TopStart 或 BottomStart 的雷達視窗
+    // [v1.7.7] 佈局精修：針對不同視角顯示對應拉桿
     Box(modifier = modifier.fillMaxSize().padding(horizontal = 16.dp).padding(top = 130.dp, bottom = 130.dp)) {
-        // [v1.7.6] 位置對調：高度標尺改為左側 (預設)，抬頭標尺改為右側 (預設)
-        Box(modifier = Modifier.align(if(isReversed) Alignment.CenterStart else Alignment.CenterEnd).fillMaxHeight().width(50.dp)) {
-            HeightRuler(
-                value = state.observerHeight,
-                onValueChange = { h -> onUpdateState { observerHeight = h; if(cameraMode == AppConfig.CAM_MODE_OBS) lastManualTouchTime = System.currentTimeMillis() } },
-                showRuler = state.showSideRulers,
-                isAuto = (state.mappingObsHeight.axis != -1)
-            )
-        }
+        if (isFpvMode) {
+            // FPV 模式：僅顯示鏡頭仰角 (Gimbal Tilt)，並傳入正確的雲台量程
+            Box(modifier = Modifier.align(if(isReversed) Alignment.CenterEnd else Alignment.CenterStart).fillMaxHeight().width(50.dp)) {
+                PitchRuler(
+                    label = stringResource(R.string.visual_label_fpv_tilt),
+                    value = state.cameraTilt,
+                    onValueChange = { t -> onUpdateState { cameraTilt = t } },
+                    range = -90f..20f, // 專業雲台量程
+                    showRuler = state.showSideRulers,
+                    isAuto = (state.mappingFpvTilt.axis != -1)
+                )
+            }
+        } else {
+            // 站位/追蹤模式：顯示高度與抬頭
+            Box(modifier = Modifier.align(if(isReversed) Alignment.CenterStart else Alignment.CenterEnd).fillMaxHeight().width(50.dp)) {
+                HeightRuler(
+                    value = state.observerHeight,
+                    onValueChange = { h -> onUpdateState { observerHeight = h; if(cameraMode == AppConfig.CAM_MODE_OBS) lastManualTouchTime = System.currentTimeMillis() } },
+                    showRuler = state.showSideRulers,
+                    isAuto = (state.mappingObsHeight.axis != -1)
+                )
+            }
 
-        // [v1.7.6] 位置對調：抬頭標尺改為右側 (預設)
-        Box(modifier = Modifier.align(if(isReversed) Alignment.CenterEnd else Alignment.CenterStart).fillMaxHeight().width(50.dp)) {
-            PitchRuler(
-                value = state.observerTilt,
-                onValueChange = { t -> onUpdateState { observerTilt = t; if(cameraMode == AppConfig.CAM_MODE_OBS) lastManualTouchTime = System.currentTimeMillis() } },
-                showRuler = state.showSideRulers,
-                isAuto = (state.mappingObsTilt.axis != -1)
-            )
+            Box(modifier = Modifier.align(if(isReversed) Alignment.CenterEnd else Alignment.CenterStart).fillMaxHeight().width(50.dp)) {
+                PitchRuler(
+                    label = stringResource(R.string.hud_tilt_short),
+                    value = state.observerTilt,
+                    onValueChange = { t -> onUpdateState { observerTilt = t; if(cameraMode == AppConfig.CAM_MODE_OBS) lastManualTouchTime = System.currentTimeMillis() } },
+                    range = -30f..85f, // 觀察員抬頭量程
+                    showRuler = state.showSideRulers,
+                    isAuto = (state.mappingObsTilt.axis != -1)
+                )
+            }
         }
     }
 }
@@ -104,12 +120,19 @@ private fun HeightRuler(value: Float, onValueChange: (Float) -> Unit, showRuler:
 }
 
 @Composable
-private fun PitchRuler(value: Float, onValueChange: (Float) -> Unit, showRuler: Boolean, isAuto: Boolean) {
+private fun PitchRuler(
+    label: String,
+    value: Float, 
+    onValueChange: (Float) -> Unit, 
+    range: ClosedFloatingPointRange<Float>,
+    showRuler: Boolean, 
+    isAuto: Boolean
+) {
     var internalValue by remember(value) { mutableFloatStateOf(value) }
     
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         if (showRuler) {
-            Text(stringResource(R.string.hud_tilt_short), color = if(isAuto) Color.Cyan else Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+            Text(label, color = if(isAuto) Color.Cyan else Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
             Text(String.format(Locale.US, "%.0f°", internalValue), color = Color.Cyan, fontSize = 10.sp)
         }
         
@@ -127,7 +150,7 @@ private fun PitchRuler(value: Float, onValueChange: (Float) -> Unit, showRuler: 
                     .pointerInput(Unit) {
                         detectVerticalDragGestures { _, dragAmount ->
                             val delta = -dragAmount * 0.25f
-                            internalValue = (internalValue + delta).coerceIn(-30f, 85f)
+                            internalValue = (internalValue + delta).coerceIn(range)
                             onValueChange(internalValue)
                         }
                     },
@@ -138,7 +161,7 @@ private fun PitchRuler(value: Float, onValueChange: (Float) -> Unit, showRuler: 
                 Slider(
                     value = internalValue,
                     onValueChange = {},
-                    valueRange = -30f..85f,
+                    valueRange = range,
                     enabled = false,
                     modifier = Modifier.fillMaxHeight().width(20.dp).rotate(-90f),
                     colors = SliderDefaults.colors(disabledThumbColor = if(isAuto) Color.Cyan else Color.White, disabledActiveTrackColor = Color.Transparent, disabledInactiveTrackColor = Color.Transparent)

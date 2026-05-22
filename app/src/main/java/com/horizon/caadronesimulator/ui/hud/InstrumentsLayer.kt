@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import com.horizon.caadronesimulator.R
 import com.horizon.caadronesimulator.model.DroneState
 import com.horizon.caadronesimulator.model.DroneRegistry
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 import java.util.Locale
 import kotlin.math.*
 
@@ -40,13 +41,14 @@ import kotlin.math.*
 fun InstrumentsLayer(
     state: DroneState,
     onUpdatePipRect: (android.graphics.Rect?) -> Unit,
-    onUpdateState: (DroneState.() -> Unit) -> Unit
+    onUpdateState: (DroneState.() -> Unit) -> Unit,
+    onUpdateTutorialTargets: (String, androidx.compose.ui.geometry.Rect) -> Unit = { _, _ -> }
 ) {
     val radarAlign = if (state.showVirtualJoysticks) Alignment.TopStart else Alignment.BottomStart
     val radarPad = if (state.showVirtualJoysticks) Modifier.padding(top = 16.dp, start = 16.dp) else Modifier.padding(bottom = 16.dp, start = 16.dp)
     
     Box(modifier = Modifier.fillMaxSize()) {
-        Box(modifier = radarPad.align(radarAlign)) {
+        Box(modifier = radarPad.align(radarAlign).onGloballyPositioned { onUpdateTutorialTargets("radar", it.positionInWindow().let { pos -> androidx.compose.ui.geometry.Rect(pos.x, pos.y, pos.x + it.size.width, pos.y + it.size.height) }) }) {
             when (state.hudMode) {
                 0 -> RadarHUD(state, modifier = Modifier.size(150.dp, 100.dp)) { onUpdateState { hudMode = 1 } }
                 1 -> OsdView(state, onUpdatePipRect, modifier = Modifier.size(150.dp, 100.dp)) { onUpdatePipRect(null); onUpdateState { hudMode = 2 } }
@@ -91,7 +93,8 @@ fun PrecisionZoomView(
 @Composable
 fun OsdView(state: DroneState, onUpdatePipRect: (android.graphics.Rect?) -> Unit, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val spec = DroneRegistry.getSpec(state.droneType)
-    Box(modifier = modifier.clip(RoundedCornerShape(12.dp)).background(Color(0xAA111111)).border(2.dp, Color(0xFFFF9800).copy(0.6f), RoundedCornerShape(12.dp)).clickable { onClick() }) {
+    val theme = NikoTheme
+    Box(modifier = modifier.clip(theme.shapes.medium).background(Color.Transparent).border(2.dp, theme.colors.primary.copy(0.6f), theme.shapes.medium).clickable { onClick() }) {
         Box(modifier = Modifier.fillMaxSize().padding(3.dp).onGloballyPositioned { coords ->
             val pos = coords.positionInWindow(); val size = coords.size
             // [v1.7.6] 修正：在 Compose 坐標系轉換為 Android Graphics Rect 時加入邊界緩衝
@@ -103,15 +106,15 @@ fun OsdView(state: DroneState, onUpdatePipRect: (android.graphics.Rect?) -> Unit
             val dText = String.format(Locale.US, "%.1f", state.horizontalDist)
 
             Column(modifier = Modifier.align(Alignment.CenterStart)) {
-                Text("${stringResource(R.string.hud_speed_short)}: $vText", color = Color.Green, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                Text("${stringResource(R.string.hud_pitch_short)}: ${state.pitch.toInt()}°", color = Color.Green, fontSize = 7.sp)
+                Text("${stringResource(R.string.hud_speed_short)}: $vText", color = theme.colors.status, style = theme.typography.caption.copy(fontWeight = FontWeight.Bold))
+                Text("${stringResource(R.string.hud_pitch_short)}: ${state.pitch.toInt()}°", color = theme.colors.status, style = theme.typography.caption.copy(fontSize = 7.sp))
             }
             Column(modifier = Modifier.align(Alignment.CenterEnd), horizontalAlignment = Alignment.End) {
-                Text("${stringResource(R.string.hud_altitude_short)}: $hText", color = Color.Green, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                Text("${stringResource(R.string.hud_tilt_short)}: ${state.cameraTilt.toInt()}°", color = Color.Cyan, fontSize = 7.sp)
+                Text("${stringResource(R.string.hud_altitude_short)}: $hText", color = theme.colors.status, style = theme.typography.caption.copy(fontWeight = FontWeight.Bold))
+                Text("${stringResource(R.string.hud_tilt_short)}: ${state.cameraTilt.toInt()}°", color = theme.colors.primary, style = theme.typography.caption.copy(fontSize = 7.sp))
             }
-            Text("${stringResource(R.string.hud_distance_short)}: ${dText}${stringResource(R.string.hud_unit_m)}", modifier = Modifier.align(Alignment.BottomCenter), color = Color.Green, fontSize = 8.sp)
-            Text("${state.yaw.toInt()}°", modifier = Modifier.align(Alignment.TopCenter), color = Color.Green, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+            Text("${stringResource(R.string.hud_distance_short)}: ${dText}${stringResource(R.string.hud_unit_m)}", modifier = Modifier.align(Alignment.BottomCenter), color = theme.colors.status, style = theme.typography.caption)
+            Text("${state.yaw.toInt()}°", modifier = Modifier.align(Alignment.TopCenter), color = theme.colors.status, style = theme.typography.label)
         }
     }
 }

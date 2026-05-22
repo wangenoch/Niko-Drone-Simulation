@@ -95,10 +95,14 @@ class DroneViewModel : ViewModel() {
             // 2. 狀態旗標重置
             isCollision = false
             isMotorLocked = true
+            crashReason = com.horizon.caadronesimulator.model.CrashReason.NONE
+            sessionFlightTime = 0f
+            isNearBoundary = false
             flightPath = emptyList()
             isArmSafetyPassed = false
             isHoldSafetyPassed = false
             isThrottleHoldActive = false
+            systemMessage = null // [關鍵修復] 確保重置後立即清除所有系統訊息與警告
             
             // 3. 電池數據恢復
             batteryVoltage = 4.2f
@@ -114,6 +118,10 @@ class DroneViewModel : ViewModel() {
 
             // 5. 相機導演還原
             applyCameraModeDefaults(this, cameraMode)
+            
+            // [v1.7.7] 重置雷達位置
+            radarOffset = androidx.compose.ui.geometry.Offset.Zero
+            isRadarUnlocked = false
         }
         
         ViewportOptimizer.applyOptimization(state)
@@ -153,6 +161,7 @@ class DroneViewModel : ViewModel() {
             weatherMode = com.horizon.caadronesimulator.model.AppConfig.EnvironmentDefaults.WEATHER_MODE
             showClouds = com.horizon.caadronesimulator.model.AppConfig.EnvironmentDefaults.SHOW_CLOUDS
             showMountains = com.horizon.caadronesimulator.model.AppConfig.EnvironmentDefaults.SHOW_MOUNTAINS
+            enableVerticalDraft = com.horizon.caadronesimulator.model.AppConfig.EnvironmentDefaults.ENABLE_VERTICAL_DRAFT
             useHardcorePhysics = com.horizon.caadronesimulator.model.AppConfig.EnvironmentDefaults.HARDCORE_PHYSICS
 
             // 視覺還原
@@ -208,7 +217,7 @@ class DroneViewModel : ViewModel() {
         }
     }
 
-    /** [v1.6.1] 視角模式切換自動歸位邏輯 */
+    /** [v1.7.7] 視角模式切換自動歸位邏輯 - 強制同步 AppConfig */
     fun applyCameraModeDefaults(state: DroneState, mode: String) {
         state.apply {
             when (mode) {
@@ -223,14 +232,103 @@ class DroneViewModel : ViewModel() {
                     zoomFactor = AppConfig.VisualDefaults.ZOOM_FACTOR_TRACKING
                 }
                 AppConfig.CAM_MODE_STATION_SMART -> {
+                    // 智慧視角延用追蹤高度，但縮放更廣
                     observerHeight = AppConfig.VisualDefaults.OBSERVER_HEIGHT_TRACKING
                     observerTilt = AppConfig.VisualDefaults.OBSERVER_TILT_TRACKING
                     zoomFactor = 1.2f
                 }
+                AppConfig.CAM_MODE_FPV -> {
+                    // FPV 模式下的階層式視野讀取
+                    val spec = DroneRegistry.getSpec(droneType)
+                    mainFOV = spec.fpvFov
+                    zoomFactor = 1.0f
+                    cameraTilt = 0f // [v1.7.7] 進入 FPV 時雲台水平歸零
+                }
             }
+            // 觸發最後操作時間，防止視角被平滑平滑掉
+            lastManualTouchTime = System.currentTimeMillis()
         }
     }
 
+    /** [v1.7.7] 領域專屬流 A：動力學與姿態同步 (Dynamics & Attitude) */
+    fun syncDynamics(
+        state: DroneState,
+        x: Float, y: Float, z: Float,
+        yaw: Float, pitch: Float, roll: Float,
+        speed: Float, isImpact: Boolean,
+        physicsResult: com.horizon.caadronesimulator.logic.PhysicsEngine.PhysicsResult?
+    ) {
+        val now = System.currentTimeMillis()
+        if (now - lastStabilityCheckTime < 50) return
+        val dt = if (lastStabilityCheckTime == 0L) 0.05f else (now - lastStabilityCheckTime) / 1000f
+        lastStabilityCheckTime = now
+
+        val isProtecting = (now - lastResetTime < 500)
+        if ((state.showSettings || state.isCollision) && !isProtecting) return
+
+        state.apply {
+            this.lastYaw = this.yaw
+            this.altitude = y
+            this.posX = x
+            this.posZ = z
+            this.yaw = yaw
+            this.pitch = pitch
+            this.roll = roll
+            this.speed = if (isImpact && physicsResult != null) physicsResult.impactSpeed else speed
+            this.horizontalDist = sqrt(x.pow(2) + z.pow(2))
+            
+            val distToOpsCenter = sqrt(x.pow(2) + (z - 6f).pow(2))
+            this.lastInZoomZone = distToOpsCenter > 10.0f && 
+                                  cameraMode != AppConfig.CAM_MODE_FPV && 
+                                  cameraMode != AppConfig.CAM_MODE_FOLLOW &&
+                                  cameraMode != AppConfig.CAM_MODE_STATION_SMART
+        }
+
+        if (isImpact) {
+            state.isCollision = true
+            state.isMotorLocked = true
+            if (physicsResult != null) {
+                state.systemMessage = when(physicsResult.systemMessage) {
+                    "CRASH_EXTREME" -> "CRASH_EXTREME|${physicsResult.impactSpeed}"
+                    "CRASH_STRUCTURAL" -> "CRASH_STRUCTURAL|${physicsResult.impactSpeed}"
+                    else -> physicsResult.systemMessage
+                }
+            }
+        } else {
+            val spec = DroneRegistry.getSpec(state.droneType)
+            MissionManager.update(state, dt, spec)
+            if (state.showFlightPath && !state.isMotorLocked) {
+                val path = state.flightPath; val pos = androidx.compose.ui.geometry.Offset(x, z); val last = path.lastOrNull()
+                if (last == null || sqrt((pos.x - last.x).pow(2) + (pos.y - last.y).pow(2)) > 0.15f) {
+                    state.flightPath = (path + pos).takeLast(5400)
+                }
+            }
+        }
+        updateRadarScale(state)
+    }
+
+    /** [v1.7.7] 領域專屬流 B：大氣與環境同步 (Atmosphere & Environment) */
+    fun syncAtmosphere(state: DroneState, windAngle: Float, cloudU: Float, cloudV: Float) {
+        state.env.currentWindAngle = windAngle
+        state.env.cloudU = cloudU
+        state.env.cloudV = cloudV
+    }
+
+    /** [v1.7.7] 領域專屬流 C：電能與系統同步 (Power & Telemetry) */
+    fun syncPower(state: DroneState, volt: Float, perc: Int, flightTime: Float) {
+        state.batteryVoltage = volt
+        state.batteryPercent = perc
+        if (flightTime > 0) state.sessionFlightTime = flightTime
+        if (state.useFlightLimit && perc <= 0) {
+            state.isCollision = true
+            state.isMotorLocked = true
+            state.crashReason = com.horizon.caadronesimulator.model.CrashReason.BATTERY_LOW
+        }
+    }
+
+    // 廢棄舊有的全知全能函式以防止誤刪參數
+    @Deprecated("Use syncDynamics, syncAtmosphere, and syncPower instead", 
+        ReplaceWith("syncDynamics(state, alt, x, z, yaw, pitch, roll, speed, isImpact, physicsResult)"))
     fun syncFlightData(
         state: DroneState,
         alt: Float, x: Float, z: Float,
@@ -240,88 +338,8 @@ class DroneViewModel : ViewModel() {
         flightTime: Float,
         physicsResult: com.horizon.caadronesimulator.logic.PhysicsEngine.PhysicsResult?
     ) {
-        // [v1.7.4] 深度效能優化：實施 20Hz (50ms) 降頻同步攔截
-        val now = System.currentTimeMillis()
-        if (now - lastStabilityCheckTime < 50) return
-        
-        // [v1.7.6] 正確計算 dt：必須在更新基準時間前計算
-        val dt = if (lastStabilityCheckTime == 0L) 0.05f else (now - lastStabilityCheckTime) / 1000f
-        lastStabilityCheckTime = now
-
-        val isProtecting = (now - lastResetTime < 500)
-        if ((state.showSettings || state.isCollision) && !isProtecting) return
-
-        state.apply {
-            this.lastYaw = this.yaw
-            batteryVoltage = volt
-            batteryPercent = perc
-            altitude = alt
-            posX = x
-            posZ = z
-            this.yaw = yaw
-            this.pitch = pitch
-            this.roll = roll
-            // 僅在非重置狀態下同步時間，防止 0 秒覆蓋
-            if (flightTime > 0) this.sessionFlightTime = flightTime
-            
-            // [v1.5.9] 撞擊速度保留
-            this.speed = if (isImpact && physicsResult != null) physicsResult.impactSpeed else speed
-            
-            // [v1.7.6] 水平距離校準：以 H 坪 (0,0) 為 0.0m 基準
-            this.horizontalDist = sqrt(x.pow(2) + z.pow(2))
-            
-            // [v1.7.6] 姿態補助觸發邏輯：維持以作業區中心 (Z=6) 為基準
-            val distToOpsCenter = sqrt(x.pow(2) + (z - 6f).pow(2))
-            this.lastInZoomZone = distToOpsCenter > 10.0f && cameraMode != AppConfig.CAM_MODE_FPV && cameraMode != AppConfig.CAM_MODE_FOLLOW
-        }
-
-        // [v1.5.9] 統一消息翻譯層：防止 UI 消息阻塞控制邏輯
-        if (!state.isCollision && physicsResult?.systemMessage != null) {
-            val msgId = when(physicsResult.systemMessage) {
-                "CRASH_EXTREME" -> "CRASH_EXTREME|${physicsResult.impactSpeed}"
-                "CRASH_STRUCTURAL" -> "CRASH_STRUCTURAL|${physicsResult.impactSpeed}"
-                else -> physicsResult.systemMessage
-            }
-            if (state.systemMessage == null) state.systemMessage = msgId
-        }
-        
-        if (isImpact || (state.useFlightLimit && perc <= 0)) {
-            state.isCollision = true
-            state.isMotorLocked = true
-        } else {
-            // [v1.5.9] 分級落地警告優化：確保不覆蓋關鍵停槳條件
-            val spec = DroneRegistry.getSpec(state.droneType)
-            if (state.useStrictLanding && alt <= spec.groundOffset + 0.05f && physicsResult != null) {
-                val impactV = physicsResult.impactSpeed
-                // 僅在非停槳嘗試時顯示警告
-                if (impactV in 1.2f..2.2f && state.systemMessage == null) {
-                    state.systemMessage = "HEAVY_LANDING|$impactV"
-                }
-            }
-
-            val relAlt = alt - spec.groundOffset
-            if (relAlt < 29.5f && state.systemMessage == "ALT_LIMIT") {
-                state.systemMessage = null
-            }
-            
-            MissionManager.update(state, dt, spec)
-
-            if (!spec.isHoldSupported) state.isThrottleHoldActive = false
-
-            if (state.showFlightPath && !state.isMotorLocked) {
-                val path = state.flightPath
-                val pos = androidx.compose.ui.geometry.Offset(x, z)
-                val last = path.lastOrNull()
-                if (last == null || sqrt((pos.x - last.x).pow(2) + (pos.y - last.y).pow(2)) > 0.15f) {
-                    state.flightPath = (path + pos).takeLast(5400)
-                }
-            } else if (!state.showFlightPath && state.flightPath.isNotEmpty()) {
-                state.flightPath = emptyList()
-            }
-        }
-        
-        // [v1.7.6] 每幀同步時更新雷達縮放 (確保 Mode 1 自動縮放生效)
-        updateRadarScale(state)
+        syncDynamics(state, x, alt, z, yaw, pitch, roll, speed, isImpact, physicsResult)
+        syncPower(state, volt, perc, flightTime)
     }
 
     fun updateRadarScale(state: DroneState) {

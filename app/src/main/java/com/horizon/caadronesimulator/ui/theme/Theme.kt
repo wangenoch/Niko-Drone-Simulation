@@ -5,7 +5,7 @@ import androidx.compose.ui.graphics.Color
 import com.horizon.caadronesimulator.model.AppConfig
 
 /**
- * [v1.7.8] Niko 模擬器語義化色彩架構 - 模組化驅動版
+ * [v1.7.7] Niko 模擬器語義化色彩架構 - 模組化驅動版
  */
 data class NikoColors(
     val background: Color,
@@ -34,7 +34,11 @@ fun NikoTheme(
         ThemeRegistry.getColors(themeId)
     }
     
-    CompositionLocalProvider(LocalNikoColors provides colors) {
+    CompositionLocalProvider(
+        LocalNikoColors provides colors,
+        LocalNikoTypography provides NikoTypography(),
+        LocalNikoShapes provides NikoShapes()
+    ) {
         content()
     }
 }
@@ -47,4 +51,14 @@ object NikoTheme {
         @Composable
         @ReadOnlyComposable
         get() = LocalNikoColors.current
+
+    val typography: NikoTypography
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalNikoTypography.current
+
+    val shapes: NikoShapes
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalNikoShapes.current
 }

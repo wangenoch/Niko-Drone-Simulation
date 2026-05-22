@@ -38,10 +38,13 @@ object CameraDirector {
         val isObserverMode = (cameraMode == AppConfig.CAM_MODE_OBS)
 
         if (isObserverMode && !isOverrideActive) {
-            finalTargetHeight = when {
-                relH < 0.2f -> 1.6f
-                relH > 15.0f || d > 20.0f -> 1.6f
-                else -> 8.0f
+            // [v1.7.7] 觀察員視角：智慧高度適配 (近距離升起，遠距離降下)
+            // 當飛機靠近中心時(d < 8m)，高度自動平滑升起至 5.0m 以俯瞰地面標線
+            finalTargetHeight = if (d < 8.0f) {
+                val factor = (d / 8.0f).coerceIn(0f, 1f)
+                5.0f - (factor * 3.4f) // 近處 5.0m -> 遠處 1.6m
+            } else {
+                1.6f
             }
             finalTargetTilt = strategy.tilt
             finalTargetZoom = strategy.zoom
@@ -121,7 +124,22 @@ object CameraDirector {
                 val upY = if (isOverhead) 0f else 1f
                 val upZ = if (isOverhead) 1f else 0f
                 val rad = Math.toRadians(smoothedTilt.toDouble()).toFloat()
-                val verticalShift = if (isOverhead) 0f else tan(rad) * distH
+                
+                // [v1.7.7] 觀察員視角：提前觸發與 25% 黃金位置構圖
+                // 1. 提前在 3m-12m 區間完成過渡，確保 10m 以上具備良好對地視野
+                val hWeight = ((curY - 3f) / 9f).coerceIn(0f, 1f)
+                
+                // 2. 實施強效偏移，將目標鎖定在畫面上方 25% (0.25) 處
+                val currentFov = smoothedFov / smoothedZoom
+                val targetBiasDeg = hWeight * (currentFov * 0.25f)
+                
+                // 3. 距離與角度安全緩衝，並實施「降落置中」：距離 < 5m 時自動取消偏移
+                val landingFactor = ((distH - 2f) / 3f).coerceIn(0f, 1f)
+                val distanceScale = (distH / 6f).coerceIn(0.3f, 1.0f) * landingFactor
+                val finalBiasRad = Math.toRadians((targetBiasDeg * distanceScale).toDouble()).toFloat()
+                
+                val verticalShift = if (!isOverhead) (tan(rad) * distH) - (tan(finalBiasRad) * distH) else 0f
+                
                 Matrix.setLookAtM(vMatrix, 0, 0f, smoothedHeight, -9f, predictX, curY + verticalShift, predictZ, 0f, upY, upZ)
             }
             mode == AppConfig.CAM_MODE_FOLLOW -> {

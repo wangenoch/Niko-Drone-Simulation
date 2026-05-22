@@ -26,7 +26,7 @@ interface DroneModule {
     val geometry: List<com.horizon.caadronesimulator.model.DronePart>
 
     // 4. 擴展視覺參數
-    val fpvFov: Float get() = 85f
+    val fpvFov: Float get() = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.DEFAULT_FPV_FOV
     val cameraVisualOffset: Float get() = 0.4f
 
     // 5. 基礎手感 (通用預設)

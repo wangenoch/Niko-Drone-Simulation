@@ -9,7 +9,7 @@ import com.horizon.caadronesimulator.R
 import com.horizon.caadronesimulator.model.AppConfig
 
 /**
- * [v1.7.8] 經典深色主題模組
+ * [v1.7.7] 經典深色主題模組
  */
 object ClassicTheme : ThemeModule {
     override val id: String = AppConfig.THEME_CLASSIC

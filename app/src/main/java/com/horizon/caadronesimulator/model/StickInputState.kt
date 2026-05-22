@@ -61,7 +61,8 @@ class StickInputState {
 
     /** [v1.6.1] 智慧型數據源選擇器 (優先權：觸碰 > 物理映射 > 預設通道) */
     private fun resolveRawValue(
-        mapping: ChannelMapping, 
+        state: DroneState, // [v1.7.7] 接入 state 以讀取快照
+        mappingIndex: Int, // 0:LY, 1:LX, 2:RY, 3:RX
         isTouching: Boolean, 
         touchValue: Float, 
         isInternal: Boolean,
@@ -69,6 +70,10 @@ class StickInputState {
         defaultExternalAxis: Float 
     ): Float {
         if (isTouching) return touchValue
+        // [v1.7.7] 核心修復：物理引擎讀取必須使用 snapshot 以防 UI 線程修改導致閃退
+        val snapshot = state.getMappingSnapshot()
+        val mapping = snapshot.getOrNull(mappingIndex) ?: ChannelMapping(-1, false, "ERR")
+        
         return when {
             mapping.axis != -1 -> getRawByAxis(mapping.axis, if (mapping.axis in 0..28) defaultExternalAxis else 0f)
             isInternal -> rawChannels.getOrNull(defaultInternalAxis - 101) ?: 0f
@@ -83,13 +88,16 @@ class StickInputState {
         val targetAxis = if (mode == 1 || mode == 4) 103 else 104
         val isLeft = (targetAxis == 104)
         val isTouching = if (isLeft) isTouchingLeft else isTouchingRight
-        val map = if (isLeft) state.mappingLY else state.mappingRY
+        
+        // [v1.7.7] 使用快照映射
+        val snapshot = state.getMappingSnapshot()
+        val map = if (isLeft) snapshot[0] else snapshot[2]
 
         return if (isTouching) {
             val touchVal = if (isLeft) touchLY else touchRY
             com.horizon.caadronesimulator.logic.InputProcessor.processVirtual(touchVal, state.getExpo("T"), state.getRate("T", touchVal))
         } else {
-            val raw = resolveRawValue(map, false, 0f, (state.inputMode == 1), targetAxis, if(isLeft) rawLY else rawRY)
+            val raw = resolveRawValue(state, if(isLeft) 0 else 2, false, 0f, (state.inputMode == 1), targetAxis, if(isLeft) rawLY else rawRY)
             val processed = if (map.inverted) -raw else raw
             com.horizon.caadronesimulator.logic.InputProcessor.process(processed, state.joystickDeadzone, state.getExpo("T"), state.getRate("T", processed), map)
         }
@@ -100,13 +108,15 @@ class StickInputState {
         val targetAxis = if (mode == 3 || mode == 4) 101 else 102
         val isLeft = (targetAxis == 102)
         val isTouching = if (isLeft) isTouchingLeft else isTouchingRight
-        val map = if (isLeft) state.mappingLX else state.mappingRX
+        
+        val snapshot = state.getMappingSnapshot()
+        val map = if (isLeft) snapshot[1] else snapshot[3]
 
         return if (isTouching) {
             val touchVal = if (isLeft) touchLX else touchRX
             com.horizon.caadronesimulator.logic.InputProcessor.processVirtual(touchVal, state.getExpo("Y"), state.getRate("Y", touchVal))
         } else {
-            val raw = resolveRawValue(map, false, 0f, (state.inputMode == 1), targetAxis, if(isLeft) rawLX else rawRX)
+            val raw = resolveRawValue(state, if(isLeft) 1 else 3, false, 0f, (state.inputMode == 1), targetAxis, if(isLeft) rawLX else rawRX)
             val processed = if (map.inverted) -raw else raw
             com.horizon.caadronesimulator.logic.InputProcessor.process(processed, state.joystickDeadzone, state.getExpo("Y"), state.getRate("Y", processed), map)
         }
@@ -117,13 +127,15 @@ class StickInputState {
         val targetAxis = if (mode == 1 || mode == 4) 104 else 103
         val isLeft = (targetAxis == 104)
         val isTouching = if (isLeft) isTouchingLeft else isTouchingRight
-        val map = if (isLeft) state.mappingLY else state.mappingRY
+        
+        val snapshot = state.getMappingSnapshot()
+        val map = if (isLeft) snapshot[0] else snapshot[2]
 
         return if (isTouching) {
             val touchVal = if (isLeft) touchLY else touchRY
             com.horizon.caadronesimulator.logic.InputProcessor.processVirtual(touchVal, state.getExpo("P"), state.getRate("P", touchVal))
         } else {
-            val raw = resolveRawValue(map, false, 0f, (state.inputMode == 1), targetAxis, if(isLeft) rawLY else rawRY)
+            val raw = resolveRawValue(state, if(isLeft) 0 else 2, false, 0f, (state.inputMode == 1), targetAxis, if(isLeft) rawLY else rawRY)
             val processed = if (map.inverted) -raw else raw
             com.horizon.caadronesimulator.logic.InputProcessor.process(processed, state.joystickDeadzone, state.getExpo("P"), state.getRate("P", processed), map)
         }
@@ -134,13 +146,15 @@ class StickInputState {
         val targetAxis = if (mode == 3 || mode == 4) 102 else 101
         val isLeft = (targetAxis == 102)
         val isTouching = if (isLeft) isTouchingLeft else isTouchingRight
-        val map = if (isLeft) state.mappingLX else state.mappingRX
+        
+        val snapshot = state.getMappingSnapshot()
+        val map = if (isLeft) snapshot[1] else snapshot[3]
 
         return if (isTouching) {
             val touchVal = if (isLeft) touchLX else touchRX
             com.horizon.caadronesimulator.logic.InputProcessor.processVirtual(touchVal, state.getExpo("R"), state.getRate("R", touchVal))
         } else {
-            val raw = resolveRawValue(map, false, 0f, (state.inputMode == 1), targetAxis, if(isLeft) rawLX else rawRX)
+            val raw = resolveRawValue(state, if(isLeft) 1 else 3, false, 0f, (state.inputMode == 1), targetAxis, if(isLeft) rawLX else rawRX)
             val processed = if (map.inverted) -raw else raw
             com.horizon.caadronesimulator.logic.InputProcessor.process(processed, state.joystickDeadzone, state.getExpo("R"), state.getRate("R", processed), map)
         }
@@ -149,45 +163,49 @@ class StickInputState {
     // --- [v1.6.1] 視覺同步接口： HUD 虛擬搖桿專用 (反映最終指令) ---
     
     fun stickLX(state: DroneState): Float {
-        val map = state.mappingLX
+        val snapshot = state.getMappingSnapshot()
+        val map = snapshot[1]
         val func = when(state.joystickMode) { 1 -> "Y"; 2 -> "Y"; 3 -> "R"; 4 -> "R"; else -> "Y" }
         return if (isTouchingLeft) {
             com.horizon.caadronesimulator.logic.InputProcessor.processVirtual(touchLX, state.getExpo(func), state.getRate(func, touchLX))
         } else {
-            val raw = resolveRawValue(map, false, 0f, state.inputMode == 1, 102, rawLX)
+            val raw = resolveRawValue(state, 1, false, 0f, state.inputMode == 1, 102, rawLX)
             val processed = if (map.inverted) -raw else raw
             com.horizon.caadronesimulator.logic.InputProcessor.process(processed, state.joystickDeadzone, state.getExpo(func), state.getRate(func, processed), map)
         }
     }
     fun stickLY(state: DroneState): Float {
-        val map = state.mappingLY
+        val snapshot = state.getMappingSnapshot()
+        val map = snapshot[0]
         val func = when(state.joystickMode) { 1 -> "P"; 2 -> "T"; 3 -> "T"; 4 -> "P"; else -> "T" }
         return if (isTouchingLeft) {
             com.horizon.caadronesimulator.logic.InputProcessor.processVirtual(touchLY, state.getExpo(func), state.getRate(func, touchLY))
         } else {
-            val raw = resolveRawValue(map, false, 0f, state.inputMode == 1, 104, rawLY)
+            val raw = resolveRawValue(state, 0, false, 0f, state.inputMode == 1, 104, rawLY)
             val processed = if (map.inverted) -raw else raw
             com.horizon.caadronesimulator.logic.InputProcessor.process(processed, state.joystickDeadzone, state.getExpo(func), state.getRate(func, processed), map)
         }
     }
     fun stickRX(state: DroneState): Float {
-        val map = state.mappingRX
+        val snapshot = state.getMappingSnapshot()
+        val map = snapshot[3]
         val func = when(state.joystickMode) { 1 -> "R"; 2 -> "R"; 3 -> "Y"; 4 -> "Y"; else -> "R" }
         return if (isTouchingRight) {
             com.horizon.caadronesimulator.logic.InputProcessor.processVirtual(touchRX, state.getExpo(func), state.getRate(func, touchRX))
         } else {
-            val raw = resolveRawValue(map, false, 0f, state.inputMode == 1, 101, rawRX)
+            val raw = resolveRawValue(state, 3, false, 0f, state.inputMode == 1, 101, rawRX)
             val processed = if (map.inverted) -raw else raw
             com.horizon.caadronesimulator.logic.InputProcessor.process(processed, state.joystickDeadzone, state.getExpo(func), state.getRate(func, processed), map)
         }
     }
     fun stickRY(state: DroneState): Float {
-        val map = state.mappingRY
+        val snapshot = state.getMappingSnapshot()
+        val map = snapshot[2]
         val func = when(state.joystickMode) { 1 -> "T"; 2 -> "P"; 3 -> "P"; 4 -> "T"; else -> "P" }
         return if (isTouchingRight) {
             com.horizon.caadronesimulator.logic.InputProcessor.processVirtual(touchRY, state.getExpo(func), state.getRate(func, touchRY))
         } else {
-            val raw = resolveRawValue(map, false, 0f, state.inputMode == 1, 103, rawRY)
+            val raw = resolveRawValue(state, 2, false, 0f, state.inputMode == 1, 103, rawRY)
             val processed = if (map.inverted) -raw else raw
             com.horizon.caadronesimulator.logic.InputProcessor.process(processed, state.joystickDeadzone, state.getExpo(func), state.getRate(func, processed), map)
         }

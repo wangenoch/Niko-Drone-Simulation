@@ -9,7 +9,7 @@ import com.horizon.caadronesimulator.R
 import com.horizon.caadronesimulator.model.AppConfig
 
 /**
- * [v1.7.8] 明亮專業主題模組
+ * [v1.7.7] 明亮專業主題模組
  */
 object LightTheme : ThemeModule {
     override val id: String = AppConfig.THEME_LIGHT

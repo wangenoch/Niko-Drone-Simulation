@@ -49,10 +49,10 @@ fun DroneSelectionScreen(
         ) {
             val models = DroneRegistry.getAllSpecs()
             models.forEach { spec ->
-                val localizedName = when(spec.id) {
-                    "QUAD_STANDARD" -> stringResource(R.string.model_name_small)
-                    "T4_HEAVY_LIFT" -> stringResource(R.string.model_name_heavy)
-                    "HELI_900" -> stringResource(R.string.model_name_heli)
+                val localizedName = when(spec.name) {
+                    "SPECS_QUAD_NAME" -> stringResource(R.string.specs_quad_name)
+                    "SPECS_HELI_900_NAME" -> stringResource(R.string.specs_heli_900_name)
+                    "T4 Heavy Lift" -> stringResource(R.string.model_name_heavy)
                     else -> spec.name
                 }
                 DroneTypeCard(
@@ -62,9 +62,9 @@ fun DroneSelectionScreen(
                     onClick = { onTypeSelected(spec.id) },
                     onLongClick = { onLongPressType(spec.id) },
                     isHoldSupported = spec.isHoldSupported,
-                    isHoldEnabled = state?.isThrottleHoldEnabled ?: false,
+                    isHoldEnabled = state?.isThrottleHoldActive ?: false,
                     isHoldMapped = (state?.mappingHold?.axis ?: -1) != -1,
-                    onToggleHold = { state?.isThrottleHoldEnabled = it }
+                    onToggleHold = { state?.isThrottleHoldActive = it }
                 )
             }
         }
@@ -78,10 +78,10 @@ fun DroneSelectionScreen(
                 Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
                     val spec = DroneRegistry.getSpec(currentType)
                     val module = DroneRegistry.getModule(currentType)
-                    val localizedName = when(spec.id) {
-                        "QUAD_STANDARD" -> stringResource(R.string.model_name_small)
-                        "T4_HEAVY_LIFT" -> stringResource(R.string.model_name_heavy)
-                        "HELI_900" -> stringResource(R.string.model_name_heli)
+                    val localizedName = when(spec.name) {
+                        "SPECS_QUAD_NAME" -> stringResource(R.string.specs_quad_name)
+                        "SPECS_HELI_900_NAME" -> stringResource(R.string.specs_heli_900_name)
+                        "T4 Heavy Lift" -> stringResource(R.string.model_name_heavy)
                         else -> spec.name
                     }
                     

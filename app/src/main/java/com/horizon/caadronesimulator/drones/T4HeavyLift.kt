@@ -18,7 +18,7 @@ object T4HeavyLift : DroneModule {
     override val shadowSizeBase = 0.55f
     override val maxLandingSpeed = 1.8f
     
-    override val fpvFov = 110f
+    override val fpvFov = 45f
     override val cameraVisualOffset = 0.38f
 
     override val geometry = listOf(
@@ -55,7 +55,7 @@ object T4HeavyLift : DroneModule {
     override val baseExpo = 0.5f
     override val baseRateT_Up = 0.3f
     override val baseRateT_Down = 0.2f
-    override val baseRateY = 0.6f
+    override val baseRateY = 0.3f
     override val baseRateP = 0.4f
     override val baseRateR = 0.4f
 

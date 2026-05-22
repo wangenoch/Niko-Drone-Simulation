@@ -23,6 +23,7 @@ import com.horizon.caadronesimulator.model.DroneState
 import com.horizon.caadronesimulator.model.StickInputState
 import com.horizon.caadronesimulator.ui.settings.NetworkSettingsOverlay
 import com.horizon.caadronesimulator.ui.settings.UnifiedSettingsScreen
+import com.horizon.caadronesimulator.ui.onboarding.LanguageSelectionDialog
 import com.horizon.caadronesimulator.ui.theme.NikoTheme
 import com.horizon.caadronesimulator.ui.tutorial.ClimateSettingsTutorial
 import com.horizon.caadronesimulator.ui.tutorial.JoystickSettingsTutorial
@@ -50,14 +51,18 @@ fun OverlayDispatcher(
     onUpdateBaudRate: (Int) -> Unit,
     onUpdateInputMode: (Int) -> Unit,
     onToggleNetworkConnection: (Boolean) -> Unit,
-    onLanguageChange: (String) -> Unit = {},
-    onThemeChange: (String) -> Unit = {}
+    onLanguageChange: (String) -> Unit,
+    onThemeChange: (String) -> Unit
 ) {
     val context = LocalContext.current
 
     // 1. 歡迎教學
-    if (droneState.showTutorial && !droneState.showSettings) {
-        WelcomeTutorial(viewModel = viewModel, modifier = Modifier.zIndex(20f)) {
+    if (droneState.showTutorial && !droneState.showSettings && !droneState.showLanguageSelector) {
+        WelcomeTutorial(
+            viewModel = viewModel, 
+            targets = tutorialTargets,
+            modifier = Modifier.zIndex(20f)
+        ) {
             droneState.showTutorial = false
             configStore.saveSettings(droneState)
         }
@@ -67,6 +72,7 @@ fun OverlayDispatcher(
     if (droneState.showSettings) {
         UnifiedSettingsScreen(
             state = droneState, stickState = stickInputState,
+            viewModel = viewModel,
             onUpdateState = { action -> droneState.action() },
             onClose = { droneState.showSettings = false },
             modifier = Modifier.zIndex(30f),
@@ -178,8 +184,8 @@ fun OverlayDispatcher(
         )
     }
 
-    // 9. 系統狀態監控條
-    SystemStatusOverlay(droneState, stickInputState)
+    // 9. 系統狀態監控條 (最高優先權通知，zIndex 200f)
+    SystemStatusOverlay(droneState, stickInputState, modifier = Modifier.zIndex(200f))
 
     // 10. 協議優化引導
     ProtocolOptimizationOverlay(
@@ -216,5 +222,16 @@ fun OverlayDispatcher(
                 Text(droneState.switchMessage, color = themeColors.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             }
         }
+    }
+
+    // 13. 首次啟動語言選擇 (最高優先權，zIndex 100f)
+    if (droneState.showLanguageSelector) {
+        LanguageSelectionDialog(
+            onLanguageSelected = { lang ->
+                droneState.showLanguageSelector = false
+                configStore.setLanguageManuallySelected() // 標記已手動選擇
+                onLanguageChange(lang)
+            }
+        )
     }
 }

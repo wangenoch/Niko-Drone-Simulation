@@ -29,6 +29,12 @@ import androidx.compose.ui.res.stringResource
 import com.horizon.caadronesimulator.R
 import com.horizon.caadronesimulator.ui.theme.NikoTheme
 
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+
 /**
  * [v1.5.9] RadarHUD 專業級像素還原版 - 佈局約束修正
  */
@@ -39,15 +45,49 @@ fun RadarHUD(
     onClick: () -> Unit = {}
 ) {
     val themeColors = NikoTheme.colors
+    val haptic = LocalHapticFeedback.current
     val markerColor = if (state.useSimplifiedMarkers) themeColors.textPrimary.copy(0.6f) else Color(0xFFFFD600).copy(0.7f)
     val animatedScale by animateFloatAsState(targetValue = state.currentRadarScale, animationSpec = tween(800), label = "radar_scale")
 
     Box(
         modifier = modifier
+            .offset(x = state.radarOffset.x.dp, y = state.radarOffset.y.dp) // [v1.7.7] 應用自由拖拽偏移
             .size(150.dp, 100.dp)
-            .background(Color(0xAA111111), RoundedCornerShape(12.dp)) // 羅盤視窗維持深色玻璃感，不受主題背景影響
-            .border(1.5.dp, themeColors.primary.copy(0.6f), RoundedCornerShape(12.dp))
-            .clickable { onClick() }
+            .background(Color(0xAA111111), RoundedCornerShape(12.dp))
+            .border(
+                1.5.dp, 
+                if(state.isRadarUnlocked) themeColors.primary else themeColors.primary.copy(0.6f), 
+                RoundedCornerShape(12.dp)
+            )
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDragStart = { /* 開始拖拽 */ },
+                    onDragEnd = { /* 拖拽結束 */ },
+                    onDragCancel = { /* 拖拽取消 */ },
+                    onDrag = { change, dragAmount ->
+                        if (state.isRadarUnlocked) {
+                            change.consume()
+                            state.radarOffset += Offset(dragAmount.x / density, dragAmount.y / density)
+                        }
+                    }
+                )
+            }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = { onClick() },
+                    onLongPress = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        if (state.isRadarUnlocked) {
+                            // 再次長按 2 秒：回到初始位置並上鎖
+                            state.radarOffset = Offset.Zero
+                            state.isRadarUnlocked = false
+                        } else {
+                            // 長按 2 秒：解鎖自由移動
+                            state.isRadarUnlocked = true
+                        }
+                    }
+                )
+            }
     ) {
         Box(
             modifier = Modifier

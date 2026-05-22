@@ -126,18 +126,24 @@ fun VisualNavigationScreen(
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
+                val isFpv = cameraMode == AppConfig.CAM_MODE_FPV
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(stringResource(R.string.visual_label_fov), color = NikoTheme.colors.textPrimary, fontSize = 11.sp)
-                        Text("${mainFOV.toInt()}°", color = NikoTheme.colors.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text("${mainFOV.toInt()}°", color = if(isFpv) NikoTheme.colors.textSecondary else NikoTheme.colors.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     }
                     Slider(
                         value = mainFOV,
                         onValueChange = { onUpdateFOV(it); onManualInteraction() },
                         onValueChangeFinished = onSave,
+                        enabled = !isFpv, // [v1.7.7] FPV 視角下鎖死 FOV，僅作規格顯示
                         valueRange = 30f..110f,
                         modifier = Modifier.weight(2f).height(24.dp),
-                        colors = SliderDefaults.colors(thumbColor = NikoTheme.colors.primary, activeTrackColor = NikoTheme.colors.primary, inactiveTrackColor = NikoTheme.colors.divider)
+                        colors = SliderDefaults.colors(
+                            thumbColor = if(isFpv) Color.Gray else NikoTheme.colors.primary, 
+                            activeTrackColor = if(isFpv) Color.Gray.copy(0.3f) else NikoTheme.colors.primary, 
+                            inactiveTrackColor = NikoTheme.colors.divider
+                        )
                     )
                 }
 
@@ -151,9 +157,14 @@ fun VisualNavigationScreen(
                         value = zoomFactor,
                         onValueChange = { onUpdateZoom(it); onManualInteraction() },
                         onValueChangeFinished = onSave,
+                        enabled = true, // [v1.7.7] FPV 模式下允許手動調整縮放倍率
                         valueRange = 0.5f..4.0f,
                         modifier = Modifier.weight(2f).height(24.dp),
-                        colors = SliderDefaults.colors(thumbColor = NikoTheme.colors.primary, activeTrackColor = NikoTheme.colors.primary, inactiveTrackColor = NikoTheme.colors.divider)
+                        colors = SliderDefaults.colors(
+                            thumbColor = NikoTheme.colors.primary, 
+                            activeTrackColor = NikoTheme.colors.primary,
+                            inactiveTrackColor = NikoTheme.colors.divider
+                        )
                     )
                 }
             }
@@ -169,10 +180,16 @@ fun VisualNavigationScreen(
                 Text(stringResource(R.string.visual_hud_section), color = Color(0xFF2196F3), fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().height(32.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically, 
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(32.dp)
+                        .clickable { if (showSpecialTitle) showTitleDialog = true } // [v1.7.7] 點擊標題區域直接編輯
+                ) {
                     Text(stringResource(R.string.visual_special_title), color = NikoTheme.colors.textPrimary.copy(0.9f), fontSize = 11.sp, modifier = Modifier.weight(1f))
                     if (showSpecialTitle) {
-                        Icon(Icons.Default.Edit, null, tint = NikoTheme.colors.safety.copy(0.6f), modifier = Modifier.size(12.dp).padding(end = 4.dp).clickable { showTitleDialog = true })
+                        Icon(Icons.Default.Edit, null, tint = NikoTheme.colors.safety.copy(0.6f), modifier = Modifier.size(12.dp).padding(end = 4.dp))
                     }
                     Switch(
                         checked = showSpecialTitle,
@@ -185,14 +202,7 @@ fun VisualNavigationScreen(
                         colors = SwitchDefaults.colors(checkedThumbColor = NikoTheme.colors.primary)
                     )
                 }
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().height(24.dp)) {
-                    Spacer(Modifier.width(12.dp))
-                    Text(stringResource(R.string.visual_label_zoom_short), color = NikoTheme.colors.textSecondary, fontSize = 9.sp, modifier = Modifier.weight(1f))
-                    TextButton(onClick = { onToggleSpecialTitle(true); showTitleDialog = true }, contentPadding = PaddingValues(0.dp), modifier = Modifier.height(24.dp)) {
-                        Text(currentTitleText.ifBlank { stringResource(R.string.visual_label_auto) }, color = NikoTheme.colors.primary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-
+                
                 Spacer(modifier = Modifier.height(12.dp))
                 VisualSwitchItem(stringResource(R.string.visual_side_sliders), showSideSliders, onToggleSideSliders, onSave)
                 VisualSwitchItem(stringResource(R.string.visual_side_rulers), showSideRulers, onToggleSideRulers, onSave)

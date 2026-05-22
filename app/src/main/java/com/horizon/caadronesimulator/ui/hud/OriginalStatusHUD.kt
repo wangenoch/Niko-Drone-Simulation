@@ -72,8 +72,8 @@ fun OriginalStatusHUD(
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .background(NikoTheme.colors.panel.copy(alpha = 0.85f), RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                .border(1.dp, NikoTheme.colors.divider, RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                .background(NikoTheme.colors.panel.copy(alpha = 0.85f), NikoTheme.shapes.panel)
+                .border(1.dp, NikoTheme.colors.divider, NikoTheme.shapes.panel)
                 .padding(horizontal = 12.dp, vertical = 6.dp)
                 .clickable { onToggleVisible() },
             verticalAlignment = Alignment.CenterVertically,
@@ -97,6 +97,7 @@ fun OriginalStatusHUD(
             WindIndicator(
                 level = state.windLevel,
                 direction = state.windDirection,
+                currentAngle = state.env.currentWindAngle,
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
 
@@ -134,12 +135,13 @@ fun OriginalStatusHUD(
 
 @Composable
 private fun OriginalStatusItem(label: String, value: String, unit: String, valueColor: Color) {
+    val typography = NikoTheme.typography
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 2.dp)) {
-        Text(label, color = NikoTheme.colors.textSecondary, fontSize = 8.sp)
+        Text(label, color = NikoTheme.colors.textSecondary, style = typography.caption)
         Row(verticalAlignment = Alignment.Bottom) {
-            Text(value, color = valueColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Text(value, color = valueColor, style = typography.body1.copy(fontWeight = FontWeight.Bold))
             Spacer(modifier = Modifier.width(2.dp))
-            Text(unit, color = NikoTheme.colors.textPrimary, fontSize = 8.sp)
+            Text(unit, color = NikoTheme.colors.textPrimary, style = typography.caption)
         }
     }
 }

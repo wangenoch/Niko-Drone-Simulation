@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp // 文字縮放比例單位
 
 import androidx.compose.ui.res.stringResource
 import com.horizon.caadronesimulator.R
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 
 data class TutorialStep(
     val title: String,
@@ -35,6 +36,7 @@ data class TutorialStep(
 @Composable
 fun WelcomeTutorial(
     viewModel: com.horizon.caadronesimulator.logic.DroneViewModel, 
+    targets: Map<String, Rect> = emptyMap(),
     modifier: Modifier = Modifier, 
     onDismiss: () -> Unit
 ) {
@@ -55,21 +57,38 @@ fun WelcomeTutorial(
             onDismiss()
         }
     }) {
-        when(step) {
-            1 -> TutorialHighlight(Alignment.TopEnd, Modifier.statusBarsPadding().displayCutoutPadding().padding(top = 16.dp, end = 16.dp), stringResource(R.string.tutorial_label_menu), pulseAlpha)
-            2 -> TutorialHighlight(Alignment.BottomStart, Modifier.navigationBarsPadding().padding(bottom = 16.dp, start = 16.dp), stringResource(R.string.tutorial_label_radar), pulseAlpha)
-            3 -> TutorialHighlight(Alignment.BottomCenter, Modifier.navigationBarsPadding(), stringResource(R.string.tutorial_label_data), pulseAlpha)
-            4 -> TutorialHighlight(Alignment.TopCenter, Modifier.padding(top = 70.dp), stringResource(R.string.tutorial_label_arm), pulseAlpha)
-        }
         val current = tutorialSteps[step]
-        Surface(modifier = Modifier.align(current.alignment).padding(32.dp).then(current.modifier).widthIn(max = 350.dp), color = Color(0xFF1B2535), shape = RoundedCornerShape(16.dp), border = BorderStroke(2.dp, Color.Cyan)) {
+        val themeColors = NikoTheme.colors
+        
+        // [v1.7.7] 核心修復：使用動態目標追蹤 (Option A)
+        // 確保不論雷達在左上或左下，指引框都能精確吸附
+        val targetRect = targets[when(step) {
+            1 -> "menu"
+            2 -> "radar"
+            3 -> "data"
+            4 -> "arm"
+            else -> null
+        }]
+
+        if (targetRect != null) {
+            DynamicTutorialHighlight(targetRect, current.title, pulseAlpha)
+        } else {
+            // Fallback: 只有當動態捕捉還沒完成時才使用靜態對齊
+            when(step) {
+                1 -> TutorialHighlight(Alignment.TopEnd, Modifier.statusBarsPadding().displayCutoutPadding().padding(top = 16.dp, end = 16.dp), stringResource(R.string.tutorial_label_menu), pulseAlpha)
+                2 -> TutorialHighlight(Alignment.BottomStart, Modifier.navigationBarsPadding().padding(bottom = 16.dp, start = 16.dp), stringResource(R.string.tutorial_label_radar), pulseAlpha)
+                3 -> TutorialHighlight(Alignment.BottomCenter, Modifier.navigationBarsPadding(), stringResource(R.string.tutorial_label_data), pulseAlpha)
+                4 -> TutorialHighlight(Alignment.TopCenter, Modifier.padding(top = 70.dp), stringResource(R.string.tutorial_label_arm), pulseAlpha)
+            }
+        }
+        Surface(modifier = Modifier.align(current.alignment).padding(32.dp).then(current.modifier).widthIn(max = 350.dp), color = themeColors.panel, shape = RoundedCornerShape(16.dp), border = BorderStroke(2.dp, themeColors.primary)) {
             Column(modifier = Modifier.padding(20.dp)) {
-                Text(current.title, color = Color.Cyan, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(8.dp)); Text(current.description, color = Color.White, fontSize = 14.sp, lineHeight = 20.sp)
+                Text(current.title, color = themeColors.primary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp)); Text(current.description, color = themeColors.textPrimary, fontSize = 14.sp, lineHeight = 20.sp)
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.tutorial_click_continue, step + 1, tutorialSteps.size), color = Color.Gray, fontSize = 11.sp)
-                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.tutorial_skip_nav), color = Color.White.copy(0.5f), fontSize = 12.sp) }
+                    Text(stringResource(R.string.tutorial_click_continue, step + 1, tutorialSteps.size), color = themeColors.textSecondary, fontSize = 11.sp)
+                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.tutorial_skip_nav), color = themeColors.textPrimary.copy(0.5f), fontSize = 12.sp) }
                 }
             }
         }
@@ -93,23 +112,22 @@ fun JoystickSettingsTutorial(
         TutorialStep(stringResource(R.string.tut_joy_t3), stringResource(R.string.tut_joy_d3), Alignment.Center),
         TutorialStep(stringResource(R.string.tut_joy_t4), stringResource(R.string.tut_joy_d4), Alignment.Center),
         TutorialStep(stringResource(R.string.tut_joy_t5), stringResource(R.string.tut_joy_d5), Alignment.Center),
-        TutorialStep(stringResource(R.string.tut_joy_t6), stringResource(R.string.tut_joy_d6), Alignment.Center),
-        TutorialStep(stringResource(R.string.tut_joy_t7), stringResource(R.string.tut_joy_d7), Alignment.Center),
-        TutorialStep(stringResource(R.string.tut_joy_t8), stringResource(R.string.tut_joy_d8), Alignment.Center),
-        TutorialStep(stringResource(R.string.tut_joy_t9), stringResource(R.string.tut_joy_d9), Alignment.Center)
+        TutorialStep(stringResource(R.string.tut_joy_t6), stringResource(R.string.tut_joy_d6), Alignment.Center), // 5: 重新校準
+        TutorialStep(stringResource(R.string.tut_joy_t7), stringResource(R.string.tut_joy_d7), Alignment.Center), // 6: 輔助按鍵映射 (AUX)
+        TutorialStep(stringResource(R.string.tut_joy_t8), stringResource(R.string.tut_joy_d8), Alignment.Center)  // 7: 手感靈敏度
     )
 
     val current = tutorialSteps[step]
     val pulseAlpha by rememberInfiniteTransition(label = "").animateFloat(0.3f, 0.8f, infiniteRepeatable(tween(1000), RepeatMode.Reverse), label = "")
     val targetRect = targets[when(step) { 
-        1 -> "input_mode"
-        2 -> "scan"
-        3 -> "wizard"
-        4 -> "calib"
-        5 -> "auto_bind"
-        6 -> "invert"
-        7 -> "mode"
-        8 -> "rates"
+        0 -> "hardware_header"
+        1 -> "wizard"
+        2 -> "mapping_ly" 
+        3 -> "invert"
+        4 -> "mode_selector"
+        5 -> "calib"        // 精確對準 重新校準 按鈕
+        6 -> "aux"          // 精確對準 輔助按鍵映射 按鈕
+        7 -> "rates"        // 精確對準 右側面板
         else -> null 
     }]
     
@@ -126,15 +144,16 @@ fun JoystickSettingsTutorial(
             onDismiss()
         }
     }) {
+        val themeColors = NikoTheme.colors
         if (targetRect != null) DynamicTutorialHighlight(targetRect, current.title, pulseAlpha)
-        Surface(modifier = Modifier.align(align).then(pad).widthIn(max = 400.dp), color = Color(0xFF1B2535), shape = RoundedCornerShape(16.dp), border = BorderStroke(2.dp, Color.Cyan.copy(0.8f))) {
+        Surface(modifier = Modifier.align(align).then(pad).widthIn(max = 400.dp), color = themeColors.panel, shape = RoundedCornerShape(16.dp), border = BorderStroke(2.dp, themeColors.primary.copy(0.8f))) {
             Column(modifier = Modifier.padding(20.dp)) {
-                Text(current.title, color = Color.Cyan, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(8.dp)); Text(current.description, color = Color.White, fontSize = 14.sp, lineHeight = 21.sp)
+                Text(current.title, color = themeColors.primary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp)); Text(current.description, color = themeColors.textPrimary, fontSize = 14.sp, lineHeight = 21.sp)
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("${step + 1}/${tutorialSteps.size}", color = Color.Gray, fontSize = 11.sp)
-                    TextButton(onClick = onDismiss, modifier = Modifier.height(32.dp)) { Text(stringResource(R.string.action_skip), color = Color.White.copy(0.4f), fontSize = 12.sp) }
+                    Text("${step + 1}/${tutorialSteps.size}", color = themeColors.textSecondary, fontSize = 11.sp)
+                    TextButton(onClick = onDismiss, modifier = Modifier.height(32.dp)) { Text(stringResource(R.string.action_skip), color = themeColors.textPrimary.copy(0.4f), fontSize = 12.sp) }
                 }
             }
         }
@@ -158,12 +177,24 @@ fun ClimateSettingsTutorial(
         TutorialStep(stringResource(R.string.tut_clim_t3), stringResource(R.string.tut_clim_d3), Alignment.Center),
         TutorialStep(stringResource(R.string.tut_clim_t4), stringResource(R.string.tut_clim_d4), Alignment.Center),
         TutorialStep(stringResource(R.string.tut_clim_t5), stringResource(R.string.tut_clim_d5), Alignment.Center),
-        TutorialStep(stringResource(R.string.tut_clim_t6), stringResource(R.string.tut_clim_d6), Alignment.Center)
+        TutorialStep(stringResource(R.string.tut_clim_t6), stringResource(R.string.tut_clim_d6), Alignment.Center),
+        TutorialStep(stringResource(R.string.tut_clim_t7), stringResource(R.string.tut_clim_d7), Alignment.Center),
+        TutorialStep(stringResource(R.string.tut_clim_t8), stringResource(R.string.tut_clim_d8), Alignment.Center)
     )
 
     val current = tutorialSteps[step]
     val pulseAlpha by rememberInfiniteTransition(label = "").animateFloat(0.3f, 0.8f, infiniteRepeatable(tween(1000), RepeatMode.Reverse), label = "")
-    val targetRect = targets[when(step) { 1 -> "wind_level"; 2 -> "wind_dir"; 3 -> "wind_var"; 4 -> "time"; 5 -> "shadow"; else -> null }]
+    val targetRect = targets[when(step) { 
+        0 -> "wind_level"
+        1 -> "wind_dir"
+        2 -> "wind_var"
+        3 -> "vertical_draft"
+        4 -> "hardcore"
+        5 -> "visual_section" 
+        6 -> "weather_presets" // 合併後指向此區域
+        7 -> "mountains"
+        else -> null 
+    }]
     
     val density = LocalDensity.current
     val screenH = with(density) { LocalContext.current.resources.displayMetrics.heightPixels.toDp() }
@@ -178,15 +209,16 @@ fun ClimateSettingsTutorial(
             onDismiss()
         }
     }) {
+        val themeColors = NikoTheme.colors
         if (targetRect != null) DynamicTutorialHighlight(targetRect, current.title, pulseAlpha)
-        Surface(modifier = Modifier.align(align).then(pad).widthIn(max = 400.dp), color = Color(0xFF1B2535), shape = RoundedCornerShape(16.dp), border = BorderStroke(2.dp, Color.Cyan.copy(0.8f))) {
+        Surface(modifier = Modifier.align(align).then(pad).widthIn(max = 400.dp), color = themeColors.panel, shape = RoundedCornerShape(16.dp), border = BorderStroke(2.dp, themeColors.primary.copy(0.8f))) {
             Column(modifier = Modifier.padding(20.dp)) {
-                Text(current.title, color = Color.Cyan, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(8.dp)); Text(current.description, color = Color.White, fontSize = 14.sp, lineHeight = 21.sp)
+                Text(current.title, color = themeColors.primary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp)); Text(current.description, color = themeColors.textPrimary, fontSize = 14.sp, lineHeight = 21.sp)
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("${step + 1}/${tutorialSteps.size}", color = Color.Gray, fontSize = 11.sp)
-                    TextButton(onClick = onDismiss, modifier = Modifier.height(32.dp)) { Text(stringResource(R.string.action_skip), color = Color.White.copy(0.4f), fontSize = 12.sp) }
+                    Text("${step + 1}/${tutorialSteps.size}", color = themeColors.textSecondary, fontSize = 11.sp)
+                    TextButton(onClick = onDismiss, modifier = Modifier.height(32.dp)) { Text(stringResource(R.string.action_skip), color = themeColors.textPrimary.copy(0.4f), fontSize = 12.sp) }
                 }
             }
         }
@@ -196,17 +228,28 @@ fun ClimateSettingsTutorial(
 
 @Composable
 fun TutorialHighlight(alignment: Alignment, modifier: Modifier, label: String, pulseAlpha: Float) {
+    val themeColors = NikoTheme.colors
     val isBottom = alignment == Alignment.BottomStart || alignment == Alignment.BottomCenter || alignment == Alignment.BottomEnd
-    val (fW, fH) = when(label) { "視覺雷達" -> 150.dp to 100.dp; "解鎖馬達" -> 105.dp to 50.dp; "飛行數據", "功能選單" -> 380.dp to 50.dp; else -> 160.dp to 60.dp }
+    val radarLabel = stringResource(R.string.tutorial_label_radar)
+    val armLabel = stringResource(R.string.tutorial_label_arm)
+    val dataLabel = stringResource(R.string.tutorial_label_data)
+    val menuLabel = stringResource(R.string.tutorial_label_menu)
+
+    val (fW, fH) = when(label) { 
+        radarLabel -> 150.dp to 100.dp
+        armLabel -> 105.dp to 50.dp
+        dataLabel, menuLabel -> 380.dp to 50.dp
+        else -> 160.dp to 60.dp 
+    }
     Box(modifier = Modifier.fillMaxSize()) {
-        Box(modifier = Modifier.align(alignment).then(modifier).size(fW, fH).border(3.dp, Color.Cyan.copy(pulseAlpha), RoundedCornerShape(12.dp)).background(Color.Cyan.copy(0.1f)))
+        Box(modifier = Modifier.align(alignment).then(modifier).size(fW, fH).border(3.dp, themeColors.primary.copy(pulseAlpha), RoundedCornerShape(12.dp)).background(themeColors.primary.copy(0.1f)))
         Column(modifier = Modifier.align(alignment).then(modifier).offset(y = if (isBottom) -(65.dp) else (fH + 5.dp)), horizontalAlignment = Alignment.CenterHorizontally) {
             if (isBottom) {
-                Text(label, color = Color.Cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(Color.Black.copy(0.6f), RoundedCornerShape(4.dp)).padding(horizontal = 4.dp))
-                Icon(Icons.Default.ArrowDownward, null, tint = Color.Cyan, modifier = Modifier.size(30.dp))
+                Text(label, color = themeColors.primary, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(themeColors.panel.copy(0.6f), RoundedCornerShape(4.dp)).padding(horizontal = 4.dp))
+                Icon(Icons.Default.ArrowDownward, null, tint = themeColors.primary, modifier = Modifier.size(30.dp))
             } else {
-                Icon(Icons.Default.ArrowUpward, null, tint = Color.Cyan, modifier = Modifier.size(30.dp).offset(y = (-5).dp))
-                Text(label, color = Color.Cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(Color.Black.copy(0.6f), RoundedCornerShape(4.dp)).padding(horizontal = 4.dp))
+                Icon(Icons.Default.ArrowUpward, null, tint = themeColors.primary, modifier = Modifier.size(30.dp).offset(y = (-5).dp))
+                Text(label, color = themeColors.primary, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(themeColors.panel.copy(0.6f), RoundedCornerShape(4.dp)).padding(horizontal = 4.dp))
             }
         }
     }
@@ -215,20 +258,21 @@ fun TutorialHighlight(alignment: Alignment, modifier: Modifier, label: String, p
 @Composable
 fun DynamicTutorialHighlight(rect: Rect?, label: String, pulseAlpha: Float) {
     if (rect == null) return
+    val themeColors = NikoTheme.colors
     val density = LocalDensity.current
     val screenH = with(density) { LocalContext.current.resources.displayMetrics.heightPixels.toDp() }
     with(density) {
         val l = rect.left.toDp(); val t = rect.top.toDp(); val w = rect.width.toDp(); val h = rect.height.toDp()
         val isBottom = t > (screenH * 0.5f)
         Box(modifier = Modifier.fillMaxSize()) {
-            Box(modifier = Modifier.offset(x = l, y = t).size(w, h).border(3.dp, Color.Cyan.copy(pulseAlpha), RoundedCornerShape(12.dp)).background(Color.Cyan.copy(0.1f)))
+            Box(modifier = Modifier.offset(x = l, y = t).size(w, h).border(3.dp, themeColors.primary.copy(pulseAlpha), RoundedCornerShape(12.dp)).background(themeColors.primary.copy(0.1f)))
             Column(modifier = Modifier.offset(x = l + (w / 2) - 80.dp, y = if (isBottom) (t - 65.dp) else (t + h + 5.dp)).width(160.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 if (isBottom) {
-                    Text(label, color = Color.Cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(Color.Black.copy(0.6f), RoundedCornerShape(4.dp)).padding(horizontal = 4.dp) )
-                    Icon(Icons.Default.ArrowDownward, null, tint = Color.Cyan, modifier = Modifier.size(30.dp))
+                    Text(label, color = themeColors.primary, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(themeColors.panel.copy(0.6f), RoundedCornerShape(4.dp)).padding(horizontal = 4.dp) )
+                    Icon(Icons.Default.ArrowDownward, null, tint = themeColors.primary, modifier = Modifier.size(30.dp))
                 } else {
-                    Icon(Icons.Default.ArrowUpward, null, tint = Color.Cyan, modifier = Modifier.size(30.dp).offset(y = (-5).dp))
-                    Text(label, color = Color.Cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(Color.Black.copy(0.6f), RoundedCornerShape(4.dp)).padding(horizontal = 4.dp))
+                    Icon(Icons.Default.ArrowUpward, null, tint = themeColors.primary, modifier = Modifier.size(30.dp).offset(y = (-5).dp))
+                    Text(label, color = themeColors.primary, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(themeColors.panel.copy(0.6f), RoundedCornerShape(4.dp)).padding(horizontal = 4.dp))
                 }
             }
         }

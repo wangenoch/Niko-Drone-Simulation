@@ -8,7 +8,7 @@ import com.horizon.caadronesimulator.model.DroneSpecs
  * 自由練習模式評測器 (Free Flight Evaluator)
  */
 class FreeFlightEvaluator : MissionEvaluator {
-    override val modeName: String = "自由練習"
+    override val modeName: String = "FREE"
 
     override fun update(state: DroneState, dt: Float, spec: DroneSpecs) {
         // 自由練習模式不修改狀態邏輯

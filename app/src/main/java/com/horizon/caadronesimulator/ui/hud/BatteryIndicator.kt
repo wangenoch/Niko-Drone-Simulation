@@ -70,20 +70,19 @@ fun BatteryIndicator(
         Spacer(modifier = Modifier.width(6.dp))
 
         // 電壓與百分比
-        val textCol = if(NikoTheme.colors.isLight) NikoTheme.colors.textPrimary else Color.White.copy(alpha = 0.9f)
+        val theme = NikoTheme
+        val textCol = if(theme.colors.isLight) theme.colors.textPrimary else Color.White.copy(alpha = 0.9f)
         Column(horizontalAlignment = Alignment.Start) {
             Text(
                 text = String.format(Locale.US, "%.1fV", voltage),
                 color = color,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
+                style = theme.typography.label,
                 lineHeight = 10.sp
             )
             Text(
                 text = "$percent%",
                 color = textCol,
-                fontSize = 8.sp,
-                fontWeight = FontWeight.Medium,
+                style = theme.typography.caption.copy(fontWeight = FontWeight.Medium),
                 lineHeight = 8.sp
             )
         }

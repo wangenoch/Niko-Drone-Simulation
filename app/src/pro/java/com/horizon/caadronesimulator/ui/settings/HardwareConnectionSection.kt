@@ -23,6 +23,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.horizon.caadronesimulator.ui.theme.NikoTheme
 
 /**
  * [v1.2.68] 硬體連線控制組件
@@ -60,19 +61,24 @@ fun HardwareConnectionSection(
                 // 1. 模式切換器 (外接/內置)
                 Row(
                     modifier = Modifier
-                        .background(Color(0x22FFFFFF), RoundedCornerShape(8.dp))
+                        .background(NikoTheme.colors.textPrimary.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
                         .onGloballyPositioned { onTargetPositioned("input_mode", it.boundsInRoot()) }
                         .padding(2.dp)
                         .alpha(if (isInteractionLocked) 0.5f else 1f)
                 ) {
-                    listOf("外接", "內置", "網路").forEachIndexed { index, label ->
+                    val modeLabels = listOf(
+                        stringResource(R.string.diag_input_ext),
+                        stringResource(R.string.diag_input_int),
+                        stringResource(R.string.diag_input_net)
+                    )
+                    modeLabels.forEachIndexed { index, label ->
                         val isAvailable = when(index) {
                             1 -> isHardwareController
                             else -> true
                         }
                         val isSelected = inputMode == index
                         Surface(
-                            color = if (isSelected) Color.Cyan else Color.Transparent,
+                            color = if (isSelected) NikoTheme.colors.primary else Color.Transparent,
                             shape = RoundedCornerShape(6.dp),
                             modifier = Modifier
                                 .clickable(enabled = isAvailable && !isInteractionLocked) { onUpdateInputMode(index) }
@@ -81,7 +87,7 @@ fun HardwareConnectionSection(
                         ) {
                             Text(
                                 label, 
-                                color = if (isSelected) Color.Black else Color.Gray, 
+                                color = if (isSelected) (if(NikoTheme.colors.isLight) Color.White else Color.Black) else NikoTheme.colors.textSecondary, 
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -94,7 +100,7 @@ fun HardwareConnectionSection(
                 // 2. 狀態文字資訊
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("RX: $serialByteCount", color = if(serialByteCount > 0) Color.Cyan else Color.Gray, fontSize = 9.sp)
+                        Text("RX: $serialByteCount", color = if(serialByteCount > 0) NikoTheme.colors.primary else NikoTheme.colors.textSecondary, fontSize = 9.sp)
                     }
                     Text(
                         text = when {
@@ -105,11 +111,11 @@ fun HardwareConnectionSection(
                             else -> (infoMessage ?: stringResource(R.string.diag_status_waiting_scan))
                         },
                         color = when {
-                            inputMode == 2 -> if (isNetworkConnected) Color.Green else Color.Cyan
-                            connectionStatus == com.horizon.caadronesimulator.model.ConnectionStatus.ACTIVE -> Color.Green
-                            connectionStatus == com.horizon.caadronesimulator.model.ConnectionStatus.LINKED -> Color(0xFFFFA000)
-                            connectionStatus == com.horizon.caadronesimulator.model.ConnectionStatus.SEARCHING -> Color.Cyan
-                            else -> Color.Gray
+                            inputMode == 2 -> if (isNetworkConnected) NikoTheme.colors.status else NikoTheme.colors.primary
+                            connectionStatus == com.horizon.caadronesimulator.model.ConnectionStatus.ACTIVE -> NikoTheme.colors.status
+                            connectionStatus == com.horizon.caadronesimulator.model.ConnectionStatus.LINKED -> NikoTheme.colors.safety
+                            connectionStatus == com.horizon.caadronesimulator.model.ConnectionStatus.SEARCHING -> NikoTheme.colors.primary
+                            else -> NikoTheme.colors.textSecondary
                         },
                         fontSize = 10.sp,
                         maxLines = 1
@@ -123,10 +129,10 @@ fun HardwareConnectionSection(
                     onClick = { onToggleHardwareMonitor(!showHardwareMonitor) },
                     modifier = Modifier
                         .size(32.dp)
-                        .background(if(showHardwareMonitor) Color.Cyan.copy(alpha=0.2f) else Color.Transparent, CircleShape)
-                        .border(1.dp, Color.White.copy(alpha=0.1f), CircleShape)
+                        .background(if(showHardwareMonitor) NikoTheme.colors.primary.copy(alpha=0.2f) else Color.Transparent, CircleShape)
+                        .border(1.dp, NikoTheme.colors.divider, CircleShape)
                 ) {
-                    Icon(Icons.Default.BugReport, null, tint = if(showHardwareMonitor) Color.Cyan else Color.White, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.BugReport, null, tint = if(showHardwareMonitor) NikoTheme.colors.primary else NikoTheme.colors.textPrimary, modifier = Modifier.size(18.dp))
                 }
                 
                 Spacer(modifier = Modifier.width(12.dp))
@@ -137,10 +143,10 @@ fun HardwareConnectionSection(
                         onClick = { onOpenNetworkSettings() },
                         modifier = Modifier
                             .size(32.dp)
-                            .background(Color.Cyan.copy(alpha=0.2f), CircleShape)
-                            .border(1.dp, Color.White.copy(alpha=0.1f), CircleShape)
+                            .background(NikoTheme.colors.primary.copy(alpha=0.2f), CircleShape)
+                            .border(1.dp, NikoTheme.colors.divider, CircleShape)
                     ) {
-                        Icon(Icons.Default.Language, null, tint = Color.Cyan, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Language, null, tint = NikoTheme.colors.primary, modifier = Modifier.size(18.dp))
                     }
                 } else {
                     AnimatedScanButton(
@@ -223,10 +229,10 @@ fun AnimatedScanButton(
         Spacer(Modifier.width(6.dp))
         Text(
             text = when (status) {
-                com.horizon.caadronesimulator.model.ConnectionStatus.ACTIVE -> "已連線"
-                com.horizon.caadronesimulator.model.ConnectionStatus.LINKED -> "無信號"
-                com.horizon.caadronesimulator.model.ConnectionStatus.SEARCHING -> "搜尋中..."
-                com.horizon.caadronesimulator.model.ConnectionStatus.IDLE -> if(locked) "處理中..." else "掃描連接"
+                com.horizon.caadronesimulator.model.ConnectionStatus.ACTIVE -> stringResource(R.string.diag_status_active_full)
+                com.horizon.caadronesimulator.model.ConnectionStatus.LINKED -> stringResource(R.string.diag_status_no_signal)
+                com.horizon.caadronesimulator.model.ConnectionStatus.SEARCHING -> stringResource(R.string.diag_status_searching_dots)
+                com.horizon.caadronesimulator.model.ConnectionStatus.IDLE -> if(locked) stringResource(R.string.diag_status_processing) else stringResource(R.string.diag_status_scan_link)
             },
             fontSize = 11.sp
         )

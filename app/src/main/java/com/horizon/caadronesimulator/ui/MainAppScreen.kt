@@ -62,6 +62,12 @@ fun MainAppScreen(
         configStore.saveSettings(droneState)
     }
 
+    // [v1.7.7] 搖桿狀態變更連動：切換虛擬搖桿時自動重置雷達位置
+    LaunchedEffect(droneState.showVirtualJoysticks) {
+        droneState.radarOffset = androidx.compose.ui.geometry.Offset.Zero
+        droneState.isRadarUnlocked = false
+    }
+
     LaunchedEffect(
         droneState.droneType, droneState.showTutorial, droneState.hasShownJoystickTutorial,
         droneState.hasShownClimateTutorial, droneState.isMappingUnlocked, droneState.joystickMode,
@@ -89,7 +95,8 @@ fun MainAppScreen(
         droneState.isSunSimEnabled, droneState.sunPosition, droneState.observerTilt,
         droneState.cloudDensity, droneState.useSimplifiedMarkers, droneState.showSpecialTitle,
         droneState.currentTitleText, droneState.useFlightLimit, droneState.mainFOV,
-        droneState.showGroundAnchor, droneState.isThrottleHoldActive, droneState.isMotorLocked
+        droneState.showGroundAnchor, droneState.isThrottleHoldActive, droneState.isMotorLocked,
+        droneState.applyPhysicalSpecs, droneState.enableVerticalDraft
     ) {
         renderer.weatherMode = droneState.weatherMode
         renderer.timeOfDay = droneState.timeOfDay
@@ -113,6 +120,8 @@ fun MainAppScreen(
         renderer.useFlightLimit = droneState.useFlightLimit
         renderer.mainFOV = droneState.mainFOV
         renderer.showGroundAnchor = droneState.showGroundAnchor
+        renderer.applyPhysicalSpecs = droneState.applyPhysicalSpecs
+        renderer.enableVerticalDraft = droneState.enableVerticalDraft
         renderer.isThrottleHoldActive = droneState.isThrottleHoldActive 
         renderer.isMotorLocked = droneState.isMotorLocked
 
@@ -149,10 +158,9 @@ fun MainAppScreen(
 
     val videoSyncMsg = stringResource(R.string.sys_msg_video_syncing)
     LaunchedEffect(droneState.cameraMode) {
-        if (droneState.isSettingsLoaded) {
-            viewModel.applyCameraModeDefaults(droneState, droneState.cameraMode)
-            viewModel.startSwitchBuffer(droneState, videoSyncMsg)
-        }
+        // [v1.7.7] 核心修復：移除 isSettingsLoaded 限制，確保模式切換時絕對觸發歸位
+        viewModel.applyCameraModeDefaults(droneState, droneState.cameraMode)
+        viewModel.startSwitchBuffer(droneState, videoSyncMsg)
     }
 
     // 4. 物理引擎主驅動
@@ -192,14 +200,16 @@ fun MainAppScreen(
             modifier = Modifier.zIndex(10f),
             onToggleStatus = { isStatusVisible = !isStatusVisible },
             onUpdatePipRect = { rect -> renderer.pipRect = rect },
-            onUpdateZoomPipRect = { rect -> renderer.zoomPipRect = rect?.let { android.graphics.Rect(it.left.toInt(), it.top.toInt(), it.right.toInt(), it.bottom.toInt()) } }
+            onUpdateZoomPipRect = { rect -> renderer.zoomPipRect = rect?.let { android.graphics.Rect(it.left.toInt(), it.top.toInt(), it.right.toInt(), it.bottom.toInt()) } },
+            onUpdateTutorialTargets = { name, rect -> tutorialTargets = tutorialTargets + (name to rect) }
         )
         
         FlightInteractionLayer(
             state = droneState,
             onUpdateState = { action -> droneState.action() },
             onReset = onResetFlight,
-            modifier = Modifier.zIndex(11f)
+            modifier = Modifier.zIndex(11f),
+            onUpdateTutorialTargets = { name, rect -> tutorialTargets = tutorialTargets + (name to rect) }
         )
 
         // [v1.7.6] 專業版功能派發器：僅管理 Pro 硬體專屬功能

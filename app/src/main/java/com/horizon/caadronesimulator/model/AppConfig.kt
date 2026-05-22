@@ -78,6 +78,8 @@ object AppConfig {
         const val SHOW_CLOUDS = true
         /** 遠景山脈顯示開關 */
         const val SHOW_MOUNTAINS = true
+        /** 垂直氣流 (高度修正) 開關 */
+        const val ENABLE_VERTICAL_DRAFT = false
         /** 進階大氣物理：開啟後會實施高度風切與陣風模擬 */
         const val HARDCORE_PHYSICS = true
     }
@@ -86,6 +88,7 @@ object AppConfig {
     object VisualDefaults {
         /** 主視角視野角度 (Field of View) */
         const val MAIN_FOV = 45f
+        const val DEFAULT_FPV_FOV = 85f // [v1.7.7] 全域 FPV 視野預設值
         /** 縮放倍率 */
         const val ZOOM_FACTOR = 0.5f
         

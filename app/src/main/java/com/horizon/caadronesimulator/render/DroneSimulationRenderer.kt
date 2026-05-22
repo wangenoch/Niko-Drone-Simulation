@@ -23,6 +23,7 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
     private val mainVMatrix = FloatArray(16); private val mainPMatrix = FloatArray(16)
     private var viewWidth = 0; private var viewHeight = 0
     private var lastFrameTime = 0L
+    private var rendererTime = 0f // [v1.7.7] 獨立環境計時器，確保解鎖前大氣依然律動
     var physicsState = DronePhysicsState(posX = 0f, posZ = 0f)
     private val sunRenderer = SunRenderer(); private val cloudRenderer = CloudRenderer(); private val backdropRenderer = BackdropRenderer()
     
@@ -47,6 +48,11 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
     private var titleTextureId = -1; private var texH = -1; private var texCoordH = -1; private var useTexH = -1
     private var flagVisualAngle = 0f; private var cloudTextureId = -1; private var mountainTextureId = -1
     var weatherMode = 0; private var lastWeatherMode = -1; private var lastDensity = -1f; var cloudU = 0f; var cloudV = 0f
+    
+    // --- [v1.7.7] 雲層平滑對位狀態 ---
+    private var visualWindVX = 0f
+    private var visualWindVY = 0f
+    private var isFirstCloudFrame = true
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         val vShader = "attribute vec4 vPosition; attribute vec2 aTexCoord; uniform mat4 uMVPMatrix; varying vec2 vTexCoord; void main() { gl_Position = uMVPMatrix * vPosition; vTexCoord = aTexCoord; }".trimIndent()
@@ -75,13 +81,53 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
 
         val now = System.nanoTime(); if (lastFrameTime == 0L) lastFrameTime = now
         val dt = ((now - lastFrameTime) / 1_000_000_000f).coerceIn(0.001f, 0.05f); lastFrameTime = now
+        this.rendererTime += dt // 累積渲染總時長
         
+        // [v1.7.7] 雲層與大氣流動計算：必須放在這裡，不論馬達是否解鎖都要運行
+        val ds = com.horizon.caadronesimulator.model.DroneState.getInstance()
+        com.horizon.caadronesimulator.logic.WindManager.update(this.rendererTime, windLevel, windVariation.toInt(), useHardcorePhysics)
+        
+        // [v1.7.7 核心修正] 傳遞 rendererTime 替代 flightTime，強制亂數風向與渲染幀同步
+        com.horizon.caadronesimulator.logic.WindManager.calculateWindVector(windLevel, windDirection, windVariation.toInt(), windDirVariation.toInt(), this.rendererTime, ds)
+        
+        // [v1.7.7 非線性彈性對位] 解決亂數風向下雲層無法對接與累積誤差問題
+        val windFactor = windLevel * (0.02f + windVariation * 0.01f)
+        val windRad = Math.toRadians(ds.env.currentWindAngle.toDouble())
+        
+        // 1. 獲取物理目標方向向量
+        val targetVX = sin(windRad).toFloat()
+        val targetVY = cos(windRad).toFloat()
+        
+        // 2. 初始化或執行平滑跟隨
+        if (isFirstCloudFrame) {
+            visualWindVX = targetVX
+            visualWindVY = targetVY
+            isFirstCloudFrame = false
+        } else {
+            // 計算方向偏差
+            val dist = sqrt((targetVX - visualWindVX).pow(2) + (targetVY - visualWindVY).pow(2))
+            
+            // 非線性係數
+            val lerpBase = 0.01f
+            val elasticFactor = (lerpBase + dist * 0.05f).coerceIn(0.01f, 0.2f)
+            
+            visualWindVX += (targetVX - visualWindVX) * elasticFactor
+            visualWindVY += (targetVY - visualWindVY) * elasticFactor
+            
+            // 歸一化
+            val vLen = sqrt(visualWindVX.pow(2) + visualWindVY.pow(2)).coerceAtLeast(0.001f)
+            visualWindVX /= vLen
+            visualWindVY /= vLen
+        }
+        
+        // 3. 執行位移 [v1.7.7 極性校正] 
+        // 物理 targetVX = -1 (流向左/西) -> cloudU 應該減少以使紋理向左飄 (與手動模式 U-= 對齊)
+        this.cloudU += visualWindVX * windFactor * dt
+        this.cloudV += visualWindVY * windFactor * dt
+
         if (!isPaused) {
             randomWindPhase += dt * (1.2f + windVariation * 0.6f)
             turbulencePhase += dt * (0.8f + windVariation * 0.4f)
-            
-            // [v1.7.6] 更新大氣物理：確保風向 ID 同步更新雲層位移
-            com.horizon.caadronesimulator.logic.WindManager.updateCloudDrift(com.horizon.caadronesimulator.model.DroneState.getInstance(), dt)
             
             val atmos = com.horizon.caadronesimulator.logic.PhysicsEngine.AtmosConfig(
                 windLevel, windDirection, windVariation.toInt(), windDirVariation.toInt(),
@@ -101,9 +147,9 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
                 observerHeight, observerTilt, zoomFactor, mainFOV, cameraMode, 
                 lastManualTouchTime, droneType, dt, com.horizon.caadronesimulator.model.DroneState.getInstance()
             )
-            
+
             this.motorRpmFactor = result.motorRpm
-            onFlightDataUpdate(physicsState.posY, physicsState.posX, physicsState.posZ, physicsState.yaw, physicsState.visPitch, physicsState.visRoll, result.impactSpeed, result.isImpact, physicsState.batteryVoltage, physicsState.batteryPercent, specialTitleScreenPos, physicsState.flightTime, null, null, null)
+            onFlightDataUpdate(physicsState.posY, physicsState.posX, physicsState.posZ, physicsState.yaw, physicsState.visPitch, physicsState.visRoll, result.impactSpeed, result.isImpact, physicsState.batteryVoltage, physicsState.batteryPercent, specialTitleScreenPos, physicsState.flightTime, result.currentWindAngle, this.cloudU, this.cloudV)
         }
 
         val spec = DroneRegistry.getSpec(droneType)
@@ -137,7 +183,10 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
         
         val finalFov = if (cameraMode == AppConfig.CAM_MODE_FPV) spec.fpvFov else com.horizon.caadronesimulator.logic.CameraDirector.smoothedFov
-        Matrix.perspectiveM(pMatrix, 0, finalFov / com.horizon.caadronesimulator.logic.CameraDirector.smoothedZoom, viewWidth.toFloat() / viewHeight, 1.0f, 6000f)
+        // [v1.7.7] 校準：FPV 模式現在也支持 zoomFactor 縮放
+        val finalZoom = if (cameraMode == AppConfig.CAM_MODE_FPV) zoomFactor else com.horizon.caadronesimulator.logic.CameraDirector.smoothedZoom
+        
+        Matrix.perspectiveM(pMatrix, 0, finalFov / finalZoom, viewWidth.toFloat() / viewHeight, 1.0f, 6000f)
         com.horizon.caadronesimulator.logic.CameraDirector.computeMainViewMatrix(vMatrix, cameraMode, physicsState.posX, physicsState.posY, physicsState.posZ, physicsState.yaw, physicsState.posX + physicsState.velX * 0.12f, physicsState.posZ + physicsState.velZ * 0.12f, cameraTilt, droneType)
         System.arraycopy(pMatrix, 0, mainPMatrix, 0, 16); System.arraycopy(vMatrix, 0, mainVMatrix, 0, 16); calculateProjectedTitlePos()
         
@@ -188,7 +237,8 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
             val actualDensity = cloudDensity.coerceIn(0f, 1f)
             val ds = com.horizon.caadronesimulator.model.DroneState.getInstance()
             val cColor = com.horizon.caadronesimulator.logic.EnvironmentManager.getCloudColor(ds)
-            cloudRenderer.draw(pMatrix, vMatrix, cloudTextureId, Pair(ds.env.cloudU, ds.env.cloudV), cColor, actualDensity); GLES20.glUseProgram(program)
+            // [v1.7.7] 核心修復：直接引用渲染器內部的累加器 (this.cloudU/V)，確保視覺流動無延遲且不被 UI 回滾
+            cloudRenderer.draw(pMatrix, vMatrix, cloudTextureId, Pair(this.cloudU, this.cloudV), cColor, actualDensity); GLES20.glUseProgram(program)
         }
         if (showMountains) { backdropRenderer.draw(pMatrix, vMatrix, mountainTextureId, timeOfDay); GLES20.glUseProgram(program) }
         FieldRenderer.drawField(posH, colorH, mvpH, mvpMatrix, windLevel, windDirection, flagVisualAngle, physicsState.flightTime, showObstacles, isSunSimEnabled, sunPosition, useSimplifiedMarkers, if(showSpecialTitle) titleTextureId else -1, texH, texCoordH, useTexH)

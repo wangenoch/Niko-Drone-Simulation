@@ -40,6 +40,7 @@ import com.horizon.caadronesimulator.ui.theme.NikoTheme
 fun UnifiedSettingsScreen(
     state: DroneState,
     stickState: StickInputState,
+    viewModel: com.horizon.caadronesimulator.logic.DroneViewModel, // [v1.7.7] 接入 ViewModel 以便同步導覽步進
     onUpdateState: (DroneState.() -> Unit) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
@@ -64,14 +65,55 @@ fun UnifiedSettingsScreen(
     var showExpertUnlockDialog by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
 
-    LaunchedEffect(state.settingsTab) { scrollState.scrollTo(0) }
+    LaunchedEffect(state.settingsTab) { 
+        scrollState.scrollTo(0) 
+        
+        // [v1.7.7] 核心修復：第一次進入頁面自動開啟導覽的機制回歸
+        if (state.settingsTab == SettingsTab.CONTROLLER && !state.hasShownJoystickTutorial) {
+            onUpdateState { 
+                showJoystickTutorial = true
+                hasShownJoystickTutorial = true 
+            }
+        }
+        if (state.settingsTab == SettingsTab.ENVIRONMENT && !state.hasShownClimateTutorial) {
+            onUpdateState { 
+                showClimateTutorial = true
+                hasShownClimateTutorial = true 
+            }
+        }
+    }
+
+    // [v1.7.7] 導覽自動捲動連動：確保導覽指引的項目始終在可視範圍內
+    LaunchedEffect(viewModel.joystickTutorialStep, viewModel.climateTutorialStep, state.showJoystickTutorial, state.showClimateTutorial) {
+        if (state.showJoystickTutorial) {
+            val targetY = when(viewModel.joystickTutorialStep) {
+                in 0..3 -> 0
+                in 4..6 -> 300
+                in 7..8 -> 600
+                else -> 0
+            }
+            scrollState.animateScrollTo(targetY)
+        } else if (state.showClimateTutorial) {
+            val targetY = when(viewModel.climateTutorialStep) {
+                in 0..1 -> 0
+                in 2..4 -> 500 // 進階物理與垂直氣流在此區間
+                5 -> 0      // [v1.7.7] 視覺與氣氛：介紹此項時自動往上捲動回到頂部
+                in 6..7 -> 900 // [v1.7.7] 雲層與山脈：下一個項目時再往下捲動
+                else -> 0
+            }
+            scrollState.animateScrollTo(targetY)
+        } else {
+            // [v1.7.7] 導覽結束或關閉時，自動捲回頂部
+            scrollState.animateScrollTo(0)
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize().background(Color.Black.copy(0.7f)).clickable(enabled = false) {}) {
         Surface(
             modifier = Modifier.align(Alignment.Center).fillMaxHeight(0.88f).fillMaxWidth(0.92f),
             color = NikoTheme.colors.panel,
-            shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, if(NikoTheme.colors.isLight) Color.Gray.copy(0.2f) else Color.White.copy(0.1f))
+            shape = NikoTheme.shapes.medium,
+            border = BorderStroke(1.dp, NikoTheme.colors.divider)
         ) {
             Row(modifier = Modifier.fillMaxSize()) {
                 // 1. 左側導航欄
@@ -106,7 +148,8 @@ fun UnifiedSettingsScreen(
                                 SettingsTab.THEME -> stringResource(R.string.settings_theme_title)
                                 SettingsTab.SYSTEM -> stringResource(R.string.settings_title_system)
                             },
-                            color = NikoTheme.colors.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold
+                            color = NikoTheme.colors.textPrimary, 
+                            style = NikoTheme.typography.h2
                         )
                         Spacer(Modifier.weight(1f))
                         if (state.settingsTab == SettingsTab.CONTROLLER) {
@@ -127,6 +170,23 @@ fun UnifiedSettingsScreen(
                                 )
                             }
                         }
+                        
+                        // [v1.7.7] 導覽手動開啟按鈕：僅在搖桿與環境分頁顯示，置於關閉按鈕左側
+                        if (state.settingsTab == SettingsTab.CONTROLLER || state.settingsTab == SettingsTab.ENVIRONMENT) {
+                            Spacer(Modifier.width(12.dp))
+                            IconButton(
+                                onClick = { 
+                                    onUpdateState { 
+                                        if (settingsTab == SettingsTab.CONTROLLER) showJoystickTutorial = true
+                                        else showClimateTutorial = true
+                                    } 
+                                }, 
+                                modifier = Modifier.size(36.dp).background(NikoTheme.colors.primary.copy(alpha = 0.2f), CircleShape)
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.Help, null, tint = NikoTheme.colors.primary, modifier = Modifier.size(20.dp))
+                            }
+                        }
+
                         Spacer(Modifier.width(16.dp))
                         IconButton(onClick = onClose, modifier = Modifier.size(36.dp).background(NikoTheme.colors.textPrimary.copy(0.1f), CircleShape)) {
                             Icon(Icons.Default.Close, null, tint = NikoTheme.colors.textPrimary, modifier = Modifier.size(20.dp))
@@ -163,7 +223,7 @@ fun UnifiedSettingsScreen(
                                 SettingsTab.DRONE_SELECTION -> DroneSelectionScreen(currentType = state.droneType, onTypeSelected = { t -> onUpdateState { droneType = t }; onLoadModelSettings(t) }, onLongPressType = { t -> onUpdateState { showModelConfigConfirm = t } }, state = state)
                                 SettingsTab.CONTROLLER -> JoystickMappingScreen(
                                     mappingLY = state.mappingLY, mappingLX = state.mappingLX, mappingRY = state.mappingRY, mappingRX = state.mappingRX, isAutoBinding = state.isAutoBinding, halfThrottle = state.halfThrottle, joystickDeadzone = state.joystickDeadzone, activeAxis = state.activeAxisLabel, joystickMode = state.joystickMode, stickLX = stickState.rawLX, stickLY = stickState.rawLY, stickRX = stickState.rawRX, stickRY = stickState.rawRY, activeHidName = state.activeHidName, useGlobalRates = state.useGlobalRates, globalRate = state.globalRate, globalExpo = state.globalExpo, rateLY = state.rateT, expoLY = state.expoT, rateLX = state.rateY, expoLX = state.expoY, rateRY = state.rateP, expoRY = state.expoP, rateRX = state.rateR, expoRX = state.expoR, showIndividualRates = state.showIndividualRates, 
-                                    onStartCalibration = { onUpdateState { isCalibrating = true; calibrationStep = 1 } }, onStartWizard = { onUpdateState { setupWizardStep = 1; wizardWaitingForNeutral = false } }, onToggleHalfThrottle = { b -> onUpdateState { halfThrottle = b } }, onUpdateDeadzone = { f -> onUpdateState { joystickDeadzone = f } }, onStartBinding = { k -> onUpdateState { isAutoBinding = if (isAutoBinding == k) null else k.ifEmpty { null } } }, onToggleInvert = { k -> onUpdateState { when(k) { "ly" -> mappingLY = mappingLY.copy(inverted = !mappingLY.inverted); "lx" -> mappingLX = mappingLX.copy(inverted = !mappingLX.inverted); "ry" -> mappingRY = mappingRY.copy(inverted = !mappingRY.inverted); "rx" -> mappingRX = mappingRX.copy(inverted = !mappingRX.inverted) } } }, onManualBind = { k, a -> onUpdateState { val l = if (a >= 101) "Serial CH${a - 100}" else "Axis $a"; val m = ChannelMapping(a, false, l); when(k) { "ly" -> mappingLY = m; "lx" -> mappingLX = m; "ry" -> mappingRY = m; "rx" -> mappingRX = m } } }, onModeChange = { m -> onUpdateState { joystickMode = m } }, onToggleGlobalRates = { b -> onUpdateState { useGlobalRates = b } }, onUpdateGlobalRate = { r -> onUpdateState { globalRate = r } }, onUpdateGlobalExpo = { e -> onUpdateState { globalExpo = e } }, onUpdateIndividualRate = { k, r -> onUpdateState { when(k) { "T" -> rateT = r; "Y" -> rateY = r; "P" -> rateP = r; "R" -> rateR = r } } }, onUpdateIndividualExpo = { k, e -> onUpdateState { when(k) { "T" -> expoT = e; "Y" -> expoY = e; "P" -> expoP = e; "R" -> expoR = e } } }, onToggleShowIndividual = { b -> onUpdateState { showIndividualRates = b } }, onResetRates = { onUpdateState { globalRate = AppConfig.JoystickDefaults.RATE; globalExpo = AppConfig.JoystickDefaults.EXPO; rateT = AppConfig.JoystickDefaults.RATE; expoT = AppConfig.JoystickDefaults.EXPO; rateY = AppConfig.JoystickDefaults.RATE; expoY = AppConfig.JoystickDefaults.EXPO; rateP = AppConfig.JoystickDefaults.RATE; expoP = AppConfig.JoystickDefaults.EXPO; rateR = AppConfig.JoystickDefaults.RATE; expoR = AppConfig.JoystickDefaults.EXPO; joystickDeadzone = AppConfig.JoystickDefaults.DEADZONE } }, inputMode = state.inputMode, rawChannels = stickState.rawChannels, onToggleMappingUnlock = { b -> onUpdateState { isMappingUnlocked = b } }, activeSerialPath = state.activeSerialPath, rawHexData = state.rawHexData, linkType = state.linkType, baudRate = state.baudRate, connectionStatus = state.connectionStatus, packetsPerSecond = stickState.packetsPerSecond, detectedProtocol = state.detectedProtocol, isSerialConflict = state.isSerialConflict, conflictPid = state.conflictPid, rawBytesCount = state.rawBytesCount, bufferUsage = state.bufferUsage, isSignalActive = stickState.isSignalActive, lockedProtocol = state.lockedProtocol, onUpdateLockedProtocol = { p -> onUpdateState { lockedProtocol = p } }, isLogcatEnabled = state.isLogcatEnabled, logcatContent = state.logcatContent, onToggleLogcat = { b -> onUpdateState { isLogcatEnabled = b } }, onClearLogcat = { onUpdateState { logcatContent = "" } }, isHardwareController = state.isHardwareController, onOpenAuxMapping = { onUpdateState { showAuxMappingOverlay = true } }, onUpdateInputMode = onUpdateInputMode, onScanUsb = onScanUsb, onUpdateBaudRate = onUpdateBaudRate, onUpdateLockedPath = onUpdateLockedPath, onOpenNetworkSettings = onOpenNetworkSettings, availablePorts = availablePorts, onExportLog = onExportLog, onToggleNetworkConnection = onToggleNetworkConnection, showHardwareMonitor = state.showHardwareMonitor, onToggleHardwareMonitor = { b -> onUpdateState { showHardwareMonitor = b } }, state = state, jitter = state.jitter, stability = state.stability, onTargetPositioned = onTargetPositioned, isMappingUnlocked = state.isMappingUnlocked, isInteractionLocked = state.isInteractionLocked, localSettingsMessage = state.localSettingsMessage, diagnosticLog = state.diagnosticLog
+                                    onStartCalibration = { onUpdateState { isCalibrating = true; calibrationStep = 1 } }, onStartWizard = { onUpdateState { setupWizardStep = 1; wizardWaitingForNeutral = false } }, onToggleHalfThrottle = { b -> onUpdateState { halfThrottle = b } }, onUpdateDeadzone = { f -> onUpdateState { joystickDeadzone = f } }, onStartBinding = { k -> onUpdateState { isAutoBinding = if (isAutoBinding == k) null else k.ifEmpty { null } } }, onToggleInvert = { k -> onUpdateState { when(k) { "ly" -> mappingLY = mappingLY.copy(inverted = !mappingLY.inverted); "lx" -> mappingLX = mappingLX.copy(inverted = !mappingLX.inverted); "ry" -> mappingRY = mappingRY.copy(inverted = !mappingRY.inverted); "rx" -> mappingRX = mappingRX.copy(inverted = !mappingRX.inverted) } } }, onManualBind = { k, a -> onUpdateState { val l = if (a >= 101) "Serial CH${a - 100}" else "Axis $a"; val m = ChannelMapping(a, false, l); when(k) { "ly" -> mappingLY = m; "lx" -> mappingLX = m; "ry" -> mappingRY = m; "rx" -> mappingRX = m } } }, onModeChange = { m -> onUpdateState { joystickMode = m } }, onToggleGlobalRates = { b -> onUpdateState { useGlobalRates = b } }, onUpdateGlobalRate = { r -> onUpdateState { globalRate = r } }, onUpdateGlobalExpo = { e -> onUpdateState { globalExpo = e } }, onUpdateIndividualRate = { k, r -> onUpdateState { when(k) { "T" -> rateT = r; "Y" -> rateY = r; "P" -> rateP = r; "R" -> rateR = r } } }, onUpdateIndividualExpo = { k, e -> onUpdateState { when(k) { "T" -> expoT = e; "Y" -> expoY = e; "P" -> expoP = e; "R" -> expoR = e } } }, onToggleShowIndividual = { b -> onUpdateState { showIndividualRates = b } }, onResetRates = { onUpdateState { globalRate = AppConfig.JoystickDefaults.RATE; globalExpo = AppConfig.JoystickDefaults.EXPO; rateT = AppConfig.JoystickDefaults.RATE; expoT = AppConfig.JoystickDefaults.EXPO; rateY = AppConfig.JoystickDefaults.RATE; expoY = AppConfig.JoystickDefaults.EXPO; rateP = AppConfig.JoystickDefaults.RATE; expoP = AppConfig.JoystickDefaults.EXPO; rateR = AppConfig.JoystickDefaults.RATE; expoR = AppConfig.JoystickDefaults.EXPO; joystickDeadzone = AppConfig.JoystickDefaults.DEADZONE } }, inputMode = state.inputMode, rawChannels = stickState.rawChannels, onToggleMappingUnlock = { b -> onUpdateState { isMappingUnlocked = b } }, activeSerialPath = state.activeSerialPath, rawHexData = state.rawHexData, linkType = state.linkType, baudRate = state.baudRate, connectionStatus = state.connectionStatus, packetsPerSecond = stickState.packetsPerSecond, detectedProtocol = state.detectedProtocol, isSerialConflict = state.isSerialConflict, conflictPid = state.conflictPid, rawBytesCount = state.rawBytesCount, bufferUsage = state.bufferUsage, isSignalActive = stickState.isSignalActive, lockedProtocol = state.lockedProtocol, onUpdateLockedProtocol = { p -> onUpdateState { lockedProtocol = p } }, isLogcatEnabled = state.isLogcatEnabled, logcatContent = state.logcatContent, onToggleLogcat = { b -> onUpdateState { isLogcatEnabled = b } }, onClearLogcat = { onUpdateState { logcatContent = "" } }, isHardwareController = state.isHardwareController, onOpenAuxMapping = { onUpdateState { showAuxMappingOverlay = true } }, onUpdateInputMode = onUpdateInputMode, onScanUsb = onScanUsb, onUpdateBaudRate = onUpdateBaudRate, onUpdateLockedPath = onUpdateLockedPath, onOpenNetworkSettings = onOpenNetworkSettings, availablePorts = availablePorts, onExportLog = onExportLog, onToggleNetworkConnection = onToggleNetworkConnection, showHardwareMonitor = state.showHardwareMonitor, onToggleHardwareMonitor = { b -> onUpdateState { showHardwareMonitor = b } }, state = state, jitter = state.jitter, stability = state.stability, onTargetPositioned = onTargetPositioned, isMappingUnlocked = state.isMappingUnlocked, isInteractionLocked = state.isInteractionLocked, diagnosticLog = state.diagnosticLog
                                 )
                                 SettingsTab.SYSTEM -> Column(modifier = Modifier.fillMaxWidth().padding(end = 4.dp)) {
                                     Surface(
@@ -224,7 +284,14 @@ fun UnifiedSettingsScreen(
                                     ) {
                                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                             Button(
-                                                onClick = { onUpdateState { showTutorial = true; showSettings = false } },
+                                                onClick = { 
+                                                    onUpdateState { 
+                                                        showTutorial = true
+                                                        hasShownJoystickTutorial = false
+                                                        hasShownClimateTutorial = false
+                                                        showSettings = false 
+                                                    } 
+                                                },
                                                 modifier = Modifier.height(32.dp),
                                                 colors = ButtonDefaults.buttonColors(containerColor = NikoTheme.colors.primary.copy(0.8f)),
                                                 shape = RoundedCornerShape(6.dp),
@@ -329,7 +396,7 @@ fun ExpertUnlockDialog(onDismiss: () -> Unit, onUnlock: () -> Unit) {
 @Composable
 fun SystemSettingRow(label: String, checked: Boolean, onToggle: (Boolean) -> Unit, thumbColor: Color = NikoTheme.colors.primary) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().height(32.dp)) {
-        Text(label, color = NikoTheme.colors.textPrimary, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        Text(label, color = NikoTheme.colors.textPrimary, style = NikoTheme.typography.body1, modifier = Modifier.weight(1f))
         Switch(checked = checked, onCheckedChange = onToggle, modifier = Modifier.scale(0.7f), colors = SwitchDefaults.colors(checkedThumbColor = thumbColor, uncheckedThumbColor = if(NikoTheme.colors.isLight) Color.Gray else Color.White))
     }
 }
@@ -340,15 +407,15 @@ fun TabIcon(icon: ImageVector, label: String, selected: Boolean, onClick: () -> 
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onClick() }.width(60.dp)) {
         Icon(icon, null, tint = color, modifier = Modifier.size(28.dp))
         Spacer(Modifier.height(4.dp))
-        Text(label, color = color, fontSize = 10.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
+        Text(label, color = color, style = NikoTheme.typography.label, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
     }
 }
 
 @Composable
 fun HeaderMiniJoystickWrapper(label: String, x: Float, y: Float) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, color = NikoTheme.colors.textSecondary, fontSize = 8.sp)
-        Box(modifier = Modifier.size(24.dp).background(NikoTheme.colors.textPrimary.copy(0.1f), RoundedCornerShape(4.dp)).border(0.5.dp, NikoTheme.colors.divider, RoundedCornerShape(4.dp)), contentAlignment = Alignment.Center) {
+        Text(label, color = NikoTheme.colors.textSecondary, style = NikoTheme.typography.caption)
+        Box(modifier = Modifier.size(24.dp).background(NikoTheme.colors.textPrimary.copy(0.1f), NikoTheme.shapes.small).border(0.5.dp, NikoTheme.colors.divider, NikoTheme.shapes.small), contentAlignment = Alignment.Center) {
             Box(modifier = Modifier.offset(x = (x * 8).dp, y = (y * 8).dp).size(6.dp).background(NikoTheme.colors.primary, CircleShape))
         }
     }
