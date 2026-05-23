@@ -80,8 +80,8 @@ object WindManager {
         // 物理力向量必須與 FlowAngle 保持一致。
         val flowAngle = (baseFromAngle + 180f + fractalJitter) % 360f
 
-        // [v1.7.7-WIN-STABLE] 水平受力溫和化
-        val baseStrength = level * 0.25f 
+        // [v1.7.7-WIN-STABLE] 水平受力溫和化(0.25f)
+        val baseStrength = level * 1f
         val totalStrength = baseStrength + (impulseFactor * 0.2f)
         
         val rad = Math.toRadians(flowAngle.toDouble()).toFloat()
