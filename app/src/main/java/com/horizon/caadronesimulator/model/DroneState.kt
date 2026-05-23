@@ -119,6 +119,11 @@ class DroneState {
     var isUsbStickyActive by mutableStateOf(false) // [v1.5.9] USB 外接主權鎖定，防止背景掃描干擾
     var systemMessage by mutableStateOf<String?>(null); var diagnosticLog by mutableStateOf("")
 
+    /** [v1.7.8] 是否優先使用標準搖桿模式 (USB HID) */
+    var isHidPriorityEnabled by mutableStateOf(AppConfig.SystemDefaults.USE_HID_PRIORITY)
+    /** [v1.7.8] 響導防抖動時間戳 */
+    var lastWizardStepTime by mutableLongStateOf(0L)
+
     /** [v1.7.6] 當前有效的標題文字 (含預設與自定義) */
     var currentTitleText by mutableStateOf("")
 

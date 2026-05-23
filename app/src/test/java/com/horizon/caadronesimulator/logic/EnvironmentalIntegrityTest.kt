@@ -29,5 +29,10 @@ class EnvironmentalIntegrityTest {
         
         assertEquals("雲層 U 軸主權更新失敗", 0.55f, state.env.cloudU)
         assertEquals("雲層 V 軸主權更新失敗", 0.88f, state.env.cloudV)
+
+        // 3. [v1.7.7-WIN-STABLE] 測試風向同步守護
+        // 確保物理風向角變更後，環境管線能維持穩定同步
+        state.env.currentWindAngle = 180f // 北風
+        assertEquals("北風同步異常", 180f, state.env.currentWindAngle)
     }
 }

@@ -6,12 +6,15 @@ package com.horizon.caadronesimulator.model
  */
 object AppConfig {
     // --- 基礎資訊 ---
-    const val CURRENT_VERSION = "1.7.7"
+    const val CURRENT_VERSION = "1.7.8"
     const val RELEASE_DATE = "2026-05"
     const val DEVELOPER = "Enoch Wang"
 
     const val SPECIAL_TITLE_ZH = "NikoNiko考照場地模擬器"
     const val SPECIAL_TITLE_EN = "Niko Drone Licensing Simulator"
+
+    /** [v1.7.8] 運行時版本標記 (由 ProHardwareBridge 初始化) */
+    var isProVersion = false
 
     /** 根據當前語系獲取預設標題 (Fallback 邏輯) */
     fun getDefaultSpecialTitle(lang: String): String {
@@ -137,6 +140,19 @@ object AppConfig {
 
     /** 系統與安全預設標準 */
     object SystemDefaults {
+        /** [v1.7.8] UI 顯示控制：是否顯示啟動自動連線開關 (僅 Pro 版顯示) */
+        fun showAutoConnect(): Boolean {
+            return isProVersion
+        }
+
+        /** [v1.7.8] 動態標籤：根據語系獲取自動連線開關文字 */
+        fun getAutoConnectLabel(lang: String): String {
+            return when (lang) {
+                "zh" -> "啟動時自動偵測內置硬體"
+                else -> "Auto Detect Internal Hardware on Startup"
+            }
+        }
+
         /** 飛行圍欄：限高 30m 與場地邊界碰撞判定 */
         const val USE_FLIGHT_LIMIT = true
         /** 專業考核降落標準：落地垂直速度過快即判定損毀 */
@@ -157,6 +173,9 @@ object AppConfig {
         const val SHOW_SHADOW = true
         /** 是否顯示場地中的實體障礙物 (供進階練習) */
         const val SHOW_OBSTACLES = false
+
+        /** [v1.7.8] 預設是否優先使用標準搖桿模式 (USB HID) */
+        const val USE_HID_PRIORITY = true
 
         // --- 專家模式保護區 ---
         /** 專家模式管理密碼 (解鎖需前往一般設定，點擊 Developer 文字 7 次) */

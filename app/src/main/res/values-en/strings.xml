@@ -169,6 +169,8 @@
     <string name="settings_auto_connect">Auto Scan USB on Startup</string>
     <string name="settings_hide_status_bar">Hide Android Status Bar</string>
     <string name="settings_pause_in_settings">Pause Simulation in Menu</string>
+    <string name="settings_hid_priority">Priority Standard Joystick (USB HID)</string>
+    <string name="settings_hid_priority_desc">Recommended. No permission needed. Most stable for standard gamepads and OTG controllers.</string>
     <string name="settings_language">Interface Language</string>
     <string name="settings_strict_landing">Pro Landing Safety Standards</string>
     <string name="settings_strict_landing_desc">Crashes if speed \> 2.2m/s, with tiered warnings</string>

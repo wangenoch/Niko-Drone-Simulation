@@ -28,7 +28,8 @@ class ConnectivityCoordinator(
      */
     fun performAutoSensing() {
         scope.launch {
-            delay(300)
+            // [v1.7.8] 再次延遲確保系統掛載完成
+            delay(500)
             
             // 1. 偵測內置專業硬體 (Pro Link)
             val hasProHardware = usbManager.deviceList.values.any { dev ->

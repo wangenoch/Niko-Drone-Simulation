@@ -21,6 +21,9 @@ object InputCoordinator {
         stickInput: StickInputState,
         commManager: InternalCommManager
     ): Boolean {
+        // [v1.7.8] 互斥防護：若「非 HID 優先」(即使用專業模式) 且已連線，完全封鎖 HID 事件以防止數據風暴崩潰
+        if (!state.isHidPriorityEnabled && state.connectionStatus == com.horizon.caadronesimulator.model.ConnectionStatus.ACTIVE) return false
+
         if (state.isAutoBinding == null && ((event.source and InputDevice.SOURCE_CLASS_JOYSTICK) == 0 || state.inputMode == 1)) return false
         if (event.action != MotionEvent.ACTION_MOVE) return false
 
@@ -54,7 +57,10 @@ object InputCoordinator {
         stickInput: StickInputState,
         commManager: InternalCommManager
     ) {
-        stickInput.rawChannels = channels
+        // [v1.7.8] 歸一化架構：將 Serial 數據直接壓入緩衝池 (Index 101+)
+        channels.forEachIndexed { i, v ->
+            stickInput.setChannel(i + 101, v)
+        }
         
         if (state.isCalibrating) {
             state.apply {
@@ -79,8 +85,37 @@ object InputCoordinator {
             SafetyManager.processSerialAux(channels, state, stickInput) { commManager.injectLog(it) }
         }
 
-        if (state.inputMode == 1 && state.isAutoBinding != null) {
-            handleSerialAutoBinding(channels, state)
+        if (state.inputMode == 1) {
+            if (state.isAutoBinding != null) {
+                handleSerialAutoBinding(channels, state)
+            } else if (state.setupWizardStep > 0 && !state.wizardWaitingForNeutral) {
+                // [v1.7.8] 補齊：Serial 模式下的一鍵設置響導支持
+                handleSerialSetupWizard(channels, state)
+            }
+        }
+    }
+
+    private fun handleSerialSetupWizard(channels: List<Float>, state: DroneState) {
+        val now = System.currentTimeMillis()
+        if (now - state.lastWizardStepTime < 600) return
+
+        var trig = -1; var mv = 0f
+        channels.forEachIndexed { i, v -> if (abs(v) > 0.85f) { trig = i; mv = v } }
+        
+        if (trig != -1) {
+            val isY = (state.setupWizardStep == 1 || state.setupWizardStep == 3)
+            val labels = getLabelsForMode(state.joystickMode)
+            val label = when(state.setupWizardStep) {
+                1 -> labels[0]; 2 -> labels[1]; 3 -> labels[2]; 4 -> labels[3]
+                else -> "Serial CH${trig + 1}"
+            }
+            val m = ChannelMapping(axis = trig + 101, inverted = mv < 0, label = label)
+            
+            when(state.setupWizardStep) {
+                1 -> state.mappingLY = m; 2 -> state.mappingLX = m; 3 -> state.mappingRY = m; 4 -> state.mappingRX = m
+            }
+            state.wizardWaitingForNeutral = true
+            state.lastWizardStepTime = now
         }
     }
 
@@ -114,6 +149,10 @@ object InputCoordinator {
     }
 
     private fun handleSerialAutoBinding(channels: List<Float>, state: DroneState) {
+        // [v1.7.8] 防抖動
+        val now = System.currentTimeMillis()
+        if (now - state.lastWizardStepTime < 600) return
+        
         var trig = -1; var mv = 0f
         channels.forEachIndexed { i, v -> if (abs(v) > 0.85f) { trig = i; mv = v } }
         if (trig != -1) {
@@ -133,6 +172,7 @@ object InputCoordinator {
                 "flightMode" -> state.mappingFlightMode = m.copy(label = "FLIGHT_MODE")
             }
             state.isAutoBinding = null
+            state.lastWizardStepTime = now
         }
     }
 
@@ -144,6 +184,13 @@ object InputCoordinator {
     }
 
     private fun handleSetupWizard(event: MotionEvent, state: DroneState) {
+        // [v1.7.8] 互斥防護：若處於專業模式 (非 HID 優先)，禁止 HID 觸發響導步驟，防止 Axis 14 幽靈信號干擾
+        if (!state.isHidPriorityEnabled) return
+
+        // [v1.7.8] 防抖動：防止雙重身分衝突導致連續跳步
+        val now = System.currentTimeMillis()
+        if (now - state.lastWizardStepTime < 600) return
+        
         var trig = -1; var mv = 0f
         for (i in 0..47) { val v = event.getAxisValue(i); if (abs(v) > 0.70f) { trig = i; mv = v; break } }
         if (trig != -1) {
@@ -153,25 +200,18 @@ object InputCoordinator {
                 1 -> state.mappingLY = m; 2 -> state.mappingLX = m; 3 -> state.mappingRY = m; 4 -> state.mappingRX = m
             }
             state.wizardWaitingForNeutral = true
+            state.lastWizardStepTime = now
         }
     }
 
     private fun processMainJoystickInput(event: MotionEvent, state: DroneState, stickInput: StickInputState) {
-        fun gV(m: ChannelMapping, d: Int, y: Boolean = false): Float { 
-            // [v1.6.1] 回歸純物理數據採集：移除所有 Inversion 與 Expo/Rate 運算
-            // 所有處理邏輯統一收口至 StickInputState 中執行
-            val raw = event.getAxisValue(if (m.axis != -1 && m.axis < 100) m.axis else d)
-            return if (y) -raw else raw
+        // [v1.7.8] 歸一化架構：將 MotionEvent 數據直接壓入全域通道緩衝池
+        // 僅處理 Axis 0-47 (標準 HID 範圍)
+        for (i in 0..47) {
+            stickInput.setChannel(i, event.getAxisValue(i))
         }
 
-        stickInput.updateRaw(
-            gV(state.mappingLY, MotionEvent.AXIS_Y, true), 
-            gV(state.mappingLX, MotionEvent.AXIS_X), 
-            gV(state.mappingRY, MotionEvent.AXIS_RZ, true), 
-            gV(state.mappingRX, MotionEvent.AXIS_Z)
-        )
-
-        stickInput.rawChannels = List(48) { i -> event.getAxisValue(i) }
+        // [v1.7.8] 設置 Axis Label 監控 (僅供診斷顯示)
         var maxV = 0f; var maxIdx = -1
         for (i in 0..47) { val v = abs(event.getAxisValue(i)); if (v > maxV) { maxV = v; maxIdx = i } }
         if (maxV > 0.15f) state.activeAxisLabel = "Axis $maxIdx" else if (maxV < 0.05f) state.activeAxisLabel = "NONE"
@@ -179,7 +219,9 @@ object InputCoordinator {
 
     private fun handleCalibration(event: MotionEvent, state: DroneState) {
         fun uC(m: ChannelMapping, d: Int): ChannelMapping { 
-            val v = event.getAxisValue(if (m.axis != -1) m.axis else d)
+            // [v1.7.8] 安全加固：防止 HID 模式下存取 Serial 通道 (101+) 導致越界崩潰
+            val targetAxis = if (m.axis != -1 && m.axis < 100) m.axis else d
+            val v = event.getAxisValue(targetAxis)
             return when(state.calibrationStep) { 
                 1 -> m.copy(center = v, min = v, max = v)
                 2 -> m.copy(min = min(v, m.min), max = max(v, m.max))

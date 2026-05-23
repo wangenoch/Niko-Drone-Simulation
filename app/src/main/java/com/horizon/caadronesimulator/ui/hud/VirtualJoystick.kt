@@ -93,7 +93,8 @@ fun MiniStickVisual(joystickMode: Int, isLeft: Boolean, stickX: Float, stickY: F
     ) {
         Box(
             modifier = Modifier
-                .offset(x = (stickX * 20).dp, y = -(stickY * 20).dp)
+                // [v1.7.8] 歸一化補償：數據層為「上正下負」，Android 螢幕為「上負下正」，故此處必須取反
+                .offset(x = (stickX * 20).dp, y = (-stickY * 20).dp)
                 .size(14.dp)
                 .background(themeColors.primary, CircleShape)
         )

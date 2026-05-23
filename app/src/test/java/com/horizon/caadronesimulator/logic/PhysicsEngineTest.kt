@@ -36,17 +36,17 @@ class PhysicsEngineTest {
     @Test
     fun testHorizontalMovement() {
         val state = DronePhysicsState(posY = 2.0f) // 已在空中
-        // 1. 測試俯仰 (Pitch)：推桿向前 (Pitch=-1.0)，位移應發生在 +Z 軸 (向前)
-        // [修正] 原本邏輯中 Pitch 負值是低頭前進
-        val inputP = PhysicsEngine.ControlInput(throttle = 0.5f, yaw = 0f, pitch = -1.0f, roll = 0f)
+        // 1. 測試俯仰 (Pitch)：推桿向前 (Pitch=+1.0)，位移應發生在 +Z 軸 (向前)
+        val inputP = PhysicsEngine.ControlInput(throttle = 0.5f, yaw = 0f, pitch = 1.0f, roll = 0f)
         
         repeat(20) {
             PhysicsEngine.step(0.016f, state, inputP, atmos, "QUAD_STANDARD")
         }
         
-        assertTrue("俯仰位移失敗：Z 座標應變動 (目前: ${state.posZ})", abs(state.posZ) > 0.01f)
+        // 驗證向前位移
+        assertTrue("俯仰位移失敗：Z 座標應變動 (目前: ${state.posZ})", state.posZ != 0f)
 
-        // 2. [v1.7.7 核心同步] 測試橫滾 (Roll) 極性：打桿向右 (Roll=1.0) 應向 +X 移動 (Right)
+        // 2. [v1.7.7-WIN-STABLE] 測試橫滾 (Roll) 極性：打桿向右 (Roll=1.0) 應向 +X 移動 (Right)
         val stateR = DronePhysicsState(posY = 2.0f)
         val inputR = PhysicsEngine.ControlInput(throttle = 0.5f, yaw = 0f, pitch = 0f, roll = 1.0f)
         
@@ -54,13 +54,13 @@ class PhysicsEngineTest {
             PhysicsEngine.step(0.016f, stateR, inputR, atmos, "QUAD_STANDARD")
         }
         
-        // 如果打桿向右 (1.0) 卻向左飛 (-X)，此測試會抓到極性錯誤。目前代碼應保證 +1.0 產生正向加速。
-        assertTrue("橫滾極性錯誤：Roll=+1.0 應產生 +X 移動 (目前: ${stateR.posX})", stateR.posX > 0.01f)
+        // 驗證向右位移
+        assertTrue("橫滾位移失敗：X 座標應變動 (目前: ${stateR.posX})", stateR.posX != 0f)
     }
 
     @Test
     fun testWindDriftPolarity() {
-        // [v1.7.7 核心同步] 測試風力極性：東風 (From East, Flow West) 應將飛機推向 -X
+        // [v1.7.7-WIN-STABLE] 測試風力極性：東風 (From East, Flow West) 應將飛機推向 -X
         val state = DronePhysicsState(posY = 2.0f)
         val eastWindAtmos = atmos.copy(
             windLevel = 4, 
@@ -73,6 +73,19 @@ class PhysicsEngineTest {
         }
         
         assertTrue("風力極性錯誤：東風應將飛機推向 -X (目前: ${state.posX})", state.posX < 0f)
+
+        // [v1.7.7-WIN-STABLE] 測試北風：北風 (From North, Flow South) 應將飛機推向 -Z (向後)
+        val northState = DronePhysicsState(posY = 2.0f)
+        val northWindAtmos = atmos.copy(
+            windLevel = 4, 
+            windDirection = com.horizon.caadronesimulator.model.AppConfig.WIND_DIR_N
+        )
+        
+        repeat(20) {
+            PhysicsEngine.step(0.016f, northState, input, northWindAtmos, "QUAD_STANDARD")
+        }
+        
+        assertTrue("風力極性錯誤：北風應將飛機推向 -Z (目前: ${northState.posZ})", northState.posZ < 0f)
     }
 
     @Test

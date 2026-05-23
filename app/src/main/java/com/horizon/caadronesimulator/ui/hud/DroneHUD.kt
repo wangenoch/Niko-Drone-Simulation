@@ -98,7 +98,7 @@ fun DroneHUD(
         }
 
         // 4. 頂部狀態顯示與姿態輔助視窗 (Zoom Assistant)
-        Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+        Box(modifier = Modifier.fillMaxSize()) {
             // [v1.7.7] 校準：Zoom Assistant 則維持中心 Z=6 的觸發
             // [需求修復]：智慧視角 (Smart) 不需要啟動姿態輔助視窗
             val distToOpsCenter = sqrt(state.posX.pow(2) + (state.posZ - 6f).pow(2))

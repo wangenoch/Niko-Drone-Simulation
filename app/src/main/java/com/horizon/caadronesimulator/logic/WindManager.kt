@@ -61,7 +61,7 @@ object WindManager {
         }
 
         val baseFromAngle = if (direction == AppConfig.WIND_DIR_RANDOM) {
-            // [v1.7.7 核心同步] 統一使用 rendererTime (傳入的 flightTime 在 Renderer 中已改為 rendererTime)
+            // [v1.7.7-WIN-STABLE] 統一使用 rendererTime (傳入的 flightTime 在 Renderer 中已改為 rendererTime)
             // 確保 HUD、雲層與飛機受力在亂數模式下使用同一個時間基準
             (state.env.randomWindAngle + (flightTime * 0.3f)) % 360f 
         } else {
@@ -78,7 +78,7 @@ object WindManager {
         val flowAngle = (baseFromAngle + 180f + fractalJitter) % 360f
         state.env.currentWindAngle = flowAngle
 
-        // [v1.7.7 校準] 水平受力溫和化：目標加速度約 0.3G
+        // [v1.7.7-WIN-STABLE] 水平受力溫和化：目標加速度約 0.3G
         // 修正極性：X 軸不應取反，sin(rad) 負值對應向左(West)流動
         val baseStrength = level * 0.25f 
         val totalStrength = baseStrength + (impulseFactor * 0.2f)

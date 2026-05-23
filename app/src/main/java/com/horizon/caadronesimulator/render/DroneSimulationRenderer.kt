@@ -55,6 +55,10 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
     private var isFirstCloudFrame = true
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+        // [v1.7.8] 顯存安全加固：重建前強制釋放舊資源，防止 Activity 重建導致的 FBO 洩漏
+        fpvFbo.release()
+        zoomFbo.release()
+
         val vShader = "attribute vec4 vPosition; attribute vec2 aTexCoord; uniform mat4 uMVPMatrix; varying vec2 vTexCoord; void main() { gl_Position = uMVPMatrix * vPosition; vTexCoord = aTexCoord; }".trimIndent()
         val fShader = "precision mediump float; uniform vec4 vColor; uniform sampler2D uTexture; uniform bool uUseTex; varying vec2 vTexCoord; void main() { if (uUseTex) { gl_FragColor = texture2D(uTexture, vTexCoord); } else { gl_FragColor = vColor; } }".trimIndent()
         val vs = loadShader(GLES20.GL_VERTEX_SHADER, vShader); val fs = loadShader(GLES20.GL_FRAGMENT_SHADER, fShader)
@@ -90,7 +94,7 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
         // [v1.7.7 核心修正] 傳遞 rendererTime 替代 flightTime，強制亂數風向與渲染幀同步
         com.horizon.caadronesimulator.logic.WindManager.calculateWindVector(windLevel, windDirection, windVariation.toInt(), windDirVariation.toInt(), this.rendererTime, ds)
         
-        // [v1.7.7 非線性彈性對位] 解決亂數風向下雲層無法對接與累積誤差問題
+        // [v1.7.7-WIN-STABLE] 解決亂數風向下雲層無法對接與累積誤差問題
         val windFactor = windLevel * (0.02f + windVariation * 0.01f)
         val windRad = Math.toRadians(ds.env.currentWindAngle.toDouble())
         
@@ -120,7 +124,7 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
             visualWindVY /= vLen
         }
         
-        // 3. 執行位移 [v1.7.7 極性校正] 
+        // 3. 執行位移 [v1.7.7-WIN-STABLE]
         // 物理 targetVX = -1 (流向左/西) -> cloudU 應該減少以使紋理向左飄 (與手動模式 U-= 對齊)
         this.cloudU += visualWindVX * windFactor * dt
         this.cloudV += visualWindVY * windFactor * dt

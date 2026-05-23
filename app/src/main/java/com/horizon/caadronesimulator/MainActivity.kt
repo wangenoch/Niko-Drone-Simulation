@@ -198,8 +198,11 @@ class MainActivity : androidx.activity.ComponentActivity() {
     override fun onResume() {
         super.onResume()
         updateSystemUI()
-        // 恢復硬體自動感知決策
-        com.horizon.caadronesimulator.logic.ProHardwareBridge.onResume()
+        // [v1.7.8] 加固：啟動延遲偵測，避開系統啟動資源競爭
+        lifecycleScope.launch {
+            delay(800)
+            com.horizon.caadronesimulator.logic.ProHardwareBridge.onResume()
+        }
     }
 
     override fun onStop() { 

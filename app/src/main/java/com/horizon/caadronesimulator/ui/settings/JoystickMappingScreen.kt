@@ -19,6 +19,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -81,6 +82,13 @@ fun JoystickMappingScreen(
     diagnosticLog: String = "",
     onTargetPositioned: (String, Rect) -> Unit = { _, _ -> }
 ) {
+    val configuration = LocalConfiguration.current
+    val isSmallScreen = configuration.screenWidthDp < 640
+    val smallFont = if (isSmallScreen) 8.2.sp else 10.sp
+    val rowFont = if (isSmallScreen) 9.2.sp else 11.sp
+    val labelWidth = if (isSmallScreen) 36.dp else 40.dp
+    val interactionHeight = if (isSmallScreen) 24.dp else 22.dp
+
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         
         // 1. [v1.7.6] 通訊連線 Bar (Flavor 隔離組件)
@@ -103,7 +111,7 @@ fun JoystickMappingScreen(
                     onUpdateLockedProtocol = onUpdateLockedProtocol, onUpdateBaudRate = onUpdateBaudRate, 
                     onUpdateLockedPath = onUpdateLockedPath, 
                     onOpenNetworkSettings = onOpenNetworkSettings, 
-                    onExportLog = onExportLog, onToggleLogcat = onToggleLogcat, onClearLogcat = onClearLogcat, onScanUsb = onScanUsb, 
+                    onExportLog = onExportLog, onToggleLogcat = onToggleLogcat, onClearLogcat = onClearLogcat, onScanUsb = onScanUsb,
                     onUpdateNetworkHost = { state.networkHost = it }, 
                     onUpdateNetworkPort = { state.networkPort = it }, 
                     onUpdateNetworkProtocol = { state.networkProtocol = it }, 
@@ -129,24 +137,27 @@ fun JoystickMappingScreen(
                             modifier = Modifier.weight(1f).height(34.dp).onGloballyPositioned { onTargetPositioned("wizard", it.boundsInRoot()) }, 
                             shape = RoundedCornerShape(8.dp), 
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)), 
-                            contentPadding = PaddingValues(horizontal = 4.dp)
-                        ) { Text(stringResource(R.string.joystick_btn_wizard), color = Color.White, fontSize = 10.sp) }
+                            contentPadding = PaddingValues(horizontal = 2.dp)
+                        ) { Text(stringResource(R.string.joystick_btn_wizard), color = Color.White, fontSize = smallFont, maxLines = 1, softWrap = false) }
                         
                         Button(
                             onClick = onStartCalibration, 
                             modifier = Modifier.weight(1f).height(34.dp).onGloballyPositioned { onTargetPositioned("calib", it.boundsInRoot()) }, 
                             shape = RoundedCornerShape(8.dp), 
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)), 
-                            contentPadding = PaddingValues(horizontal = 4.dp)
-                        ) { Text(stringResource(R.string.joystick_btn_recalibrate), color = Color.White, fontSize = 10.sp) }
+                            contentPadding = PaddingValues(horizontal = 2.dp)
+                        ) { Text(stringResource(R.string.joystick_btn_recalibrate), color = Color.White, fontSize = smallFont, maxLines = 1, softWrap = false) }
                         
                         Button(
                             onClick = onOpenAuxMapping, 
                             modifier = Modifier.weight(1f).height(34.dp).onGloballyPositioned { onTargetPositioned("aux", it.boundsInRoot()) }, 
                             shape = RoundedCornerShape(8.dp), 
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7E57C2)), 
-                            contentPadding = PaddingValues(horizontal = 4.dp)
-                        ) { Text(stringResource(R.string.joystick_btn_aux), color = Color.White, fontSize = 10.sp) }
+                            contentPadding = PaddingValues(horizontal = 2.dp)
+                        ) {
+                            val auxLabel = if (isSmallScreen) "AUX 映射" else stringResource(R.string.joystick_btn_aux)
+                            Text(auxLabel, color = Color.White, fontSize = smallFont, maxLines = 1, softWrap = false)
+                        }
                     }
                     Spacer(Modifier.height(10.dp))
                     val isMappingLockedByProtocol = state.hardwareProfile?.driver?.isMappingProtected == true && !state.isMappingUnlocked && !com.horizon.caadronesimulator.logic.HardwareRegistry.debugForceUnlockAll
@@ -161,7 +172,7 @@ fun JoystickMappingScreen(
                     labels.forEachIndexed { i, label ->
                         val m = when(i) { 0 -> mappingLY; 1 -> mappingLX; 2 -> mappingRY; else -> mappingRX }
                         val k = when(i) { 0 -> "ly"; 1 -> "lx"; 2 -> "ry"; else -> "rx" }
-                        CompactMappingRow(label, m, k, isAutoBinding, onStartBinding, onToggleInvert, onManualBind, inputMode, isMappingLockedByProtocol, onTargetPositioned)
+                        CompactMappingRow(label, m, k, isAutoBinding, onStartBinding, onToggleInvert, onManualBind, inputMode, isMappingLockedByProtocol, onTargetPositioned, labelWidth = labelWidth, interactionHeight = interactionHeight, interactionFontSize = rowFont)
                         if (i < 3) Spacer(Modifier.height(6.dp))
                     }
                     Spacer(Modifier.height(10.dp))
@@ -238,7 +249,9 @@ fun CompactMappingRow(
     inputMode: Int, 
     isLocked: Boolean = false,
     onTargetPositioned: (String, Rect) -> Unit = { _, _ -> },
-    labelWidth: androidx.compose.ui.unit.Dp = 40.dp
+    labelWidth: androidx.compose.ui.unit.Dp = 40.dp,
+    interactionHeight: androidx.compose.ui.unit.Dp = 22.dp,
+    interactionFontSize: androidx.compose.ui.unit.TextUnit = 11.sp
 ) {
     var showPicker by remember { mutableStateOf(false) }
     val isCurrentBinding = isBinding == key
@@ -262,13 +275,13 @@ fun CompactMappingRow(
             color = if (isLocked) NikoTheme.colors.textSecondary.copy(alpha = 0.1f) else if (isCurrentBinding) NikoTheme.colors.primary.copy(alpha = 0.15f) else NikoTheme.colors.textPrimary.copy(alpha = 0.1f), 
             shape = RoundedCornerShape(4.dp), 
             border = BorderStroke(1.dp, if (isLocked) NikoTheme.colors.divider else if (isCurrentBinding) NikoTheme.colors.primary else NikoTheme.colors.divider),
-            modifier = Modifier.weight(1f).height(22.dp).clickable(enabled = !isLocked) { onStartBinding(key) }
+            modifier = Modifier.weight(1f).height(interactionHeight).clickable(enabled = !isLocked) { onStartBinding(key) }
         ) {
             Box(contentAlignment = Alignment.Center) { 
                 Text(
                     text = if (isLocked) stringResource(R.string.joystick_mapping_locked) else if (isCurrentBinding) stringResource(R.string.joystick_mapping_detecting) else stringResource(R.string.joystick_mapping_click), 
                     color = if (isLocked) NikoTheme.colors.textSecondary else if (isCurrentBinding) NikoTheme.colors.primary else NikoTheme.colors.primary, 
-                    fontSize = 11.sp
+                    fontSize = interactionFontSize
                 ) 
             }
         }
@@ -278,7 +291,7 @@ fun CompactMappingRow(
                 color = if (isLocked) NikoTheme.colors.textSecondary.copy(alpha = 0.1f) else NikoTheme.colors.surface, 
                 shape = RoundedCornerShape(4.dp), 
                 border = BorderStroke(1.dp, if (isLocked) NikoTheme.colors.divider else NikoTheme.colors.primary.copy(0.3f)),
-                modifier = Modifier.width(50.dp).height(22.dp).clickable(enabled = !isLocked) { showPicker = true }
+                modifier = Modifier.width(50.dp).height(interactionHeight).clickable(enabled = !isLocked) { showPicker = true }
             ) {
                 Row(modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                     Text(channelLabelText, color = if (isLocked) NikoTheme.colors.textSecondary else NikoTheme.colors.primary, fontSize = 10.sp, fontWeight = FontWeight.Bold)

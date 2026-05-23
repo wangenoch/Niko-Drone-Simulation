@@ -169,6 +169,8 @@
     <string name="settings_auto_connect">啟動時自動掃描連線 USB</string>
     <string name="settings_hide_status_bar">自動隱藏 Android 系統狀態欄</string>
     <string name="settings_pause_in_settings">進入設定時暫停模擬</string>
+    <string name="settings_hid_priority">優先使用標準搖桿模式 (USB HID)</string>
+    <string name="settings_hid_priority_desc">推薦使用。免授權且最為穩定，適用於大多數通用遊戲手把與 OTG 控制器。</string>
     <string name="settings_language">介面語言 (Language)</string>
     <string name="settings_strict_landing">專業考核降落安全標準</string>
     <string name="settings_strict_landing_desc">開啟後落地速度 \> 2.2m/s 即損毀，並實施分級警告</string>

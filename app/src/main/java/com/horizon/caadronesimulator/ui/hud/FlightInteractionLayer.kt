@@ -62,7 +62,6 @@ fun FlightInteractionLayer(
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .statusBarsPadding()
                     .padding(top = buttonTopPadding)
                     .onGloballyPositioned { onUpdateTutorialTargets("arm", it.positionInWindow().let { pos -> androidx.compose.ui.geometry.Rect(pos.x, pos.y, pos.x + it.size.width, pos.y + it.size.height) }) }
             ) {

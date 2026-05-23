@@ -22,6 +22,9 @@ object ProHardwareBridge {
         stickInputState: StickInputState,
         configStore: ConfigurationStore
     ) {
+        // [v1.7.8] 標記為專業版，啟用專屬 UI 選項
+        com.horizon.caadronesimulator.model.AppConfig.isProVersion = true
+
         // [v1.7.6] 注入驅動實體，解決 src/main 找不到 src/pro 驅動程式的問題
         HardwareRegistry.driverProvider = { id ->
             when(id) {

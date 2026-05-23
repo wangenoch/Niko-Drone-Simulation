@@ -1,6 +1,10 @@
 package com.horizon.caadronesimulator.logic
 
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import com.hoho.android.usbserial.driver.UsbSerialPort
@@ -29,6 +33,24 @@ class UsbSerialManager(
     private var udpSocket: DatagramSocket? = null
     private var networkThread: Thread? = null
     private val isRunning = AtomicBoolean(false)
+    
+    // [v1.7.8] 權限請求機制
+    private val ACTION_USB_PERMISSION = "com.horizon.caadronesimulator.USB_PERMISSION"
+    private var pendingDevice: UsbDevice? = null
+    
+    private val usbPermissionReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (ACTION_USB_PERMISSION == intent.action) {
+                synchronized(this) {
+                    val device: UsbDevice? = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
+                    if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
+                        device?.let { startUsbReading(it) }
+                    }
+                    pendingDevice = null
+                }
+            }
+        }
+    }
 
     private val assemblyBuffer = ByteArray(4096)
     private var assemblyPos = 0
@@ -46,27 +68,63 @@ class UsbSerialManager(
     }
 
     fun startReadingByPath(path: String) {
-        if (isRunning.get()) stopAll() // 強制單例保護
+        if (isRunning.get()) stopAll() 
         resetBuffers()
         
         when(path) {
             "USB" -> {
-                val drivers = UsbSerialProber.getDefaultProber().findAllDrivers(usbManager)
-                if (drivers.isNotEmpty()) {
-                    // [v1.7.8] 硬體白名單優先級：RadioMaster(0x0483/0x5740), CP210x(0x10c4), FTDI(0x0403)
-                    val preferredDriver = drivers.find { d ->
-                        val vid = d.device.vendorId
-                        vid == 0x0483 || vid == 0x10C4 || vid == 0x0403
-                    } ?: drivers[0]
-                    
-                    if (usbManager.hasPermission(preferredDriver.device)) startUsbReading(preferredDriver.device)
+                // [v1.7.8] 加固：只有在設定中明確關閉「HID 優先」時才執行 Serial 掃描與權限請求
+                if (droneState.isHidPriorityEnabled) {
+                    onConnectionStatusUpdate(ConnectionStatus.IDLE)
+                    return
+                }
+
+                // [v1.7.8] 專業級主動捕獲模式：不再預設「認識才求權限」
+                // 遍歷所有實體連結，只要發現任何裝置但無權限，立即彈出系統對話框
+                val deviceList = usbManager.deviceList
+                if (deviceList.isEmpty()) return
+                
+                for (device in deviceList.values) {
+                    if (usbManager.hasPermission(device)) {
+                        // 已經有權限，嘗試尋找合適驅動並啟動
+                        val drivers = UsbSerialProber.getDefaultProber().findAllDrivers(usbManager)
+                        val driver = drivers.find { it.device.deviceId == device.deviceId }
+                        if (driver != null) {
+                            startUsbReading(device)
+                            break // 成功開啟一個後退出，防止多裝置衝突
+                        }
+                    } else {
+                        // [關鍵修正] 只要看見硬體，不論識別碼，優先求權限（達成截圖中的效果）
+                        requestUsbPermission(device)
+                        break // 彈窗是異步的，請求後退出等待廣播
+                    }
                 }
             }
             "NETWORK" -> startUdpReading(droneState.networkHost, droneState.networkPort)
         }
     }
 
+    private fun requestUsbPermission(device: UsbDevice) {
+        pendingDevice = device
+        val flags = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) 
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT else 0
+        
+        // [v1.7.8] 加固：明確指定包名以破解 Android 9+ 的隱式廣播攔截，確保彈出權限對話框
+        val intent = Intent(ACTION_USB_PERMISSION).setPackage(context.packageName)
+        val permissionIntent = PendingIntent.getBroadcast(context, 0, intent, flags)
+        
+        val filter = IntentFilter(ACTION_USB_PERMISSION)
+        context.registerReceiver(usbPermissionReceiver, filter)
+        usbManager.requestPermission(device, permissionIntent)
+    }
+
     private fun startUsbReading(device: UsbDevice) {
+        // [v1.7.8] 安全哨兵：在執行 openDevice 前強制核對權限，徹底杜絕 SecurityException 閃退
+        if (!usbManager.hasPermission(device)) {
+            requestUsbPermission(device)
+            return
+        }
+
         val connection = usbManager.openDevice(device) ?: return
         val drivers = UsbSerialProber.getDefaultProber().findAllDrivers(usbManager)
         val driver = drivers.find { it.device.deviceId == device.deviceId } ?: return
@@ -160,6 +218,7 @@ class UsbSerialManager(
 
     fun stopAll() {
         isRunning.set(false)
+        try { context.unregisterReceiver(usbPermissionReceiver) } catch (_: Exception) {}
         ioManager?.stop(); ioManager = null
         serialPort?.close(); serialPort = null
         udpSocket?.close(); udpSocket = null

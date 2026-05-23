@@ -114,9 +114,10 @@ object PhysicsEngine {
         }
 
         // --- 4. [1:1 Git] 水平位移：平滑加速度模型 ---
-        // [v1.7.7 修正] 確保橫滾 (Roll) 極性正確：Roll 正值對應向右位移 (+X)
-        val accX = (cosY * (-rollInput) - sinY * pitchInput) * (if (atmos.applyPhysicalSpecs) spec.physicsPower else 18.0f)
-        val accZ = (-sinY * (-rollInput) - cosY * pitchInput) * (if (atmos.applyPhysicalSpecs) spec.physicsPower else 18.0f)
+        // [v1.7.7-WIN-STABLE] 物理公式純淨化：橫滾 (Roll) 正值對應向右位移 (+X)，俯仰 (Pitch) 正值對應向前位移 (+Z)
+        // 注意：基於測試驗證，向前運動在 Z 軸公式中對應的是 -pitchInput (右手座標系與引擎視覺定義對位)
+        val accX = (cosY * rollInput - sinY * pitchInput) * (if (atmos.applyPhysicalSpecs) spec.physicsPower else 18.0f)
+        val accZ = (-sinY * rollInput - cosY * pitchInput) * (if (atmos.applyPhysicalSpecs) spec.physicsPower else 18.0f)
         
         if (isAirborne) {
             state.velX += accX * dt

@@ -5,7 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
@@ -28,6 +28,7 @@ import com.horizon.caadronesimulator.ui.theme.NikoTheme
 import com.horizon.caadronesimulator.ui.tutorial.ClimateSettingsTutorial
 import com.horizon.caadronesimulator.ui.tutorial.JoystickSettingsTutorial
 import com.horizon.caadronesimulator.ui.tutorial.WelcomeTutorial
+import kotlinx.coroutines.delay
 
 /**
  * [v1.7.6] 全域 UI 覆蓋層調度器 (Overlay Dispatcher)
@@ -55,6 +56,19 @@ fun OverlayDispatcher(
     onThemeChange: (String) -> Unit
 ) {
     val context = LocalContext.current
+
+    // [v1.7.8] 通訊主權切換副作用：當設定變更時自動開啟/關閉 Serial 鏈路
+    // 加固：加入模式切換防抖，解決 Android 9 權限窗併發導致的執行緒衝突
+    LaunchedEffect(droneState.isHidPriorityEnabled) {
+        if (!droneState.isHidPriorityEnabled) {
+            stickInputState.resetAll() // 切換至專業模式瞬間大掃除
+            delay(300)
+            usbSerialManager.startReadingByPath("USB")
+        } else {
+            usbSerialManager.stopAll()
+            stickInputState.resetAll()
+        }
+    }
 
     // 1. 歡迎教學
     if (droneState.showTutorial && !droneState.showSettings && !droneState.showLanguageSelector) {
@@ -141,6 +155,13 @@ fun OverlayDispatcher(
 
     // 7. 遙控器設定引導與校準
     if (droneState.setupWizardStep > 0) {
+        // [v1.7.8] 狀態機加固：確保響導在 UI 消失或被中斷時自動歸零，防止狀態卡死
+        DisposableEffect(Unit) {
+            onDispose { 
+                if (droneState.setupWizardStep > 0) droneState.setupWizardStep = 0 
+            }
+        }
+
         JoystickWizardOverlay(
             setupWizardStep = droneState.setupWizardStep,
             isWizardWaiting = droneState.wizardWaitingForNeutral,
@@ -157,10 +178,10 @@ fun OverlayDispatcher(
             isCalibrating = droneState.isCalibrating,
             calibrationStep = droneState.calibrationStep,
             joystickMode = droneState.joystickMode,
-            stickLX = stickInputState.rawLX,
-            stickLY = stickInputState.rawLY,
-            stickRX = stickInputState.rawRX,
-            stickRY = stickInputState.rawRY,
+            stickLX = stickInputState.stickLX(droneState),
+            stickLY = stickInputState.stickLY(droneState),
+            stickRX = stickInputState.stickRX(droneState),
+            stickRY = stickInputState.stickRY(droneState),
             onNextStep = { 
                 if (droneState.calibrationStep < 3) droneState.calibrationStep++ 
                 else { droneState.isCalibrating = false; configStore.saveSettings(droneState) }
