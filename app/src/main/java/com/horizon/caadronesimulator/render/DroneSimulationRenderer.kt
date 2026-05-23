@@ -92,7 +92,12 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
         com.horizon.caadronesimulator.logic.WindManager.update(this.rendererTime, windLevel, windVariation.toInt(), useHardcorePhysics)
         
         // [v1.7.7 核心修正] 傳遞 rendererTime 替代 flightTime，強制亂數風向與渲染幀同步
-        com.horizon.caadronesimulator.logic.WindManager.calculateWindVector(windLevel, windDirection, windVariation.toInt(), windDirVariation.toInt(), this.rendererTime, ds)
+        // [v1.7.9 唯一寫回點] 由 Renderer 接管數據更新主權
+        val windResult = com.horizon.caadronesimulator.logic.WindManager.calculateWindVector(
+            windLevel, windDirection, windVariation.toInt(), windDirVariation.toInt(), 
+            this.rendererTime, ds.env.randomWindAngle
+        )
+        ds.env.currentWindAngle = windResult.visualAngle
         
         // [v1.7.7-WIN-STABLE] 解決亂數風向下雲層無法對接與累積誤差問題
         val windFactor = windLevel * (0.02f + windVariation * 0.01f)
@@ -125,9 +130,11 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
         }
         
         // 3. 執行位移 [v1.7.7-WIN-STABLE]
-        // 物理 targetVX = -1 (流向左/西) -> cloudU 應該減少以使紋理向左飄 (與手動模式 U-= 對齊)
-        this.cloudU += visualWindVX * windFactor * dt
-        this.cloudV += visualWindVY * windFactor * dt
+        // [v1.7.9.11 視覺統一人員] 
+        // 核心憲法：雲層流動必須與物理受力方向同步（順風飄）。
+        // 使用統一的 currentWindAngle 轉換而來的向量，確保視覺一致性。
+        this.cloudU -= visualWindVX * windFactor * dt
+        this.cloudV -= visualWindVY * windFactor * dt
 
         if (!isPaused) {
             randomWindPhase += dt * (1.2f + windVariation * 0.6f)

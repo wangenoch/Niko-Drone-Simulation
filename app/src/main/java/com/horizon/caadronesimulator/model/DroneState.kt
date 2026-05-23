@@ -46,7 +46,7 @@ class DroneState {
 
     // --- 1. 飛行數據域 ---
     class FlightDomain {
-        var altitude by mutableFloatStateOf(0f); var posX by mutableFloatStateOf(0f); var posZ by mutableFloatStateOf(0f) 
+        var altitude by mutableFloatStateOf(10f); var posX by mutableFloatStateOf(0f); var posZ by mutableFloatStateOf(0f)
         var yaw by mutableFloatStateOf(0f); var pitch by mutableFloatStateOf(0f); var roll by mutableFloatStateOf(0f); var speed by mutableFloatStateOf(0f)
         var horizontalDist by mutableFloatStateOf(0f); var batteryVoltage by mutableFloatStateOf(4.2f); var batteryPercent by mutableIntStateOf(100)
         var isCollision by mutableStateOf(false); var isMotorLocked by mutableStateOf(true); var motorRpmFactor by mutableFloatStateOf(0f)
@@ -113,7 +113,7 @@ class DroneState {
     var appLanguage by mutableStateOf("zh") // [v1.7.6] 語言設定：zh 或 en
     var appTheme by mutableStateOf(AppConfig.THEME_CLASSIC) // [v1.7.7] 主題設定
     var showObstacles by mutableStateOf(AppConfig.SystemDefaults.SHOW_OBSTACLES); var hideStatusBar by mutableStateOf(AppConfig.SystemDefaults.HIDE_STATUS_BAR); var pauseInSettings by mutableStateOf(AppConfig.SystemDefaults.PAUSE_IN_SETTINGS); var applyPhysicalSpecs by mutableStateOf(AppConfig.SystemDefaults.APPLY_PHYSICAL_SPECS); var useFlightLimit by mutableStateOf(AppConfig.SystemDefaults.USE_FLIGHT_LIMIT)
-    var useSimplifiedMarkers by mutableStateOf(true); var showSpecialTitle by mutableStateOf(AppConfig.VisualDefaults.SHOW_SPECIAL_TITLE); var settingsTab by mutableStateOf(SettingsTab.CONTROLLER); var showSettings by mutableStateOf(false)
+    var useSimplifiedMarkers by mutableStateOf(true); var showSpecialTitle by mutableStateOf(AppConfig.VisualDefaults.SHOW_SPECIAL_TITLE); var settingsTab by mutableStateOf(SettingsTab.ENVIRONMENT); var showSettings by mutableStateOf(false)
     var showHardwareMonitor by mutableStateOf(false); var isInteractionLocked by mutableStateOf(false)
     var useStrictLanding by mutableStateOf(AppConfig.SystemDefaults.USE_STRICT_LANDING) // [v1.5.9] 專業考核降落安全標準開關
     var isUsbStickyActive by mutableStateOf(false) // [v1.5.9] USB 外接主權鎖定，防止背景掃描干擾

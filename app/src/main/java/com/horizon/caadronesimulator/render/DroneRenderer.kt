@@ -73,8 +73,8 @@ object DroneRenderer {
         
         // 1. 基礎姿態旋轉 (Yaw -> Pitch -> Roll)
         Matrix.rotateM(baseM, 0, curYaw, 0f, 1f, 0f)
-        Matrix.rotateM(baseM, 0, -visPitch, 1f, 0f, 0f)
-        Matrix.rotateM(baseM, 0, -visRoll, 0f, 0f, 1f) // [v1.5.3] 修正 Roll 極性
+        Matrix.rotateM(baseM, 0, visPitch, 1f, 0f, 0f) // [v1.7.9.9] 正值為前推 = 低頭
+        Matrix.rotateM(baseM, 0, visRoll, 0f, 0f, 1f)  // [v1.7.9.9] 正角度繞 Z = 順時針右傾，嚴禁在此取反！
 
         // 2. 遍歷零件清單繪製
         module.geometry.forEach { part ->

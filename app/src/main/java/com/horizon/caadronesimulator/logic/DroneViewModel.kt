@@ -49,7 +49,8 @@ class DroneViewModel : ViewModel() {
                 renderer.ctrlYaw = stickInput.stickYaw(state)
                 renderer.ctrlPitch = stickInput.stickPitch(state)
                 renderer.ctrlRoll = stickInput.stickRoll(state)
-                
+
+
                 // 背景線程音效驅動 (維持在背景，不佔用 UI)
                 soundManager.updateSelfDriven(state, stickInput)
                 delay(16)

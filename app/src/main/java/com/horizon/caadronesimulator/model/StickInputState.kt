@@ -10,15 +10,14 @@ import androidx.compose.runtime.setValue
 import com.horizon.caadronesimulator.logic.InputProcessor
 
 /**
- * [v1.7.8] 搖桿數據狀態 - 指令中樞層 (歸一化緩衝池版)
+ * [v1.7.9] 搖桿數據狀態 - 指令中樞層 (歸一化緩衝池專業版)
  * 職責：作為唯一的邏輯運算點，執行 Inversion, Deadzone, Expo 與 Rate。
- * 修正：廢除碎片化變量，建立「全域通道緩衝池」，確保所有消費者（UI/物理）數據 100% 同步。
+ * 遵循：INPUT_SYSTEM_ARCHITECTURE.md 規範。
  */
 class StickInputState {
     // --- 全域通道緩衝池 (唯一的數據真源) ---
-    // Index 0-47: 系統 HID 軸位 (映射自 MotionEvent)
-    // Index 101-124: 專業 Serial 通道 (映射自 UsbSerial / Internal)
     private val channelBuffer = FloatArray(125) { 0f }
+    private val lastRawBuffer = FloatArray(125) { 0f } // [v1.7.9] 變動偵測快照
 
     // --- 視覺同步層 (節流狀態) ---
     // 僅用於 Compose UI 重繪，防止渲染風暴
@@ -37,11 +36,11 @@ class StickInputState {
     private var _lastPpsUpdateTime = 0L
     var isSignalActive by mutableStateOf(false); var serialByteCount by mutableLongStateOf(0L)
 
-    /** [v1.7.8] 統一寫入接口：更新指定的通道數值 */
+    /** [v1.7.9] 統一寫入接口：更新指定的通道數值 (100% 原始數據) */
     fun setChannel(index: Int, value: Float) {
         if (index < 0 || index >= 125) return
         channelBuffer[index] = value
-        
+
         // 觸發視覺節流同步
         val now = System.currentTimeMillis()
         if (now - lastUiUpdateTime >= UI_UPDATE_INTERVAL_MS) {
@@ -50,7 +49,7 @@ class StickInputState {
         }
     }
 
-    /** [v1.7.8] 強制清空所有數據 (切換模式專用) */
+    /** [v1.7.9] 強制清空所有數據 (切換模式專用) */
     fun resetAll() {
         channelBuffer.fill(0f)
         visualBuffer = channelBuffer.toList()
@@ -59,7 +58,7 @@ class StickInputState {
         lastUiUpdateTime = 0L
     }
 
-    /** [v1.7.8] 兼容性接口：映射至標準 HID 軸位 (僅供 Pro 版內部路徑或舊版邏輯使用) */
+    /** [v1.7.9] 兼容性接口：映射至標準 HID 軸位 (僅供 Pro 版內部路徑或舊版邏輯使用) */
     fun updateRaw(ly: Float, lx: Float, ry: Float, rx: Float) {
         setChannel(1, ly)  // AXIS_Y
         setChannel(0, lx)  // AXIS_X
@@ -67,54 +66,85 @@ class StickInputState {
         setChannel(11, rx) // AXIS_Z
     }
 
-    // --- [v1.7.8] 歸一化解析器：支援物理/視覺分流 ---
+    // --- [v1.7.9] 核心演算中樞 (Logic Processing) ---
 
-    private fun resolveValue(state: DroneState, mapping: ChannelMapping, isLeft: Boolean, func: String, isVisual: Boolean, applyCurves: Boolean = true): Float {
+    private fun resolveValue(state: DroneState, mapping: ChannelMapping, isLeft: Boolean, func: String, isVisual: Boolean): Float {
+        val axis = mapping.axis
+        val rawValue = if (axis in 0..124) channelBuffer[axis] else 0f
+        
+        // 1. [v1.7.9 智慧仲裁] 實體優先與意圖偵測
+        // 只要實體搖桿有顯著變動 (>1%)，則鎖定實體路徑；否則若在觸摸中，則切換至虛擬路徑
+        val isMoving = if (axis in 0..124) {
+            val delta = Math.abs(rawValue - lastRawBuffer[axis])
+            if (delta > 0.01f) {
+                lastRawBuffer[axis] = rawValue // 更新快照
+                true
+            } else false
+        } else false
+
         val isTouching = if (isLeft) isTouchingLeft else isTouchingRight
-        if (isTouching) {
-            val touchVal = when(func) { "T" -> if(isLeft) touchLY else touchRY; "Y" -> if(isLeft) touchLX else touchRX; "P" -> if(isLeft) touchLY else touchRY; else -> if(isLeft) touchLX else touchRX }
-            return if (applyCurves) InputProcessor.processVirtual(touchVal, state.getExpo(func), state.getRate(func, touchVal)) else touchVal
+        
+        // 決策：若實體正在動，聽實體的；若實體靜止且在觸控，聽觸控的
+        if (!isMoving && isTouching) {
+            val touchVal = when(func) {
+                "T" -> if(isLeft) touchLY else touchRY
+                "Y" -> if(isLeft) touchLX else touchRX
+                "P" -> if(isLeft) touchLY else touchRY 
+                "R" -> if(isLeft) touchLX else touchRX 
+                else -> 0f
+            }
+            val finalTouch = touchVal
+            // [v1.7.9.8 TRUTH ANCHOR]
+            // 核心極性定義（已驗證）：
+            // Roll (R): 右推為正 (+1.0)，物理引擎已對位此正值為視覺向右。
+            // Pitch (P): 前推為正 (+1.0)
+            // Yaw (Y): 右推/順時針為正 (+1.0)
+            // Throttle (T): 上推為正 (+1.0)
+            val finalCmd = InputProcessor.processVirtual(finalTouch, state.getExpo(func), state.getRate(func, finalTouch))
+            return if (isVisual) finalCmd / state.getRate(func, finalTouch).coerceAtLeast(0.01f) else finalCmd
         }
 
-        // 讀取池子
-        val buffer = if (isVisual) visualBuffer else channelBuffer.toList() // 物理引擎調用時 isVisual 為 false
-        
-        // 安全哨兵：如果當前不是專業模式 (即 HID 優先為 true)，禁止讀取 101+ 索引（防範 Android 9 崩潰）
-        val axis = mapping.axis
+        // 2. 從緩衝池取貨 (實體路徑)
+        val buffer = if (isVisual) visualBuffer else channelBuffer.toList()
+
+        // 安全哨兵：HID 優先時禁止讀取 Serial 索引 (101+)
         if (axis >= 101 && state.isHidPriorityEnabled) return 0f
-        
-        val rawValue = if (axis in 0..124) buffer[axis] else 0f
-        
-        // [v1.7.8] 歸一化極性：Android HID 垂直軸向上為負(-)，在此處轉換為「向上為正(+)」
-        val standardizedRaw = if (axis < 100 && (func == "T" || func == "P")) -rawValue else rawValue
-        
-        val processed = if (mapping.inverted) -standardizedRaw else standardizedRaw
-        
-        return if (applyCurves) {
-            InputProcessor.process(processed, state.joystickDeadzone, state.getExpo(func), state.getRate(func, processed), mapping)
+        val currentRaw = if (axis in 0..124) buffer[axis] else 0f
+
+        // 3. 物理校準與歸一化 (Normalization)
+        val normalized = if (mapping.max != mapping.min) {
+            (currentRaw - mapping.center) / (if (currentRaw > mapping.center) (mapping.max - mapping.center) else (mapping.center - mapping.min)).coerceAtLeast(0.01f)
         } else {
-            // [v1.7.8] 視覺軌道：僅執行死區過濾，不套用 Rate/Expo，防止出框
-            if (Math.abs(processed) < state.joystickDeadzone) 0f else processed
+            currentRaw - mapping.center
+        }
+
+        // 3. 唯一極性反轉 (Inversion)
+        // [v1.7.9] 移除底層硬編碼取反，僅依據 MappingDB 執行
+        val processed = if (mapping.inverted) -normalized else normalized
+        
+        // 4. 手感曲線演算 (Expo & Rates)
+        val finalCmd = InputProcessor.process(processed, state.joystickDeadzone, state.getExpo(func), state.getRate(func, processed), mapping)
+
+        // 5. 視覺對位修正 (Visual Alignment)
+        // [v1.7.9] 解決出框問題：FinalCmd / Rate，確保打滿必觸邊且不出框
+        return if (isVisual) {
+            finalCmd / state.getRate(func, processed).coerceAtLeast(0.01f)
+        } else {
+            finalCmd
         }
     }
 
-    // --- 物理指令集 (供 PhysicsEngine 調用，維持 Rate/Expo/DNA 曲線) ---
-    fun stickThrottle(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[getIdx("T", state)], getSide("T", state), "T", false, true)
-    fun stickYaw(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[getIdx("Y", state)], getSide("Y", state), "Y", false, true)
-    fun stickPitch(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[getIdx("P", state)], getSide("P", state), "P", false, true)
-    fun stickRoll(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[getIdx("R", state)], getSide("R", state), "R", false, true)
+    // --- 物理指令集 (供 PhysicsEngine 調用) ---
+    fun stickThrottle(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[getIdx("T", state)], getSide("T", state), "T", false)
+    fun stickYaw(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[getIdx("Y", state)], getSide("Y", state), "Y", false)
+    fun stickPitch(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[getIdx("P", state)], getSide("P", state), "P", false)
+    fun stickRoll(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[getIdx("R", state)], getSide("R", state), "R", false)
 
-    // --- 視覺同步集 (供 HUD/UI 調用，強制 1:1 歸一化，防止出框) ---
-    fun visualLX(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[1], true, getFunc(1, state), true, false)
-    fun visualLY(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[0], true, getFunc(0, state), true, false)
-    fun visualRX(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[3], false, getFunc(3, state), true, false)
-    fun visualRY(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[2], false, getFunc(2, state), true, false)
-
-    // [v1.7.8] 消費者 API (UI/HUD 調用) - 重新映射至視覺軌道
-    fun stickLX(state: DroneState) = visualLX(state)
-    fun stickLY(state: DroneState) = visualLY(state)
-    fun stickRX(state: DroneState) = visualRX(state)
-    fun stickRY(state: DroneState) = visualRY(state)
+    // --- 視覺同步集 (供 HUD/UI 調用) ---
+    fun stickLX(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[1], true, getFunc(1, state), true)
+    fun stickLY(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[0], true, getFunc(0, state), true)
+    fun stickRX(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[3], false, getFunc(3, state), true)
+    fun stickRY(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[2], false, getFunc(2, state), true)
 
     // --- 輔助函數：將 Mode 1-4 邏輯收納至配置層 ---
     private fun getIdx(func: String, s: DroneState): Int = when(func) {

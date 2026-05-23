@@ -99,12 +99,13 @@ object PhysicsEngine {
 
         // --- 3. [1:1 Git] 姿態與旋轉 ---
         if (isAirborne) {
+            // [v1.7.9.2 標準化] 採用工業標準：向右推桿為順時針旋轉 (CW)
             state.yaw -= input.yaw * 120.0f * dt
         }
         
         val rad = Math.toRadians(state.yaw.toDouble()).toFloat()
         val cosY = cos(rad); val sinY = sin(rad)
-        val rollInput = -input.roll; val pitchInput = -input.pitch
+        val rollInput = input.roll; val pitchInput = input.pitch
         
         if (isAirborne) {
             state.visPitch += (pitchInput * 25f - state.visPitch) * 8f * dt
@@ -114,10 +115,18 @@ object PhysicsEngine {
         }
 
         // --- 4. [1:1 Git] 水平位移：平滑加速度模型 ---
-        // [v1.7.7-WIN-STABLE] 物理公式純淨化：橫滾 (Roll) 正值對應向右位移 (+X)，俯仰 (Pitch) 正值對應向前位移 (+Z)
-        // 注意：基於測試驗證，向前運動在 Z 軸公式中對應的是 -pitchInput (右手座標系與引擎視覺定義對位)
-        val accX = (cosY * rollInput - sinY * pitchInput) * (if (atmos.applyPhysicalSpecs) spec.physicsPower else 18.0f)
-        val accZ = (-sinY * rollInput - cosY * pitchInput) * (if (atmos.applyPhysicalSpecs) spec.physicsPower else 18.0f)
+        // [v1.7.9.2 最終校準] 採用與 Yaw (CW) 匹配的位移矩陣
+        // 在 Yaw 順時針增加的坐標系下，公式為：
+        // X' = roll*cosY + pitch*sinY
+        // Z' = -roll*sinY + pitch*cosY
+        // 當 Yaw=0, cos=1, sin=0 -> accX = rollInput (向右), accZ = pitchInput (向前)
+        // [v1.7.9.8 FINAL FIX] 核心座標系對位：
+        // 根據 Log 診斷：向右推時，outX 為正，rollInput 為正。
+        // 為使飛機在視覺上向右飛行，物理 accX 必須為正。
+        // 原公式在 OpenGL 視角下會產生向左位移，故將 roll 項目取反。
+        val accX = (-rollInput * cosY + pitchInput * sinY) * (if (atmos.applyPhysicalSpecs) spec.physicsPower else 18.0f)
+        val accZ = (rollInput * sinY + pitchInput * cosY) * (if (atmos.applyPhysicalSpecs) spec.physicsPower else 18.0f)
+        
         
         if (isAirborne) {
             state.velX += accX * dt
@@ -168,7 +177,12 @@ object PhysicsEngine {
     private fun applyWind(dt: Float, state: DronePhysicsState, atmos: AtmosConfig, mass: Float, groundOffset: Float) {
         if (state.posY <= groundOffset + 0.01f) return
         val heightFactor = if (atmos.useHardcore) WindManager.calculateHeightFactor(state.posY, groundOffset) else 1.0f
-        val wVec = WindManager.calculateWindVector(atmos.windLevel, atmos.windDirection, atmos.windVariation, atmos.windDirVariation, state.flightTime, com.horizon.caadronesimulator.model.DroneState.getInstance())
+        val wResult = WindManager.calculateWindVector(
+            atmos.windLevel, atmos.windDirection, atmos.windVariation, 
+            atmos.windDirVariation, state.flightTime, 
+            com.horizon.caadronesimulator.model.DroneState.getInstance().env.randomWindAngle
+        )
+        val wVec = wResult.forceVector
         
         // [v1.7.7 建議標註]：
         // 目前水平風力直接作用於加速度，尚未實施終端速度上限 (Terminal Velocity)。
@@ -178,6 +192,7 @@ object PhysicsEngine {
         
         state.velX += (smoothWindAccX / mass) * dt
         state.velZ += (smoothWindAccZ / mass) * dt
+
     }
 
     private fun simulateBattery(dt: Float, state: DronePhysicsState, useLimit: Boolean, droneType: String) {

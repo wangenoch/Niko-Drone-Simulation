@@ -39,12 +39,10 @@ fun WindIndicator(
     val textColor = theme.colors.textPrimary
     val borderColor = theme.colors.textPrimary.copy(alpha = 0.2f)
 
-    // [v1.7.7] 物理極性校正：
-    // 物理引擎輸出的 currentAngle 是風的「流向」(Flow Direction)
-    // 東風 (From East) 的流向是 270 度。
-    // 指標箭頭應直接指向流向，文字盤則需與之鏡像對稱
-    val rotation = if (direction == AppConfig.WIND_DIR_RANDOM) currentAngle - 180f
-                   else getStaticAngle(direction) + 180f
+    // [v1.7.9.11 視覺統一人員] 
+    // 核心憲法：指標必須無條件指向風的「流向」(currentAngle)。
+    // 嚴禁在此處根據 Random/Static 模式進行加減補償，統一路線由數據源頭保證。
+    val rotation = currentAngle
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -113,17 +111,6 @@ fun WindIndicator(
     }
 }
 
-private fun getStaticAngle(direction: String): Float = when (direction) {
-    AppConfig.WIND_DIR_N -> 0f
-    AppConfig.WIND_DIR_NE -> 45f
-    AppConfig.WIND_DIR_E -> 90f
-    AppConfig.WIND_DIR_SE -> 135f
-    AppConfig.WIND_DIR_S -> 180f
-    AppConfig.WIND_DIR_SW -> 225f
-    AppConfig.WIND_DIR_W -> 270f
-    AppConfig.WIND_DIR_NW -> 315f
-    else -> 0f
-}
 
 @Composable
 private fun getDirLabel(direction: String): String = when (direction) {

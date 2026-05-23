@@ -11,6 +11,24 @@ import org.junit.Test
 class EnvironmentalIntegrityTest {
 
     @Test
+    fun testWindManagerStatelessness() {
+        val flightTime = 100f
+        val randomAngle = 45f
+        
+        // [v1.7.9] 驗證：計算函數不再主動修改全域狀態
+        val state = DroneState.getInstance()
+        val initialAngle = state.env.currentWindAngle
+        
+        val result = WindManager.calculateWindVector(
+            5, "RANDOM", 0, 0, flightTime, randomAngle
+        )
+        
+        assertEquals("WindManager 不應修改全域狀態", initialAngle, state.env.currentWindAngle)
+        assertNotNull("應返回 WindResult 對象", result)
+        assertTrue("應包含物理向量", result.forceVector.size == 2)
+    }
+
+    @Test
     fun testAtmosphereDataSovereignty() {
         val state = DroneState.getInstance()
         // 此處模擬 Renderer 傳遞給 ViewModel 的同步過程

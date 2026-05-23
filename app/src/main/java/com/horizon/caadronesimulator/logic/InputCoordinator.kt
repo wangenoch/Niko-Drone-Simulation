@@ -109,7 +109,8 @@ object InputCoordinator {
                 1 -> labels[0]; 2 -> labels[1]; 3 -> labels[2]; 4 -> labels[3]
                 else -> "Serial CH${trig + 1}"
             }
-            val m = ChannelMapping(axis = trig + 101, inverted = mv < 0, label = label)
+            val isVirtualAxis = trig >= 101
+            val m = ChannelMapping(axis = trig + 101, inverted = if (isVirtualAxis) false else (mv < 0), label = label)
             
             when(state.setupWizardStep) {
                 1 -> state.mappingLY = m; 2 -> state.mappingLX = m; 3 -> state.mappingRY = m; 4 -> state.mappingRX = m
@@ -136,8 +137,9 @@ object InputCoordinator {
         if (trig != -1) {
             val key = state.isAutoBinding
             val isY = (key == "ly" || key == "ry")
-            // [v1.5.3] 初次綁定自動識別極性
-            val m = ChannelMapping(axis = trig, inverted = (if (isY) -mv else mv) < 0, label = "Axis $trig")
+            // [v1.7.9] 移除自作聰明的自動反向，初次綁定保持 inverted = false，由使用者決定是否反轉
+            // 除非是明確的 Y 軸邏輯修正需求
+            val m = ChannelMapping(axis = trig, inverted = false, label = "Axis $trig")
             when(key) { 
                 "ly" -> state.mappingLY = m; "lx" -> state.mappingLX = m; "ry" -> state.mappingRY = m; "rx" -> state.mappingRX = m 
                 "hold" -> state.mappingHold = m; "arm" -> state.mappingArm = m
@@ -159,11 +161,12 @@ object InputCoordinator {
             val key = state.isAutoBinding
             val m = ChannelMapping(axis = trig + 101, inverted = false, label = "Serial CH${trig + 1}")
             val labels = getLabelsForMode(state.joystickMode)
+            val isVirtual = (trig + 101) >= 101
             when(key) { 
-                "ly" -> state.mappingLY = m.copy(label = labels[0], inverted = mv < 0)
-                "lx" -> state.mappingLX = m.copy(label = labels[1], inverted = mv < 0)
-                "ry" -> state.mappingRY = m.copy(label = labels[2], inverted = mv < 0)
-                "rx" -> state.mappingRX = m.copy(label = labels[3], inverted = mv < 0)
+                "ly" -> state.mappingLY = m.copy(label = labels[0], inverted = if(isVirtual) false else (mv < 0))
+                "lx" -> state.mappingLX = m.copy(label = labels[1], inverted = if(isVirtual) false else (mv < 0))
+                "ry" -> state.mappingRY = m.copy(label = labels[2], inverted = if(isVirtual) false else (mv < 0))
+                "rx" -> state.mappingRX = m.copy(label = labels[3], inverted = if(isVirtual) false else (mv < 0))
                 "hold" -> state.mappingHold = m.copy(label = "HOLD_SWITCH")
                 "arm" -> state.mappingArm = m.copy(label = "ARM_SWITCH")
                 "obsHeight" -> state.mappingObsHeight = m.copy(label = "OBS_HEIGHT")
@@ -195,7 +198,8 @@ object InputCoordinator {
         for (i in 0..47) { val v = event.getAxisValue(i); if (abs(v) > 0.70f) { trig = i; mv = v; break } }
         if (trig != -1) {
             val isY = (state.setupWizardStep == 1 || state.setupWizardStep == 3)
-            val m = ChannelMapping(axis = trig, inverted = (if (isY) -mv else mv) < 0, label = "Axis $trig")
+            // [v1.7.9] 嚮導初次綁定不再強制取反，回歸純淨映射
+            val m = ChannelMapping(axis = trig, inverted = false, label = "Axis $trig")
             when(state.setupWizardStep) {
                 1 -> state.mappingLY = m; 2 -> state.mappingLX = m; 3 -> state.mappingRY = m; 4 -> state.mappingRX = m
             }

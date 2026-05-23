@@ -54,9 +54,11 @@ fun StickInteractionLogic(
     val sP = stickState.stickPitch(state)
     val sR = stickState.stickRoll(state)
 
-    // [重要修正] 解鎖手勢極性校準
-    // 因為 Roll 軸極性已翻轉 (sR 變為正值代表內推)，解鎖判定需同步修正
-    val isCSC = (sT < -0.7f && sY > 0.7f && sP < -0.7f && sR > 0.7f)
+    // [v1.7.9.8 TRUTH ANCHOR]
+    // 解鎖手勢 (CSC) 判定：
+    // 標準內八手勢為：左搖桿 (T<0, Y>0) 右下 + 右搖桿 (P<0, R<0) 左下
+    // 此處 R 為負值 (-1.0) 完美對應物理向左，解鎖邏輯達成統一人員。
+    val isCSC = (sT < -0.7f && sY > 0.7f && sP < -0.7f && sR < -0.7f)
     
     val isGrounded = state.altitude <= spec.groundOffset + 0.15f
     val sticksNeutral = abs(sY) < 0.2f && abs(sP) < 0.2f && abs(sR) < 0.2f

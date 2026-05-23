@@ -1,7 +1,6 @@
 package com.horizon.caadronesimulator.logic
 
 import com.horizon.caadronesimulator.model.AppConfig
-import com.horizon.caadronesimulator.model.DroneState
 import java.util.Random
 import kotlin.math.*
 
@@ -13,6 +12,9 @@ import kotlin.math.*
 object WindManager {
     private val random = Random()
     
+    // [v1.7.9] 結構化計算結果
+    data class WindResult(val forceVector: FloatArray, val visualAngle: Float)
+
     // --- 脈衝狀態追蹤 ---
     private var nextEventTime = 0f
     private var isEventActive = false
@@ -53,17 +55,15 @@ object WindManager {
         variation: Int,
         dirVariation: Int,
         flightTime: Float,
-        state: DroneState
-    ): FloatArray {
+        randomWindAngle: Float
+    ): WindResult {
         if (level <= 0 || direction == AppConfig.WIND_DIR_NONE) {
-            state.env.currentWindAngle = 0f
-            return floatArrayOf(0f, 0f)
+            return WindResult(floatArrayOf(0f, 0f), 0f)
         }
 
         val baseFromAngle = if (direction == AppConfig.WIND_DIR_RANDOM) {
-            // [v1.7.7-WIN-STABLE] 統一使用 rendererTime (傳入的 flightTime 在 Renderer 中已改為 rendererTime)
-            // 確保 HUD、雲層與飛機受力在亂數模式下使用同一個時間基準
-            (state.env.randomWindAngle + (flightTime * 0.3f)) % 360f 
+            // [v1.7.7-WIN-STABLE] 統一使用 rendererTime (傳入的 flightTime)
+            (randomWindAngle + (flightTime * 0.3f)) % 360f 
         } else {
             getStaticAngle(direction)
         }
@@ -75,16 +75,23 @@ object WindManager {
         val jitterScale = (dirVariation / 5f) * 12f 
         val fractalJitter = (sin(flightTime * 1.7f) * 0.6f + sin(flightTime * 3.1f) * 0.3f + sin(flightTime * 7.7f) * 0.1f) * jitterScale
         
+        // [v1.7.9.10 TRUTH ANCHOR]
+        // 核心邏輯：FlowAngle = BaseAngle + 180 (風吹去的方向)
+        // 物理力向量必須與 FlowAngle 保持一致。
         val flowAngle = (baseFromAngle + 180f + fractalJitter) % 360f
-        state.env.currentWindAngle = flowAngle
 
-        // [v1.7.7-WIN-STABLE] 水平受力溫和化：目標加速度約 0.3G
-        // 修正極性：X 軸不應取反，sin(rad) 負值對應向左(West)流動
+        // [v1.7.7-WIN-STABLE] 水平受力溫和化
         val baseStrength = level * 0.25f 
         val totalStrength = baseStrength + (impulseFactor * 0.2f)
         
         val rad = Math.toRadians(flowAngle.toDouble()).toFloat()
-        return floatArrayOf(sin(rad) * totalStrength, cos(rad) * totalStrength)
+        // [v1.7.9.12 FINAL WIND FIX] 物理力對位：
+        // 為對應 OpenGL 視覺（X- 為右），物理力向量必須將 sin 項目取反，
+        // 確保東風（流向 270 度）產生的物理力為 X+（視覺向左）。
+        return WindResult(
+            forceVector = floatArrayOf(-sin(rad) * totalStrength, cos(rad) * totalStrength),
+            visualAngle = flowAngle
+        )
     }
 
     fun calculateVerticalDraft(
