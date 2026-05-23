@@ -107,6 +107,7 @@ fun VisualNavigationScreen(
                     DropdownMenu(
                         expanded = expanded,
                         onDismissRequest = { expanded = false },
+                        properties = androidx.compose.ui.window.PopupProperties(focusable = false), // [v1.7.9.18] 防止彈出選單喚起系統導航欄
                         modifier = Modifier
                             .fillMaxWidth(0.45f)
                             .background(NikoTheme.colors.panel)
@@ -232,37 +233,51 @@ fun VisualNavigationScreen(
         }
     }
 
-    // 編輯對話框
+    // 編輯覆蓋層 [v1.7.9.14] 取代原有的 AlertDialog
     if (showTitleDialog) {
-        AlertDialog(
-            onDismissRequest = { showTitleDialog = false },
-            title = { Text(stringResource(R.string.visual_edit_title), color = NikoTheme.colors.textPrimary, fontSize = 16.sp) },
-            text = {
-                Column {
-                    Text(stringResource(R.string.visual_edit_title_desc), color = NikoTheme.colors.textSecondary, fontSize = 12.sp)
-                    Spacer(Modifier.height(12.dp))
-                    OutlinedTextField(
-                        value = currentTitleText,
-                        onValueChange = { onUpdateSpecialTitle(it) },
-                        placeholder = { Text(stringResource(R.string.visual_edit_title_placeholder), color = NikoTheme.colors.textSecondary.copy(alpha = 0.5f)) },
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = NikoTheme.colors.primary, 
-                            unfocusedBorderColor = NikoTheme.colors.divider,
-                            focusedTextColor = NikoTheme.colors.textPrimary,
-                            unfocusedTextColor = NikoTheme.colors.textPrimary
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
+        com.horizon.caadronesimulator.ui.common.NikoOverlayCard(
+            title = stringResource(R.string.visual_edit_title),
+            onDismiss = { showTitleDialog = false }
+        ) {
+            Column {
+                Text(stringResource(R.string.visual_edit_title_desc), color = NikoTheme.colors.textSecondary, fontSize = 11.sp) // [v1.7.9.16] 12 -> 11
+                Spacer(Modifier.height(8.dp)) // [v1.7.9.16] 12 -> 8
+                OutlinedTextField(
+                    value = currentTitleText,
+                    onValueChange = { onUpdateSpecialTitle(it) },
+                    placeholder = { Text(stringResource(R.string.visual_edit_title_placeholder), color = NikoTheme.colors.textSecondary.copy(alpha = 0.5f), fontSize = 12.sp) },
+                    singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp), // [v1.7.9.16] 縮小輸入文字
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = NikoTheme.colors.primary, 
+                        unfocusedBorderColor = NikoTheme.colors.divider,
+                        focusedTextColor = NikoTheme.colors.textPrimary,
+                        unfocusedTextColor = NikoTheme.colors.textPrimary
+                    ),
+                    modifier = Modifier.fillMaxWidth().height(52.dp) // [v1.7.9.16] 限制輸入框高度
+                )
+                
+                Spacer(Modifier.height(16.dp)) // [v1.7.9.16] 24 -> 16
+                
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(
+                        onClick = { showTitleDialog = false },
+                        modifier = Modifier.height(32.dp) // [v1.7.9.16] 限制按鈕高度
+                    ) { 
+                        Text(stringResource(R.string.action_cancel), fontSize = 12.sp) 
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Button(
+                        onClick = { showTitleDialog = false; onSave() }, 
+                        colors = ButtonDefaults.buttonColors(containerColor = NikoTheme.colors.primary),
+                        modifier = Modifier.height(36.dp), // [v1.7.9.16] 限制按鈕高度
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
+                    ) {
+                        Text(stringResource(R.string.action_apply), color = if(NikoTheme.colors.isLight) Color.White else Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
                 }
-            },
-            confirmButton = {
-                Button(onClick = { showTitleDialog = false; onSave() }, colors = ButtonDefaults.buttonColors(containerColor = NikoTheme.colors.primary)) {
-                    Text(stringResource(R.string.action_apply), color = if(NikoTheme.colors.isLight) Color.White else Color.Black, fontWeight = FontWeight.Bold)
-                }
-            },
-            containerColor = NikoTheme.colors.panel
-        )
+            }
+        }
     }
 }
 

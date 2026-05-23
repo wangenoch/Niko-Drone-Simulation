@@ -145,8 +145,7 @@ class MainActivity : androidx.activity.ComponentActivity() {
                         if (droneState.isInteractionLocked) return@MainAppScreen
                         if (droneState.inputMode != m) {
                             droneState.isInteractionLocked = true; droneState.inputMode = m; configStore.saveSettings(droneState)
-                            droneState.isUsbStickyActive = false
-                            
+
                             com.horizon.caadronesimulator.logic.ProHardwareBridge.onStop()
                             if (m == -1 || m == 2) { droneState.isArmSafetyPassed = true; droneState.isHoldSafetyPassed = true; droneState.isThrottleHoldActive = false } 
                             else { droneState.isArmSafetyPassed = false; droneState.isHoldSafetyPassed = false }

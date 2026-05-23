@@ -327,21 +327,6 @@ class DroneViewModel : ViewModel() {
         }
     }
 
-    // 廢棄舊有的全知全能函式以防止誤刪參數
-    @Deprecated("Use syncDynamics, syncAtmosphere, and syncPower instead", 
-        ReplaceWith("syncDynamics(state, alt, x, z, yaw, pitch, roll, speed, isImpact, physicsResult)"))
-    fun syncFlightData(
-        state: DroneState,
-        alt: Float, x: Float, z: Float,
-        yaw: Float, pitch: Float, roll: Float,
-        speed: Float, isImpact: Boolean,
-        volt: Float, perc: Int,
-        flightTime: Float,
-        physicsResult: com.horizon.caadronesimulator.logic.PhysicsEngine.PhysicsResult?
-    ) {
-        syncDynamics(state, x, alt, z, yaw, pitch, roll, speed, isImpact, physicsResult)
-        syncPower(state, volt, perc, flightTime)
-    }
 
     fun updateRadarScale(state: DroneState) {
         state.isNearBoundary = PhysicsEngine.isNearBoundary(state.posX, state.posZ)

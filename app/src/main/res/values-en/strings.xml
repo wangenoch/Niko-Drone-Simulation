@@ -160,7 +160,7 @@
     <!-- Settings General -->
     <string name="settings_title_env">Atmosphere &amp; Climate</string>
     <string name="settings_title_drone">Drone Models &amp; Physics</string>
-    <string name="settings_title_camera">Optics &amp; Perspectives</string>
+    <string name="settings_title_camera">Vision and Display Configuration</string>
     <string name="settings_title_system">System &amp; Safety</string>
     <string name="settings_theme_title">Theme</string>
     <string name="settings_tab_drone">Model</string>
@@ -213,7 +213,7 @@
     <string name="climate_show_mountains">Show Distant Mountains</string>
 
     <!-- Visual Settings -->
-    <string name="visual_camera_section">📷 Optics &amp; Perspectives</string>
+    <string name="visual_camera_section">Vision</string>
     <string name="visual_hud_section">🖥️ HUD Elements</string>
     <string name="visual_nav_section">🛰️ Navigational Aids</string>
     <string name="visual_cam_mode_station_track">Station (Tracking)</string>

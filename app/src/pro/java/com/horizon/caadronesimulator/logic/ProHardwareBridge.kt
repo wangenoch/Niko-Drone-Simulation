@@ -39,7 +39,6 @@ object ProHardwareBridge {
             onStatusUpdate = { connected, message -> 
                 droneState.usbSerialConnected = connected
                 if (message.isNotEmpty()) droneState.systemMessage = message
-                if (connected) droneState.wasInternalSuccess = true 
             },
             onDataReceived = { lsv, lsh, rsv, rsh ->
                 if (droneState.inputMode == 0) return@InternalCommManager

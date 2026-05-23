@@ -160,7 +160,7 @@
     <!-- 設定頁面通用 -->
     <string name="settings_title_env">大氣環境與氣候模擬</string>
     <string name="settings_title_drone">飛行器型號與物理</string>
-    <string name="settings_title_camera">相機鏡頭與視角配置</string>
+    <string name="settings_title_camera">視覺與顯示配置</string>
     <string name="settings_title_system">系統與安全性設定</string>
     <string name="settings_theme_title">主題</string>
     <string name="settings_tab_drone">機型</string>
@@ -213,7 +213,7 @@
     <string name="climate_show_mountains">顯示遠景山脈</string>
 
     <!-- 視覺設定 -->
-    <string name="visual_camera_section">📷 鏡頭與視角</string>
+    <string name="visual_camera_section">視覺</string>
     <string name="visual_hud_section">🖥️ HUD 介面元素</string>
     <string name="visual_nav_section">🛰️ 導航輔助</string>
     <string name="visual_cam_mode_station_track">站位視角 (追蹤)</string>

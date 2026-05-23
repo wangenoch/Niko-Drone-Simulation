@@ -130,7 +130,7 @@ fun UnifiedSettingsScreen(
                     TabIcon(Icons.Default.VideogameAsset, stringResource(R.string.joystick_tab_title), state.settingsTab == SettingsTab.CONTROLLER) { onUpdateState { settingsTab = SettingsTab.CONTROLLER } }
                     TabIcon(Icons.Default.Cloud, stringResource(R.string.hud_environment), state.settingsTab == SettingsTab.ENVIRONMENT) { onUpdateState { settingsTab = SettingsTab.ENVIRONMENT } }
                     TabIcon(Icons.Default.AirplanemodeActive, stringResource(R.string.settings_tab_drone), state.settingsTab == SettingsTab.DRONE_SELECTION) { onUpdateState { settingsTab = SettingsTab.DRONE_SELECTION } }
-                    TabIcon(Icons.Default.Visibility, stringResource(R.string.menu_camera_mode), state.settingsTab == SettingsTab.CAMERA) { onUpdateState { settingsTab = SettingsTab.CAMERA } }
+                    TabIcon(Icons.Default.Visibility, stringResource(R.string.visual_camera_section), state.settingsTab == SettingsTab.CAMERA) { onUpdateState { settingsTab = SettingsTab.CAMERA } }
                     TabIcon(Icons.Default.Palette, stringResource(R.string.settings_theme_title), state.settingsTab == SettingsTab.THEME) { onUpdateState { settingsTab = SettingsTab.THEME } }
                     TabIcon(Icons.Default.Settings, stringResource(R.string.action_general), state.settingsTab == SettingsTab.SYSTEM) { onUpdateState { settingsTab = SettingsTab.SYSTEM } }
                 }
@@ -231,6 +231,59 @@ fun UnifiedSettingsScreen(
                                     onStartCalibration = { onUpdateState { isCalibrating = true; calibrationStep = 1 } }, onStartWizard = { onUpdateState { setupWizardStep = 1; wizardWaitingForNeutral = false } }, onToggleHalfThrottle = { b -> onUpdateState { halfThrottle = b } }, onUpdateDeadzone = { f -> onUpdateState { joystickDeadzone = f } }, onStartBinding = { k -> onUpdateState { isAutoBinding = if (isAutoBinding == k) null else k.ifEmpty { null } } }, onToggleInvert = { k -> onUpdateState { when(k) { "ly" -> mappingLY = mappingLY.copy(inverted = !mappingLY.inverted); "lx" -> mappingLX = mappingLX.copy(inverted = !mappingLX.inverted); "ry" -> mappingRY = mappingRY.copy(inverted = !mappingRY.inverted); "rx" -> mappingRX = mappingRX.copy(inverted = !mappingRX.inverted) } } }, onManualBind = { k, a -> onUpdateState { val l = if (a >= 101) "Serial CH${a - 100}" else "Axis $a"; val m = ChannelMapping(a, false, l); when(k) { "ly" -> mappingLY = m; "lx" -> mappingLX = m; "ry" -> mappingRY = m; "rx" -> mappingRX = m } } }, onModeChange = { m -> onUpdateState { joystickMode = m } }, onToggleGlobalRates = { b -> onUpdateState { useGlobalRates = b } }, onUpdateGlobalRate = { r -> onUpdateState { globalRate = r } }, onUpdateGlobalExpo = { e -> onUpdateState { globalExpo = e } }, onUpdateIndividualRate = { k, r -> onUpdateState { when(k) { "T" -> rateT = r; "Y" -> rateY = r; "P" -> rateP = r; "R" -> rateR = r } } }, onUpdateIndividualExpo = { k, e -> onUpdateState { when(k) { "T" -> expoT = e; "Y" -> expoY = e; "P" -> expoP = e; "R" -> expoR = e } } }, onToggleShowIndividual = { b -> onUpdateState { showIndividualRates = b } }, onResetRates = { onUpdateState { globalRate = AppConfig.JoystickDefaults.RATE; globalExpo = AppConfig.JoystickDefaults.EXPO; rateT = AppConfig.JoystickDefaults.RATE; expoT = AppConfig.JoystickDefaults.EXPO; rateY = AppConfig.JoystickDefaults.RATE; expoY = AppConfig.JoystickDefaults.EXPO; rateP = AppConfig.JoystickDefaults.RATE; expoP = AppConfig.JoystickDefaults.EXPO; rateR = AppConfig.JoystickDefaults.RATE; expoR = AppConfig.JoystickDefaults.EXPO; joystickDeadzone = AppConfig.JoystickDefaults.DEADZONE } }, inputMode = state.inputMode, rawChannels = stickState.visualBuffer, onToggleMappingUnlock = { b -> onUpdateState { isMappingUnlocked = b } }, activeSerialPath = state.activeSerialPath, rawHexData = state.rawHexData, linkType = state.linkType, baudRate = state.baudRate, connectionStatus = state.connectionStatus, packetsPerSecond = stickState.packetsPerSecond, detectedProtocol = state.detectedProtocol, isSerialConflict = state.isSerialConflict, conflictPid = state.conflictPid, rawBytesCount = state.rawBytesCount, bufferUsage = state.bufferUsage, isSignalActive = stickState.isSignalActive, lockedProtocol = state.lockedProtocol, onUpdateLockedProtocol = { p -> onUpdateState { lockedProtocol = p } }, isLogcatEnabled = state.isLogcatEnabled, logcatContent = state.logcatContent, onToggleLogcat = { b -> onUpdateState { isLogcatEnabled = b } }, onClearLogcat = { onUpdateState { logcatContent = "" } }, isHardwareController = state.isHardwareController, onOpenAuxMapping = { onUpdateState { showAuxMappingOverlay = true } }, onUpdateInputMode = onUpdateInputMode, onScanUsb = onScanUsb, onUpdateBaudRate = onUpdateBaudRate, onUpdateLockedPath = onUpdateLockedPath, onOpenNetworkSettings = onOpenNetworkSettings, availablePorts = availablePorts, onExportLog = onExportLog, onToggleNetworkConnection = onToggleNetworkConnection, showHardwareMonitor = state.showHardwareMonitor, onToggleHardwareMonitor = { b -> onUpdateState { showHardwareMonitor = b } }, state = state, jitter = state.jitter, stability = state.stability, onTargetPositioned = onTargetPositioned, isMappingUnlocked = state.isMappingUnlocked, isInteractionLocked = state.isInteractionLocked, diagnosticLog = state.diagnosticLog
                                 )
                                 SettingsTab.SYSTEM -> Column(modifier = Modifier.fillMaxWidth().padding(end = 4.dp)) {
+                                    // [v1.7.9.13] 語言切換選單 - 移至頂部並改為下拉式選單
+                                    var langMenuExpanded by remember { mutableStateOf(false) }
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically, 
+                                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                                    ) {
+                                        Text(
+                                            text = stringResource(R.string.settings_language), 
+                                            color = NikoTheme.colors.textPrimary, 
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        
+                                        Box {
+                                            Surface(
+                                                color = NikoTheme.colors.textPrimary.copy(alpha = 0.1f),
+                                                shape = RoundedCornerShape(8.dp),
+                                                border = BorderStroke(1.dp, NikoTheme.colors.divider),
+                                                modifier = Modifier
+                                                    .width(180.dp)
+                                                    .height(36.dp)
+                                                    .clickable { langMenuExpanded = true }
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    val currentLangLabel = if (state.appLanguage == "zh") stringResource(R.string.settings_lang_zh) else stringResource(R.string.settings_lang_en)
+                                                    Text(currentLangLabel, color = NikoTheme.colors.primary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                                                    Icon(Icons.Default.ArrowDropDown, null, tint = NikoTheme.colors.primary)
+                                                }
+                                            }
+                                            
+                                            DropdownMenu(
+                                                expanded = langMenuExpanded,
+                                                onDismissRequest = { langMenuExpanded = false },
+                                                properties = androidx.compose.ui.window.PopupProperties(focusable = false), // [v1.7.9.18] 防止彈出選單喚起系統導航欄
+                                                modifier = Modifier.background(NikoTheme.colors.panel).width(180.dp)
+                                            ) {
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(R.string.settings_lang_zh), color = NikoTheme.colors.textPrimary) },
+                                                    onClick = { onLanguageChange("zh"); langMenuExpanded = false }
+                                                )
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(R.string.settings_lang_en), color = NikoTheme.colors.textPrimary) },
+                                                    onClick = { onLanguageChange("en"); langMenuExpanded = false }
+                                                )
+                                            }
+                                        }
+                                    }
+
                                     Surface(
                                         color = NikoTheme.colors.textPrimary.copy(alpha = 0.05f),
                                         shape = RoundedCornerShape(12.dp),
@@ -276,32 +329,6 @@ fun UnifiedSettingsScreen(
                                         }
                                     }
 
-                                    Spacer(Modifier.height(12.dp))
-
-                                    // [v1.7.6] 語言切換選單
-                                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(stringResource(R.string.settings_language), color = NikoTheme.colors.textPrimary, fontSize = 14.sp)
-                                        }
-                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                            CompactChip(
-                                                text = stringResource(R.string.settings_lang_zh),
-                                                selected = state.appLanguage == "zh",
-                                                onClick = { onLanguageChange("zh") },
-                                                modifier = Modifier.width(100.dp),
-                                                selectedColor = NikoTheme.colors.primary
-                                            )
-                                            CompactChip(
-                                                text = stringResource(R.string.settings_lang_en),
-                                                selected = state.appLanguage == "en",
-                                                onClick = { onLanguageChange("en") },
-                                                modifier = Modifier.width(100.dp),
-                                                selectedColor = NikoTheme.colors.primary
-                                            )
-                                        }
-                                    }
-                                    
-                                    HorizontalDivider(color = NikoTheme.colors.divider)
                                     Spacer(Modifier.height(16.dp))
                                     
                                     Row(
@@ -386,39 +413,61 @@ fun UnifiedSettingsScreen(
         state.showModelMappingOverlay?.let { droneId -> com.horizon.caadronesimulator.ui.settings.HandfeelTuningOverlay(title = "${stringResource(R.string.settings_tab_drone)}: ${com.horizon.caadronesimulator.model.DroneRegistry.getSpec(droneId).name}", rateT_Up = state.modelGene.rateT_Up, rateT_Down = state.modelGene.rateT_Down, expoT = state.modelGene.expoT, rateY = state.modelGene.rateY, expoY = state.modelGene.expoY, rateP = state.modelGene.rateP, expoP = state.modelGene.expoP, rateR = state.modelGene.rateR, expoR = state.modelGene.expoR, onUpdateRate = { k, v -> onUpdateState { when(k){ "T_Up" -> modelGene.rateT_Up = v; "T_Down" -> modelGene.rateT_Down = v; "Y" -> modelGene.rateY = v; "P" -> modelGene.rateP = v; "R" -> modelGene.rateR = v } } }, onUpdateExpo = { k, v -> onUpdateState { when(k){ "T" -> modelGene.expoT = v; "Y" -> modelGene.expoY = v; "P" -> modelGene.expoP = v; "R" -> modelGene.expoR = v } } }, onResetAll = { onUpdateState { val module = com.horizon.caadronesimulator.model.DroneRegistry.getModule(droneId); modelGene.apply { rateT_Up = module.baseRateT_Up; rateT_Down = module.baseRateT_Down; expoT = module.baseExpoT; rateY = module.baseRateY; expoY = module.baseExpoY; rateP = module.baseRateP; expoP = module.baseExpoP; rateR = module.baseRateR; expoR = module.baseExpoR } } }, onClose = { onUpdateState { showModelMappingOverlay = null } }, joystickMode = state.joystickMode, isGeneMode = true) }
         if (state.showAuxMappingOverlay) { AuxMappingOverlay(state = state, onStartBinding = { k -> onUpdateState { isAutoBinding = if (isAutoBinding == k) null else k.ifEmpty { null } } }, onManualBind = { k, a -> onUpdateState { val l = if (a >= 101) "Serial CH${a - 100}" else "Axis $a"; val m = ChannelMapping(a, false, l); when(k) { "ly" -> mappingLY = m; "lx" -> mappingLX = m; "ry" -> mappingRY = m; "rx" -> mappingRX = m; "hold" -> mappingHold = m; "arm" -> mappingArm = m; "obsHeight" -> mappingObsHeight = m; "obsTilt" -> mappingObsTilt = m; "fpvTilt" -> mappingFpvTilt = m } } }, onToggleInvert = { k -> onUpdateState { when(k) { "ly" -> mappingLY = mappingLY.copy(inverted = !mappingLY.inverted); "lx" -> mappingLX = mappingLX.copy(inverted = !mappingLX.inverted); "ry" -> mappingRY = mappingRY.copy(inverted = !mappingRY.inverted); "rx" -> mappingRX = mappingRX.copy(inverted = !mappingRX.inverted); "hold" -> mappingHold = mappingHold.copy(inverted = !mappingHold.inverted); "arm" -> mappingArm = mappingArm.copy(inverted = !mappingArm.inverted); "obsHeight" -> mappingObsHeight = mappingObsHeight.copy(inverted = !mappingObsHeight.inverted); "obsTilt" -> mappingObsTilt = mappingObsTilt.copy(inverted = !mappingObsTilt.inverted); "fpvTilt" -> mappingFpvTilt = mappingFpvTilt.copy(inverted = !mappingFpvTilt.inverted) } } }, onDismiss = { onUpdateState { showAuxMappingOverlay = false; isAutoBinding = null } }) }
         if (showExpertUnlockDialog) { 
-            ExpertUnlockDialog(onDismiss = { showExpertUnlockDialog = false }, onUnlock = { onUpdateState { isExpertModeLocked = false } }) 
+            com.horizon.caadronesimulator.ui.common.NikoOverlayCard(
+                title = stringResource(R.string.settings_expert_unlock_title),
+                onDismiss = { showExpertUnlockDialog = false }
+            ) {
+                var password by remember { mutableStateOf("") }
+                var error by remember { mutableStateOf(false) }
+                
+                Column { 
+                    Text(stringResource(R.string.settings_expert_unlock_desc), color = NikoTheme.colors.textSecondary, fontSize = 11.sp) // [v1.7.9.16] 13 -> 11
+                    Text(stringResource(R.string.settings_expert_unlock_hint), color = NikoTheme.colors.primary.copy(alpha = 0.8f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(10.dp)) // [v1.7.9.16] 16 -> 10
+                    OutlinedTextField(
+                        value = password, 
+                        onValueChange = { password = it; error = false }, 
+                        label = { Text(stringResource(R.string.settings_expert_unlock_label), fontSize = 12.sp) }, 
+                        singleLine = true, 
+                        isError = error, 
+                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp),
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = NikoTheme.colors.textPrimary, unfocusedTextColor = NikoTheme.colors.textPrimary)
+                    ) 
+                    
+                    Spacer(Modifier.height(16.dp)) // [v1.7.9.16] 24 -> 16
+                    
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(
+                            onClick = { showExpertUnlockDialog = false },
+                            modifier = Modifier.height(32.dp)
+                        ) { 
+                            Text(stringResource(R.string.action_cancel), fontSize = 12.sp) 
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Button(
+                            onClick = { 
+                                if (password == com.horizon.caadronesimulator.model.AppConfig.SystemDefaults.ADMIN_PASSWORD) { 
+                                    onUpdateState { isExpertModeLocked = false }
+                                    showExpertUnlockDialog = false 
+                                } else { 
+                                    error = true 
+                                } 
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = NikoTheme.colors.primary),
+                            modifier = Modifier.height(36.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
+                        ) { 
+                            Text(stringResource(R.string.settings_expert_unlock_btn), color = if(NikoTheme.colors.isLight) Color.White else Color.Black, fontSize = 12.sp)
+                        }
+                    }
+                } 
+            }
         }
     }
 }
 
-@Composable
-fun ExpertUnlockDialog(onDismiss: () -> Unit, onUnlock: () -> Unit) {
-    var password by remember { mutableStateOf("") }
-    var error by remember { mutableStateOf(false) }
-    AlertDialog(
-        onDismissRequest = onDismiss, 
-        title = { Text(stringResource(R.string.settings_expert_unlock_title), color = NikoTheme.colors.textPrimary) }, 
-        text = { 
-            Column { 
-                Text(stringResource(R.string.settings_expert_unlock_desc), color = NikoTheme.colors.textSecondary, fontSize = 13.sp)
-                Text(stringResource(R.string.settings_expert_unlock_hint), color = NikoTheme.colors.primary.copy(alpha = 0.8f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = password, 
-                    onValueChange = { password = it; error = false }, 
-                    label = { Text(stringResource(R.string.settings_expert_unlock_label)) }, 
-                    singleLine = true, 
-                    isError = error, 
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = NikoTheme.colors.textPrimary, unfocusedTextColor = NikoTheme.colors.textPrimary)
-                ) 
-            } 
-        }, 
-        confirmButton = { Button(onClick = { if (password == com.horizon.caadronesimulator.model.AppConfig.SystemDefaults.ADMIN_PASSWORD) { onUnlock(); onDismiss() } else { error = true } }) { Text(stringResource(R.string.settings_expert_unlock_btn)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
-        containerColor = NikoTheme.colors.panel
-    )
-}
+// 移除原有的 ExpertUnlockDialog
 
 @Composable
 fun SystemSettingRow(label: String, checked: Boolean, onToggle: (Boolean) -> Unit, thumbColor: Color = NikoTheme.colors.primary, description: String? = null) {

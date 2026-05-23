@@ -42,7 +42,7 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
     var useSimplifiedMarkers = false; var showSpecialTitle = false; var currentTitleText = ""; private var renderedTitleText = ""; var useFlightLimit = true; var mainFOV = 45f
     var showGroundAnchor = false; var isThrottleHoldActive = true; var lastManualTouchTime = 0L      
     var pipRect: android.graphics.Rect? = null; var zoomPipRect: android.graphics.Rect? = null
-    var randomWindPhase = 0f; var turbulencePhase = 0f // [v1.6.3] 改為由 ViewModel 外部同步，Renderer 僅讀取
+    var randomWindPhase = 0f; var turbulencePhase = 0f
     private var specialTitleScreenPos: androidx.compose.ui.geometry.Offset? = null
     var onTitlePosUpdate: ((androidx.compose.ui.geometry.Offset?) -> Unit)? = null // [v1.7.6] 專屬投影位置回調
     private var titleTextureId = -1; private var texH = -1; private var texCoordH = -1; private var useTexH = -1

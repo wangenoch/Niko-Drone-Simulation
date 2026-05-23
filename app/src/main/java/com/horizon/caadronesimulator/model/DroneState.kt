@@ -63,10 +63,9 @@ class DroneState {
         var packetsPerSecond by mutableIntStateOf(0); var isSignalActive by mutableStateOf(false); var isAutoConnectEnabled by mutableStateOf(AppConfig.SystemDefaults.AUTO_CONNECT_ENABLED)
         var newHardwareDetected: android.hardware.usb.UsbDevice? by mutableStateOf(null); var isHardwareController by mutableStateOf(false)
         var rawBytesCount by mutableIntStateOf(0); var bufferUsage by mutableStateOf("0/512"); var jitter by mutableStateOf("0.0 ms")
-        var stability by mutableStateOf("100%"); var isHandshaking by mutableStateOf(false); var lockedProtocol by mutableStateOf("")
+        var stability by mutableStateOf("100%"); var lockedProtocol by mutableStateOf("")
         var baudRate by mutableIntStateOf(115200); var isSerialConflict by mutableStateOf(false); var conflictPid by mutableStateOf("None")
-        var wasInternalSuccess by mutableStateOf(false); var isHardwareVerified by mutableStateOf(false); var probeAttempts by mutableIntStateOf(0)
-        var isProbing by mutableStateOf(false); var lockedSerialPath by mutableStateOf(""); var linkType by mutableStateOf("None")
+        var lockedSerialPath by mutableStateOf(""); var linkType by mutableStateOf("None")
         var rawHexData by mutableStateOf(""); var networkHost by mutableStateOf("127.0.0.1"); var networkPort by mutableIntStateOf(14550)
         var networkProtocol by mutableStateOf("UDP"); var isNetworkConnected by mutableStateOf(false); var showNetworkSettingsDialog by mutableStateOf(false)
         var hardwareProfile: HardwareProfile? by mutableStateOf(null)
@@ -113,10 +112,9 @@ class DroneState {
     var appLanguage by mutableStateOf("zh") // [v1.7.6] 語言設定：zh 或 en
     var appTheme by mutableStateOf(AppConfig.THEME_CLASSIC) // [v1.7.7] 主題設定
     var showObstacles by mutableStateOf(AppConfig.SystemDefaults.SHOW_OBSTACLES); var hideStatusBar by mutableStateOf(AppConfig.SystemDefaults.HIDE_STATUS_BAR); var pauseInSettings by mutableStateOf(AppConfig.SystemDefaults.PAUSE_IN_SETTINGS); var applyPhysicalSpecs by mutableStateOf(AppConfig.SystemDefaults.APPLY_PHYSICAL_SPECS); var useFlightLimit by mutableStateOf(AppConfig.SystemDefaults.USE_FLIGHT_LIMIT)
-    var useSimplifiedMarkers by mutableStateOf(true); var showSpecialTitle by mutableStateOf(AppConfig.VisualDefaults.SHOW_SPECIAL_TITLE); var settingsTab by mutableStateOf(SettingsTab.ENVIRONMENT); var showSettings by mutableStateOf(false)
+    var useSimplifiedMarkers by mutableStateOf(true); var showSpecialTitle by mutableStateOf(AppConfig.VisualDefaults.SHOW_SPECIAL_TITLE); var settingsTab by mutableStateOf(SettingsTab.CONTROLLER); var showSettings by mutableStateOf(false)
     var showHardwareMonitor by mutableStateOf(false); var isInteractionLocked by mutableStateOf(false)
     var useStrictLanding by mutableStateOf(AppConfig.SystemDefaults.USE_STRICT_LANDING) // [v1.5.9] 專業考核降落安全標準開關
-    var isUsbStickyActive by mutableStateOf(false) // [v1.5.9] USB 外接主權鎖定，防止背景掃描干擾
     var systemMessage by mutableStateOf<String?>(null); var diagnosticLog by mutableStateOf("")
 
     /** [v1.7.8] 是否優先使用標準搖桿模式 (USB HID) */
@@ -165,15 +163,10 @@ class DroneState {
     var bufferUsage: String get() = hardware.bufferUsage; set(v) { hardware.bufferUsage = v }
     var jitter: String get() = hardware.jitter; set(v) { hardware.jitter = v }
     var stability: String get() = hardware.stability; set(v) { hardware.stability = v }
-    var isHandshaking: Boolean get() = hardware.isHandshaking; set(v) { hardware.isHandshaking = v }
     var lockedProtocol: String get() = hardware.lockedProtocol; set(v) { hardware.lockedProtocol = v }
     var baudRate: Int get() = hardware.baudRate; set(v) { hardware.baudRate = v }
     var isSerialConflict: Boolean get() = hardware.isSerialConflict; set(v) { hardware.isSerialConflict = v }
     var conflictPid: String get() = hardware.conflictPid; set(v) { hardware.conflictPid = v }
-    var wasInternalSuccess: Boolean get() = hardware.wasInternalSuccess; set(v) { hardware.wasInternalSuccess = v }
-    var isHardwareVerified: Boolean get() = hardware.isHardwareVerified; set(v) { hardware.isHardwareVerified = v }
-    var probeAttempts: Int get() = hardware.probeAttempts; set(v) { hardware.probeAttempts = v }
-    var isProbing: Boolean get() = hardware.isProbing; set(v) { hardware.isProbing = v }
     var lockedSerialPath: String get() = hardware.lockedSerialPath; set(v) { hardware.lockedSerialPath = v }
     var linkType: String get() = hardware.linkType; set(v) { hardware.linkType = v }
     var rawHexData: String get() = hardware.rawHexData; set(v) { hardware.rawHexData = v }

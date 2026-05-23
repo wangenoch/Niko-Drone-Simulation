@@ -41,26 +41,27 @@ fun HandfeelTuningOverlay(
     isGeneMode: Boolean = false // 是否為機種基因模式 (顯示非對稱油門)
 ) {
     val themeColors = NikoTheme.colors
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f)).clickable(enabled = false) {}.zIndex(1000f)) {
+    // [v1.7.9.17] 背景調整：使用主題背景色並增加不透明度 (0.8 -> 0.95)，徹底隔離底層視窗干擾
+    Box(modifier = Modifier.fillMaxSize().background(themeColors.background.copy(alpha = 0.95f)).clickable(enabled = false) {}.zIndex(1000f)) {
         Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) { 
-                        Text(title, color = themeColors.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        Text(title, color = themeColors.textPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold) // [v1.7.9.17] 縮小字體 (18 -> 16)
                         Spacer(modifier = Modifier.width(16.dp))
                         TextButton(onClick = onResetAll) { 
-                            Icon(Icons.Default.SettingsBackupRestore, null, tint = themeColors.primary, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.SettingsBackupRestore, null, tint = themeColors.primary, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text(stringResource(R.string.action_reset_all), color = themeColors.primary, fontSize = 12.sp) 
+                            Text(stringResource(R.string.action_reset_all), color = themeColors.primary, fontSize = 11.sp) 
                         } 
                     }
-                    Text(subtitle, color = themeColors.textSecondary, fontSize = 11.sp)
+                    Text(subtitle, color = themeColors.textSecondary, fontSize = 10.sp)
                 }
                 IconButton(onClick = onClose) { Icon(Icons.Default.Close, null, tint = themeColors.textPrimary) }
             }
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(modifier = Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(modifier = Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     // 油門卡片：根據模式決定顯示單一還是非對稱
                     RateCard(
                         key = "T", label = "🚀 " + stringResource(R.string.joystick_label_throttle), 
@@ -71,7 +72,7 @@ fun HandfeelTuningOverlay(
                     )
                     RateCard("Y", "🔄 " + stringResource(R.string.joystick_label_yaw), rateY, rateY, expoY, onUpdateRate, onUpdateExpo)
                 }
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     RateCard("P", "📐 " + stringResource(R.string.joystick_label_pitch), rateP, rateP, expoP, onUpdateRate, onUpdateExpo)
                     RateCard("R", "⚖️ " + stringResource(R.string.joystick_label_roll), rateR, rateR, expoR, onUpdateRate, onUpdateExpo)
                 }
@@ -86,7 +87,7 @@ fun HandfeelTuningOverlay(
             }
             Text(
                 text = stringResource(R.string.joystick_mode_hint, joystickMode, modeName), 
-                color = themeColors.primary.copy(0.5f), fontSize = 10.sp, modifier = Modifier.align(Alignment.End).padding(top = 8.dp)
+                color = themeColors.primary.copy(0.4f), fontSize = 9.sp, modifier = Modifier.align(Alignment.End).padding(top = 4.dp)
             )
         }
     }
@@ -99,29 +100,30 @@ fun RateCard(
     isSmall: Boolean = false, showAsymmetrical: Boolean = false
 ) {
     val themeColors = NikoTheme.colors
-    Surface(color = themeColors.textPrimary.copy(alpha = 0.05f), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, themeColors.divider)) {
-        Row(modifier = Modifier.padding(if(isSmall) 8.dp else 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(if(isSmall) 50.dp else 65.dp).background(themeColors.background, RoundedCornerShape(4.dp))) {
+    Surface(color = themeColors.textPrimary.copy(alpha = 0.03f), shape = RoundedCornerShape(10.dp), border = BorderStroke(1.dp, themeColors.divider)) {
+        Row(modifier = Modifier.padding(if(isSmall) 6.dp else 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            // [v1.7.9.17] 曲線圖背景調整：使用主題面板色替代寫死的背景色，並增加圓角與邊框一致性
+            Box(modifier = Modifier.size(if(isSmall) 45.dp else 60.dp).background(themeColors.panel, RoundedCornerShape(6.dp)).border(0.5.dp, themeColors.divider, RoundedCornerShape(6.dp))) {
                 Canvas(modifier = Modifier.fillMaxSize().padding(4.dp)) {
-                    val w = size.width; val h = size.height; drawLine(themeColors.divider, Offset(w/2, 0f), Offset(w/2, h), 1f); drawLine(themeColors.divider, Offset(0f, h/2), Offset(w, h/2), 1f)
+                    val w = size.width; val h = size.height; drawLine(themeColors.divider.copy(alpha = 0.5f), Offset(w/2, 0f), Offset(w/2, h), 1f); drawLine(themeColors.divider.copy(alpha = 0.5f), Offset(0f, h/2), Offset(w, h/2), 1f)
                     val path = Path(); for (i in 0..20) { val x = (i / 10f) - 1f; val absX = abs(x); val r = if (x >= 0) rateUp else rateDown; val y = sign(x) * ((1f - expo) * absX + expo * absX * absX * absX) * (r / 2f); val sx = (x + 1f) / 2f * w; val sy = (1f - (y + 1f) / 2f) * h; if (i == 0) path.moveTo(sx, sy) else path.lineTo(sx, sy) }; drawPath(path, themeColors.primary, style = Stroke(1.5.dp.toPx()))
                 }
             }
-            Spacer(modifier = Modifier.width(if(isSmall) 10.dp else 14.dp))
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(if(showAsymmetrical) 2.dp else 4.dp)) {
-                Text(label, color = themeColors.textPrimary, fontSize = if(isSmall) 11.sp else 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 2.dp))
+            Spacer(modifier = Modifier.width(if(isSmall) 8.dp else 12.dp))
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(if(showAsymmetrical) 1.dp else 2.dp)) {
+                Text(label, color = themeColors.textPrimary, fontSize = if(isSmall) 10.sp else 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 1.dp))
                 if (showAsymmetrical) {
                     AsymmetricalSlider(stringResource(R.string.joystick_rate_up), rateUp, { onUpdateRate("${key}_Up", it) }, isSmall)
                     AsymmetricalSlider(stringResource(R.string.joystick_rate_down), rateDown, { onUpdateRate("${key}_Down", it) }, isSmall)
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) { 
-                        Text(stringResource(R.string.hud_rate_short) + ":" + "%.1f".format(Locale.US, rateUp), color = themeColors.primary.copy(0.7f), fontSize = if(isSmall) 8.sp else 9.sp, modifier = Modifier.width(if(isSmall) 30.dp else 38.dp))
-                        Slider(value = rateUp, onValueChange = { onUpdateRate(key, it) }, valueRange = 0.1f..2.0f, modifier = Modifier.height(24.dp), colors = SliderDefaults.colors(thumbColor = themeColors.primary, activeTrackColor = themeColors.primary, inactiveTrackColor = themeColors.divider)) 
+                        Text(stringResource(R.string.hud_rate_short) + ":" + "%.1f".format(Locale.US, rateUp), color = themeColors.primary.copy(0.7f), fontSize = if(isSmall) 7.sp else 8.sp, modifier = Modifier.width(if(isSmall) 28.dp else 34.dp))
+                        Slider(value = rateUp, onValueChange = { onUpdateRate(key, it) }, valueRange = 0.1f..2.0f, modifier = Modifier.height(22.dp), colors = SliderDefaults.colors(thumbColor = themeColors.primary, activeTrackColor = themeColors.primary, inactiveTrackColor = themeColors.divider)) 
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) { 
-                    Text(stringResource(R.string.hud_expo_short) + ":" + "%.1f".format(Locale.US, expo), color = themeColors.textSecondary, fontSize = if(isSmall) 8.sp else 9.sp, modifier = Modifier.width(if(isSmall) 30.dp else 38.dp))
-                    Slider(value = expo, onValueChange = { onUpdateExpo(key, it) }, valueRange = 0.0f..1.0f, modifier = Modifier.height(24.dp), colors = SliderDefaults.colors(thumbColor = themeColors.primary, activeTrackColor = themeColors.primary, inactiveTrackColor = themeColors.divider)) 
+                    Text(stringResource(R.string.hud_expo_short) + ":" + "%.1f".format(Locale.US, expo), color = themeColors.textSecondary, fontSize = if(isSmall) 7.sp else 8.sp, modifier = Modifier.width(if(isSmall) 28.dp else 34.dp))
+                    Slider(value = expo, onValueChange = { onUpdateExpo(key, it) }, valueRange = 0.0f..1.0f, modifier = Modifier.height(22.dp), colors = SliderDefaults.colors(thumbColor = themeColors.primary, activeTrackColor = themeColors.primary, inactiveTrackColor = themeColors.divider))
                 }
             }
         }
