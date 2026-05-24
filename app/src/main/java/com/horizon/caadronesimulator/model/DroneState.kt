@@ -70,6 +70,8 @@ class DroneState {
         var networkProtocol by mutableStateOf("UDP"); var isNetworkConnected by mutableStateOf(false); var showNetworkSettingsDialog by mutableStateOf(false)
         var hardwareProfile: HardwareProfile? by mutableStateOf(null)
         var optimizationPromptIgnored by mutableStateOf(false)
+        /** [v1.7.6] 是否已啟用 USB 黏性連線 (用於專業版硬體鎖定) */
+        var isUsbStickyActive by mutableStateOf(false)
     }
     val hardware = HardwareDomain()
 
@@ -176,6 +178,7 @@ class DroneState {
     var isNetworkConnected: Boolean get() = hardware.isNetworkConnected; set(v) { hardware.isNetworkConnected = v }
     var showNetworkSettingsDialog: Boolean get() = hardware.showNetworkSettingsDialog; set(v) { hardware.showNetworkSettingsDialog = v }
     var hardwareProfile: HardwareProfile? get() = hardware.hardwareProfile; set(v) { hardware.hardwareProfile = v }
+    var isUsbStickyActive: Boolean get() = hardware.isUsbStickyActive; set(v) { hardware.isUsbStickyActive = v }
 
     var cameraMode: String get() = camera.cameraMode; set(v) { camera.cameraMode = v }
     var mainFOV: Float get() = camera.mainFOV; set(v) { camera.mainFOV = v }

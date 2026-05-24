@@ -20,6 +20,7 @@ import com.horizon.caadronesimulator.model.StickInputState
 import com.horizon.caadronesimulator.render.DroneSimulationRenderer
 import com.horizon.caadronesimulator.ui.hud.DroneHUD
 import com.horizon.caadronesimulator.ui.hud.FlightInteractionLayer
+import com.horizon.caadronesimulator.ui.interaction.TouchZoomLayer
 import com.horizon.caadronesimulator.ui.overlays.OverlayDispatcher
 
 /**
@@ -182,6 +183,13 @@ fun MainAppScreen(
                 if (renderer.isPaused != isPausedLocal) renderer.isPaused = isPausedLocal
                 renderer.lastManualTouchTime = droneState.lastManualTouchTime 
             }
+        )
+
+        // [v1.7.9] 觸控縮放交互層：置於 zIndex=1，確保在渲染器之上但 HUD 之下
+        TouchZoomLayer(
+            state = droneState,
+            onUpdateState = { action -> droneState.action() },
+            modifier = Modifier.zIndex(1f)
         )
 
         // [v1.7.6] 通用飛行邏輯調度器：管理基礎 UI 與判定邏輯 (側邊拉桿等，置於較低圖層 zIndex=5)
