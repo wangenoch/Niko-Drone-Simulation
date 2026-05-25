@@ -174,6 +174,12 @@ object AppConfig {
         /** 是否顯示場地中的實體障礙物 (供進階練習) */
         const val SHOW_OBSTACLES = false
 
+        /** [v1.7.9.12] 碰撞物理標準 (Impact Physics Standards) */
+        /** 安全降落速度上限 (m/s)：低於此值視為安全 */
+        const val IMPACT_THRESHOLD_SAFE = 2.2f
+        /** 結構性損壞臨界值 (m/s)：超過此值判定為嚴重撞擊 */
+        const val IMPACT_THRESHOLD_CRITICAL = 3.5f
+
         /** [v1.7.8] 預設是否優先使用標準搖桿模式 (USB HID) */
         const val USE_HID_PRIORITY = true
 

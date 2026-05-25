@@ -300,6 +300,7 @@
     <string name="safety_flight_mode_prefix">Mode Switched ➔ %1$s</string>
     <string name="safety_msg_armed">🚀 Motors ARMED</string>
     <string name="safety_msg_disarmed">🛑 Motors LOCKED</string>
+    <string name="safety_msg_landing_disarm">🛑 Landed Safety: Motors Disarmed</string>
     <string name="safety_msg_auto_disarm">⚠️ Inactivity: Motors Auto-Locked</string>
     <string name="status_crash">CRASHED</string>
     <string name="status_low_battery">Battery Depleted</string>

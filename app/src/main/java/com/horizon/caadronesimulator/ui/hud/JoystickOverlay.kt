@@ -79,7 +79,9 @@ fun StickInteractionLogic(
         }
     }
 
-    val isAutoStop = !state.isMotorLocked && isGrounded && sT < -0.95f && sticksNeutral && (System.currentTimeMillis() - lastUnlockTime > 2000)
+    // [v1.7.9.15] 落地自動上鎖判定：恢復歸一化原始行程判定，解決 T4 低 Rate 無法上鎖問題
+    val rawThrottle = stickState.stickLY(state)
+    val isAutoStop = !state.isMotorLocked && isGrounded && rawThrottle < -0.95f && sticksNeutral && (System.currentTimeMillis() - lastUnlockTime > 2000)
 
     LaunchedEffect(isCSC) {
         if (isCSC) {
@@ -96,7 +98,8 @@ fun StickInteractionLogic(
         if (isAutoStop) {
             delay(1000)
             if (latestState.altitude <= spec.groundOffset + 0.15f) {
-                onUpdateState { isMotorLocked = true; systemMessage = "SAFETY_AUTO_DISARM" }
+                // [v1.7.9.15] 恢復正確的落地訊息標籤
+                onUpdateState { isMotorLocked = true; systemMessage = "SAFETY_LANDING_DISARM" }
             }
         }
     }

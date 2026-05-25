@@ -10,10 +10,18 @@ import kotlin.math.*
  */
 object PhysicsEngine {
     var stepResult: PhysicsResult? = null
+    
+    // [v1.7.9.19] 損毀狀態自旋鎖：一旦判定撞擊，強制保持損毀狀態直到重置
+    private var isLatchedImpact = false
+    private var latchedSystemMsg: String? = null
+    private var latchedImpactSpeed = 0f
 
     /** [v1.7.6] 重置引擎狀態：徹底清除上一次的運算結果，防止無限碰撞遞迴 */
     fun clearState() {
         stepResult = null
+        isLatchedImpact = false
+        latchedSystemMsg = null
+        latchedImpactSpeed = 0f
     }
 
     data class AtmosConfig(
@@ -40,8 +48,39 @@ object PhysicsEngine {
 
     fun step(dt: Float, state: DronePhysicsState, input: PhysicsEngine.ControlInput, atmos: AtmosConfig, droneType: String): PhysicsResult {
         val spec = DroneRegistry.getSpec(droneType)
+        
+        // [v1.7.9.19] 鎖定保護：若已處於損毀鎖定狀態，直接回傳鎖定結果，拒絕任何新計算
+        if (isLatchedImpact) {
+            return PhysicsResult(true, sqrt(state.posX.pow(2) + state.posZ.pow(2)), latchedSystemMsg, 0f, latchedImpactSpeed)
+        }
+
         val mass = if (atmos.applyPhysicalSpecs) spec.physicsMass else 1.0f
         
+        // [v1.7.9.18] 路跡判官系統 (Trajectory Judge)
+        // 核心憲法：由「物理向量」預測生死，徹底移除高度進入限制，100% 屏蔽 Rate 干擾。
+        val entryPosY = state.posY
+        val entryVelY = state.velY
+        val entrySpeed = sqrt(state.velX.pow(2) + state.velY.pow(2) + state.velZ.pow(2))
+        
+        // 1. 純物理位移預測 (無指令干預版)
+        val inertialNextY = entryPosY + entryVelY * dt
+        
+        // 2. 判官裁決：向量穿透地面 && 速度向下 && 速度過快
+        var isPredictiveCrash = false
+        var predictiveSystemMsg: String? = null
+        
+        // [安全護衛]：只要垂直速度向下 (<-0.01) 且進入速度超標，且軌跡穿透地面線，即判定為砸地
+        if (entryVelY < -0.01f && inertialNextY <= spec.groundOffset + 0.001f) {
+            if (atmos.useStrictLanding) {
+                val thresholdSafe = com.horizon.caadronesimulator.model.AppConfig.SystemDefaults.IMPACT_THRESHOLD_SAFE
+                if (entrySpeed > thresholdSafe) {
+                    isPredictiveCrash = true
+                    val thresholdCrit = com.horizon.caadronesimulator.model.AppConfig.SystemDefaults.IMPACT_THRESHOLD_CRITICAL
+                    predictiveSystemMsg = if (entrySpeed > thresholdCrit) "CRASH_EXTREME" else "CRASH_STRUCTURAL"
+                }
+            }
+        }
+
         // --- 1. [1:1 Git] 安全鎖 ---
         if (atmos.isMotorLocked) {
             state.velX = 0f; state.velY = 0f; state.velZ = 0f
@@ -141,33 +180,43 @@ object PhysicsEngine {
         
         val nextX = state.posX + state.velX * dt
         val nextZ = state.posZ + state.velZ * dt
-        val preImpactTotalSpeed = sqrt(state.velX.pow(2) + state.velY.pow(2) + state.velZ.pow(2))
-
-        // --- 7. [1:1 Git] 碰撞與地面處理 ---
+        
+        // --- 7. [v1.7.9.17] 憲法級審判執行層 ---
+        // 核心邏輯：判決驅動位置。判官的「有罪裁決」具有最高優先權，無視後續 nextY 是否逃脫。
         val collisionImpact = checkCollision(droneType, nextX, nextY, nextZ, state.visPitch, state.visRoll, atmos.useStrictLanding, atmos.showObstacles)
         
         var isHardLanding = false
-        if (nextY <= spec.groundOffset + 0.001f) {
-            if (atmos.useStrictLanding && state.velY < 0f) {
-                if (preImpactTotalSpeed > 2.2f) isHardLanding = true
-            }
+        
+        // 判官執行點：一旦預測性判官判定為 Crash，立即執行，不論 nextY 在哪
+        if (isPredictiveCrash) {
+            isHardLanding = true
+            state.posY = spec.groundOffset
+            state.velY = 0f; state.velX = 0f; state.velZ = 0f
+            if (systemMsg == null) systemMsg = predictiveSystemMsg
+        } else if (nextY <= spec.groundOffset + 0.001f) {
+            // 常規著陸處理 (未達損毀速度)
             state.posY = spec.groundOffset
             state.velY = 0f; state.velX = 0f; state.velZ = 0f
         } else {
+            // 正常飛行位移
             state.posY = nextY; state.posX = nextX; state.posZ = nextZ
         }
 
         val isImpact = collisionImpact || isHardLanding
-        if (isHardLanding && systemMsg == null) {
-            systemMsg = if (preImpactTotalSpeed > 3.5f) "CRASH_EXTREME" else "CRASH_STRUCTURAL"
+        
+        // [v1.7.9.19] 損毀鎖定觸發：一旦判定為 Impact，立即鎖定靜態狀態，防止線程延遲導致狀態被洗白
+        if (isImpact) {
+            isLatchedImpact = true
+            latchedSystemMsg = systemMsg
+            latchedImpactSpeed = entrySpeed
         }
-
+        
         val res = PhysicsResult(
             isImpact = isImpact, 
             distanceH = sqrt(state.posX.pow(2) + state.posZ.pow(2)), 
             systemMessage = systemMsg, 
             motorRpm = (input.throttle + 1f) / 2f, 
-            impactSpeed = preImpactTotalSpeed,
+            impactSpeed = entrySpeed,
             currentWindAngle = com.horizon.caadronesimulator.model.DroneState.getInstance().env.currentWindAngle // [v1.7.7] 導出風向角
         )
         stepResult = res
@@ -274,6 +323,6 @@ object PhysicsEngine {
         val systemMessage: String?, 
         val motorRpm: Float, 
         val impactSpeed: Float = 0f,
-        val currentWindAngle: Float = 0f // [v1.7.7] 導出實時風向角，供渲染器同步雲層與 HUD
+        val currentWindAngle: Float = 0f // [v1.7.7] 導出風向角
     )
 }

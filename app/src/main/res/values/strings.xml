@@ -300,6 +300,7 @@
     <string name="safety_flight_mode_prefix">飛行模式切換 ➔ %1$s</string>
     <string name="safety_msg_armed">🚀 馬達已解鎖</string>
     <string name="safety_msg_disarmed">🛑 馬達已鎖定</string>
+    <string name="safety_msg_landing_disarm">🛑 落地安全上鎖：馬達已關閉</string>
     <string name="safety_msg_auto_disarm">⚠️ 長時間無操作：馬達自動上鎖</string>
     <string name="status_crash">已損毀</string>
     <string name="status_low_battery">電力耗盡</string>

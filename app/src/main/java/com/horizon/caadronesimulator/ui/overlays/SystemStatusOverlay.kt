@@ -87,6 +87,7 @@ fun SystemStatusOverlay(
         "PERM_REQUIRED" -> stringResource(R.string.sys_msg_perm_required)
         "SAFETY_ARMED" -> stringResource(R.string.safety_msg_armed)
         "SAFETY_DISARMED" -> stringResource(R.string.safety_msg_disarmed)
+        "SAFETY_LANDING_DISARM" -> stringResource(R.string.safety_msg_landing_disarm)
         "SAFETY_AUTO_DISARM" -> stringResource(R.string.safety_msg_auto_disarm)
         else -> rawMsg
     }
