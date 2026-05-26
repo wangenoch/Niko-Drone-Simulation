@@ -1,0 +1,64 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- [v1.7.12] Pro Icon - Final Safety Buffer (0.7x scale + Left Shift) -->
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:translateX="-4"
+        android:scaleX="0.7"
+        android:scaleY="0.7">
+
+        <!-- NI Logo -->
+        <path
+            android:fillColor="#1B4332"
+            android:pathData="M35,30 L35,60 M35,30 L55,50 L55,30 M55,30 L55,60"
+            android:strokeWidth="4"
+            android:strokeColor="#1B4332"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"/>
+
+        <!-- Smile Curve -->
+        <path
+            android:strokeColor="#1B4332"
+            android:strokeWidth="3"
+            android:strokeLineCap="round"
+            android:pathData="M40,65 Q45,72 50,65" />
+
+        <!-- Three Checkmarks -->
+        <path android:fillColor="#1B4332" android:pathData="M30,80 L33,83 L38,78" />
+        <path android:fillColor="#1B4332" android:pathData="M45,80 L48,83 L53,78" />
+        <path android:fillColor="#1B4332" android:pathData="M60,80 L63,83 L68,78" />
+
+        <!-- Text Placeholder -->
+        <path android:fillColor="#1B4332" android:pathData="M35,90 L38,90 L38,95 L35,95 Z M42,90 L45,90 L45,95 L42,95 Z M49,90 L52,90 L52,95 L49,95 Z M56,90 L59,90 L59,95 L56,95 Z" />
+
+        <!-- PRO Badge (Increased Safety Padding) -->
+        <path
+            android:fillColor="#D4AF37"
+            android:pathData="M65,24 L94,24 L94,36 L65,36 Z" />
+
+        <!-- P -->
+        <path android:fillColor="#FFFFFF" android:pathData="M68,26 h1.5 v8 h-1.5 z" />
+        <path android:fillColor="#FFFFFF" android:pathData="M69.5,26 h3.5 v1.5 h-3.5 z" />
+        <path android:fillColor="#FFFFFF" android:pathData="M71.5,27.5 h1.5 v3 h-1.5 z" />
+        <path android:fillColor="#FFFFFF" android:pathData="M69.5,29.5 h3.5 v1.5 h-3.5 z" />
+
+        <!-- R -->
+        <path android:fillColor="#FFFFFF" android:pathData="M77,26 h1.5 v8 h-1.5 z" />
+        <path android:fillColor="#FFFFFF" android:pathData="M78.5,26 h3.5 v1.5 h-3.5 z" />
+        <path android:fillColor="#FFFFFF" android:pathData="M80.5,27.5 h1.5 v3 h-1.5 z" />
+        <path android:fillColor="#FFFFFF" android:pathData="M78.5,29.5 h3.5 v1.5 h-3.5 z" />
+        <path android:fillColor="#FFFFFF" android:pathData="M80.2,31.2 l2.4,2.8 h-1.6 l-2.3,-2.8 z" />
+
+        <!-- O -->
+        <path android:fillColor="#FFFFFF" android:pathData="M86,26 h1.5 v8 h-1.5 z" />
+        <path android:fillColor="#FFFFFF" android:pathData="M90.5,26 h1.5 v8 h-1.5 z" />
+        <path android:fillColor="#FFFFFF" android:pathData="M87.5,26 h3 v1.5 h-3 z" />
+        <path android:fillColor="#FFFFFF" android:pathData="M87.5,32.5 h3 v1.5 h-3 z" />
+
+    </group>
+</vector>
