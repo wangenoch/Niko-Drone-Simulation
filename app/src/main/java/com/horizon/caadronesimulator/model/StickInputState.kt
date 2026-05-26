@@ -68,7 +68,7 @@ class StickInputState {
 
     // --- [v1.7.9] 核心演算中樞 (Logic Processing) ---
 
-    private fun resolveValue(state: DroneState, mapping: ChannelMapping, isLeft: Boolean, func: String, isVisual: Boolean): Float {
+    private fun resolveValue(state: DroneState, mapping: ChannelMapping, isLeft: Boolean, func: String, isVisual: Boolean, ignoreRate: Boolean = false): Float {
         val axis = mapping.axis
         val rawValue = if (axis in 0..124) channelBuffer[axis] else 0f
         
@@ -100,6 +100,10 @@ class StickInputState {
             // Pitch (P): 前推為正 (+1.0)
             // Yaw (Y): 右推/順時針為正 (+1.0)
             // Throttle (T): 上推為正 (+1.0)
+            
+            // [v1.7.11] 原始行程路徑：無視 Rate 與 Expo
+            if (ignoreRate) return finalTouch
+
             val finalCmd = InputProcessor.processVirtual(finalTouch, state.getExpo(func), state.getRate(func, finalTouch))
             return if (isVisual) finalCmd / state.getRate(func, finalTouch).coerceAtLeast(0.01f) else finalCmd
         }
@@ -122,6 +126,9 @@ class StickInputState {
         // [v1.7.9] 移除底層硬編碼取反，僅依據 MappingDB 執行
         val processed = if (mapping.inverted) -normalized else normalized
         
+        // [v1.7.11] 原始行程路徑：跳過手感曲線運算，直接回傳反轉並歸一化後的原始物理位置
+        if (ignoreRate) return processed
+
         // 4. 手感曲線演算 (Expo & Rates)
         val finalCmd = InputProcessor.process(processed, state.joystickDeadzone, state.getExpo(func), state.getRate(func, processed), mapping)
 
@@ -139,6 +146,12 @@ class StickInputState {
     fun stickYaw(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[getIdx("Y", state)], getSide("Y", state), "Y", false)
     fun stickPitch(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[getIdx("P", state)], getSide("P", state), "P", false)
     fun stickRoll(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[getIdx("R", state)], getSide("R", state), "R", false)
+
+    /** [v1.7.11] 原始行程指令集 (無視 Rate 縮放，僅保留 Inversion 與歸一化，專供解鎖判定) */
+    fun rawThrottle(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[getIdx("T", state)], getSide("T", state), "T", false, ignoreRate = true)
+    fun rawYaw(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[getIdx("Y", state)], getSide("Y", state), "Y", false, ignoreRate = true)
+    fun rawPitch(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[getIdx("P", state)], getSide("P", state), "P", false, ignoreRate = true)
+    fun rawRoll(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[getIdx("R", state)], getSide("R", state), "R", false, ignoreRate = true)
 
     // --- 視覺同步集 (供 HUD/UI 調用) ---
     fun stickLX(state: DroneState) = resolveValue(state, state.getMappingSnapshot()[1], true, getFunc(1, state), true)

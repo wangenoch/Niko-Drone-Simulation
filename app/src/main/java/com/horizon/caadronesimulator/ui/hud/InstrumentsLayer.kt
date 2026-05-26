@@ -34,6 +34,12 @@ import com.horizon.caadronesimulator.ui.theme.NikoTheme
 import java.util.Locale
 import kotlin.math.*
 
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+
 /**
  * [v1.5.9] 獨立飛行儀表層 (Optimized Display)
  */
@@ -44,15 +50,60 @@ fun InstrumentsLayer(
     onUpdateState: (DroneState.() -> Unit) -> Unit,
     onUpdateTutorialTargets: (String, androidx.compose.ui.geometry.Rect) -> Unit = { _, _ -> }
 ) {
+    val themeColors = NikoTheme.colors
+    val haptic = LocalHapticFeedback.current
+
     val radarAlign = if (state.showVirtualJoysticks) Alignment.TopStart else Alignment.BottomStart
     val radarPad = if (state.showVirtualJoysticks) Modifier.padding(top = 16.dp, start = 16.dp) else Modifier.padding(bottom = 16.dp, start = 16.dp)
     
     Box(modifier = Modifier.fillMaxSize()) {
-        Box(modifier = radarPad.align(radarAlign).onGloballyPositioned { onUpdateTutorialTargets("radar", it.positionInWindow().let { pos -> androidx.compose.ui.geometry.Rect(pos.x, pos.y, pos.x + it.size.width, pos.y + it.size.height) }) }) {
+        Box(
+            modifier = radarPad
+                .align(radarAlign)
+                .offset(x = state.radarOffset.x.dp, y = state.radarOffset.y.dp) // [v1.7.12] 應用自由拖拽偏移 (全儀表通用)
+                .onGloballyPositioned { onUpdateTutorialTargets("radar", it.positionInWindow().let { pos -> androidx.compose.ui.geometry.Rect(pos.x, pos.y, pos.x + it.size.width, pos.y + it.size.height) }) }
+                .border(
+                    1.5.dp, 
+                    if(state.isRadarUnlocked) themeColors.primary else Color.Transparent, // [v1.7.12] 解鎖時顯示全儀表邊框
+                    if(state.hudMode == 3) CircleShape else RoundedCornerShape(12.dp) // [v1.7.12] 自動適配內容形狀，解決最小化時框不對位問題
+                )
+                .pointerInput(Unit) {
+                    detectDragGestures(
+                        onDrag = { change, dragAmount ->
+                            if (state.isRadarUnlocked) {
+                                change.consume()
+                                state.radarOffset += Offset(dragAmount.x / density, dragAmount.y / density)
+                            }
+                        }
+                    )
+                }
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = { 
+                            // 點擊區域時，循環切換模式 (模式 3 為最小化，所以回到 0)
+                            val nextMode = (state.hudMode + 1) % 4
+                            // [v1.7.12] 關鍵修復：從模式 1 (OSD/FPV) 切換出時，主動清除 FBO 渲染區域，防止 FPV 殘留
+                            if (state.hudMode == 1) onUpdatePipRect(null)
+                            onUpdateState { hudMode = nextMode }
+                        },
+                        onLongPress = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            if (state.isRadarUnlocked) {
+                                // 再次長按：歸位並鎖定
+                                state.radarOffset = Offset.Zero
+                                state.isRadarUnlocked = false
+                            } else {
+                                // 長按：解鎖移動
+                                state.isRadarUnlocked = true
+                            }
+                        }
+                    )
+                }
+        ) {
             when (state.hudMode) {
-                0 -> RadarHUD(state, modifier = Modifier.size(150.dp, 100.dp)) { onUpdateState { hudMode = 1 } }
-                1 -> OsdView(state, onUpdatePipRect, modifier = Modifier.size(150.dp, 100.dp)) { onUpdatePipRect(null); onUpdateState { hudMode = 2 } }
-                2 -> AttitudeView(state, modifier = Modifier.size(120.dp)) { onUpdateState { hudMode = 3 } }
+                0 -> RadarHUD(state, modifier = Modifier.size(150.dp, 100.dp))
+                1 -> OsdView(state, onUpdatePipRect, modifier = Modifier.size(150.dp, 100.dp))
+                2 -> AttitudeView(state, modifier = Modifier.size(120.dp))
                 3 -> IconButton(
                     onClick = { onUpdateState { hudMode = 0 } }, 
                     modifier = Modifier.size(44.dp).background(Color(0xAA111111), CircleShape).border(1.dp, Color(0xFFFF9800), CircleShape)
@@ -91,10 +142,10 @@ fun PrecisionZoomView(
 }
 
 @Composable
-fun OsdView(state: DroneState, onUpdatePipRect: (android.graphics.Rect?) -> Unit, modifier: Modifier = Modifier, onClick: () -> Unit) {
+fun OsdView(state: DroneState, onUpdatePipRect: (android.graphics.Rect?) -> Unit, modifier: Modifier = Modifier) {
     val spec = DroneRegistry.getSpec(state.droneType)
     val theme = NikoTheme
-    Box(modifier = modifier.clip(theme.shapes.medium).background(Color.Transparent).border(2.dp, theme.colors.primary.copy(0.6f), theme.shapes.medium).clickable { onClick() }) {
+    Box(modifier = modifier.clip(theme.shapes.medium).background(Color.Transparent).border(2.dp, theme.colors.primary.copy(0.6f), theme.shapes.medium)) {
         Box(modifier = Modifier.fillMaxSize().padding(3.dp).onGloballyPositioned { coords ->
             val pos = coords.positionInWindow(); val size = coords.size
             // [v1.7.6] 修正：在 Compose 坐標系轉換為 Android Graphics Rect 時加入邊界緩衝
@@ -120,9 +171,9 @@ fun OsdView(state: DroneState, onUpdatePipRect: (android.graphics.Rect?) -> Unit
 }
 
 @Composable
-fun AttitudeView(state: DroneState, modifier: Modifier = Modifier, onClick: () -> Unit) {
+fun AttitudeView(state: DroneState, modifier: Modifier = Modifier) {
     val textMeasurer = rememberTextMeasurer()
-    Box(modifier = modifier.background(Color(0xAA111111), CircleShape).border(1.5.dp, Color(0xFF00BFFF), CircleShape).clickable { onClick() }) {
+    Box(modifier = modifier.background(Color(0xAA111111), CircleShape).border(1.5.dp, Color(0xFF00BFFF), CircleShape)) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val c = Offset(size.width / 2, size.height / 2); val r = size.minDimension / 2
             rotate(-state.yaw, c) {
@@ -140,7 +191,7 @@ fun AttitudeView(state: DroneState, modifier: Modifier = Modifier, onClick: () -
             clipPath(Path().apply { addOval(androidx.compose.ui.geometry.Rect(c, r - 20.dp.toPx())) }) {
                 // [關鍵修復] 俯仰極性校準：抬頭 (Pitch > 0) 時地平線應下降 (+)，露出天空
                 val pOff = (state.pitch / 45f) * (r - 20.dp.toPx())
-                rotate(-state.roll, c) {
+                rotate(state.roll, c) {
                     drawRect(Color(0xFF5D4037), Offset(-size.width, size.height / 2 + pOff), Size(size.width * 3, size.height * 2))
                     drawRect(Color(0xFF0288D1), Offset(-size.width, -size.height * 2 + size.height / 2 + pOff), Size(size.width * 3, size.height * 2))
                     drawLine(Color.White, Offset(-size.width, size.height / 2 + pOff), Offset(size.width * 2, size.height / 2 + pOff), 1.5.dp.toPx())

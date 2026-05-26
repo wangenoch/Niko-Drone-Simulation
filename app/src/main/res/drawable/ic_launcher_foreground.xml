@@ -4,7 +4,8 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- White Background Area (Optional, as the background layer handles it, but good for preview) -->
+    <!-- [v1.7.11] NIKO Standard Logo - Precision Stroke Construction -->
+    <!-- This base logo is shared by all flavors. Enhancements are synchronized from the Pro version design. -->
 
     <!-- NI Logo -->
     <path

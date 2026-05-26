@@ -83,6 +83,10 @@ fun SystemStatusOverlay(
             val sText = String.format(Locale.US, "%.1f", param)
             stringResource(R.string.sys_msg_crash_structural, sText)
         }
+        "CRASH_OUT_OF_BOUNDS" -> stringResource(R.string.sys_msg_out_of_bounds)
+        "COLLISION_OBJECT" -> stringResource(R.string.sys_msg_collision_object)
+        "COLLISION_CONE" -> stringResource(R.string.sys_msg_collision_cone)
+        "CRASH_FLIPPED" -> stringResource(R.string.sys_msg_crash_flipped)
         "RESTORE_DONE" -> stringResource(R.string.sys_msg_restore_done)
         "PERM_REQUIRED" -> stringResource(R.string.sys_msg_perm_required)
         "SAFETY_ARMED" -> stringResource(R.string.safety_msg_armed)

@@ -130,7 +130,7 @@ object PhysicsEngine {
         }
         
         var nextY = state.posY + state.velY * dt
-        val maxAlt = spec.groundOffset + 30.0f
+        val maxAlt = spec.groundOffset + com.horizon.caadronesimulator.model.AppConfig.SystemDefaults.MAX_ALTITUDE
         var systemMsg: String? = null
         if (atmos.useFlightLimit && nextY > maxAlt) { 
             nextY = maxAlt; state.velY = 0f; systemMsg = "ALT_LIMIT"
@@ -183,7 +183,7 @@ object PhysicsEngine {
         
         // --- 7. [v1.7.9.17] 憲法級審判執行層 ---
         // 核心邏輯：判決驅動位置。判官的「有罪裁決」具有最高優先權，無視後續 nextY 是否逃脫。
-        val collisionImpact = checkCollision(droneType, nextX, nextY, nextZ, state.visPitch, state.visRoll, atmos.useStrictLanding, atmos.showObstacles)
+        val collisionResult = checkCollisionDetail(droneType, nextX, nextY, nextZ, state.visPitch, state.visRoll, atmos.useStrictLanding, atmos.showObstacles)
         
         var isHardLanding = false
         
@@ -193,6 +193,11 @@ object PhysicsEngine {
             state.posY = spec.groundOffset
             state.velY = 0f; state.velX = 0f; state.velZ = 0f
             if (systemMsg == null) systemMsg = predictiveSystemMsg
+        } else if (collisionResult.isImpact) {
+            // [v1.7.12] 處理非砸地的其它碰撞 (如出界、撞牆、翻覆)
+            state.posY = spec.groundOffset
+            state.velY = 0f; state.velX = 0f; state.velZ = 0f
+            if (systemMsg == null) systemMsg = collisionResult.reason
         } else if (nextY <= spec.groundOffset + 0.001f) {
             // 常規著陸處理 (未達損毀速度)
             state.posY = spec.groundOffset
@@ -202,7 +207,7 @@ object PhysicsEngine {
             state.posY = nextY; state.posX = nextX; state.posZ = nextZ
         }
 
-        val isImpact = collisionImpact || isHardLanding
+        val isImpact = collisionResult.isImpact || isHardLanding
         
         // [v1.7.9.19] 損毀鎖定觸發：一旦判定為 Impact，立即鎖定靜態狀態，防止線程延遲導致狀態被洗白
         if (isImpact) {
@@ -259,7 +264,9 @@ object PhysicsEngine {
         state.batteryPercent = ((state.batteryVoltage - 3.2f) / (4.2f - 3.2f) * 100).toInt()
     }
 
-    private fun checkCollision(type: String, x: Float, y: Float, z: Float, p: Float, r: Float, useStrict: Boolean, showObstacles: Boolean = false): Boolean {
+    data class CollisionDetail(val isImpact: Boolean, val reason: String? = null)
+
+    private fun checkCollisionDetail(type: String, x: Float, y: Float, z: Float, p: Float, r: Float, useStrict: Boolean, showObstacles: Boolean = false): CollisionDetail {
         val spec = DroneRegistry.getSpec(type)
         val mt = max(abs(p), abs(r))
 
@@ -270,7 +277,7 @@ object PhysicsEngine {
                 val dist = sqrt((x - obsX).toDouble().pow(2) + (z - obsZ).toDouble().pow(2))
                 // 圓柱體碰撞：距離小於 (飛機半徑 + 障礙半徑) 且高度低於頂端
                 if (dist < (spec.collisionRadius + obsR) && y < obsH) {
-                    return true
+                    return CollisionDetail(true, "COLLISION_OBJECT")
                 }
             }
         }
@@ -283,7 +290,7 @@ object PhysicsEngine {
 
             // 嚴格模式下 15° 損毀
             if (effectiveBottom < 0.05f && mt > 15f) {
-                return true
+                return CollisionDetail(true, "CRASH_FLIPPED")
             }
         }
 
@@ -293,7 +300,7 @@ object PhysicsEngine {
             val thresholdSq = (spec.collisionRadius * 1.2f).pow(2)
             // 只要在角錐半徑內且高度低於 0.8m 就判定碰撞
             if (distSq < thresholdSq && (y - spec.groundOffset) < 0.8f) {
-                return true
+                return CollisionDetail(true, "COLLISION_CONE")
             }
         }
 
@@ -302,10 +309,17 @@ object PhysicsEngine {
                             z < com.horizon.caadronesimulator.model.Constants.FIELD_Z_BACK || 
                             z > com.horizon.caadronesimulator.model.Constants.FIELD_Z_FRONT
 
+        if (isOutOfBounds) {
+            return CollisionDetail(true, "CRASH_OUT_OF_BOUNDS")
+        }
+
         // --- 極低空翻覆判定 ---
         val isFlippedOnGround = y < spec.groundOffset * 0.5f && mt > 10f
+        if (isFlippedOnGround) {
+            return CollisionDetail(true, "CRASH_FLIPPED")
+        }
 
-        return isOutOfBounds || isFlippedOnGround
+        return CollisionDetail(false)
     }
 
     fun isNearBoundary(x: Float, z: Float): Boolean {

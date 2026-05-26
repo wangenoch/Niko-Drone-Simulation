@@ -6,7 +6,7 @@ package com.horizon.caadronesimulator.model
  */
 object AppConfig {
     // --- 基礎資訊 ---
-    const val CURRENT_VERSION = "1.7.8"
+    const val CURRENT_VERSION = "1.7.12"
     const val RELEASE_DATE = "2026-05"
     const val DEVELOPER = "Enoch Wang"
 
@@ -114,7 +114,15 @@ object AppConfig {
         /** 追蹤模式初始仰角 (度) */
         const val OBSERVER_TILT_TRACKING = 0.0f
         /** 追蹤模式初始縮放倍率 */
-        const val ZOOM_FACTOR_TRACKING = 1.5f
+        const val ZOOM_FACTOR_TRACKING = 1.3f
+
+        // --- 站位視角 (智慧) 專屬預設值 ---
+        /** 智慧模式初始高度 (公尺) */
+        const val OBSERVER_HEIGHT_SMART = 6.0f
+        /** 智慧模式初始仰角 (度) */
+        const val OBSERVER_TILT_SMART = -4.0f
+        /** 智慧模式初始縮放倍率 */
+        const val ZOOM_FACTOR_SMART = 1.2f
 
         /** 是否顯示頂部特別標題 */
         const val SHOW_SPECIAL_TITLE = true
@@ -130,12 +138,17 @@ object AppConfig {
         const val AUTO_PIP_RELOCATE = true
         /** 是否啟用遠距離自動放大助手 */
         const val ENABLE_ZOOM_ASSISTANT = true
+        /** [v1.7.12] 姿態輔助視窗 (Zoom Assistant) 觸發距離 (公尺) */
+        const val ZOOM_ASSISTANT_DISTANCE = 8.0f
         /** 是否顯示飛行軌跡 */
         const val SHOW_FLIGHT_PATH = false
         /** 多功能儀表板 (MFD) 模式：0=標準, 1=OSD, 2=姿態球 */
         const val HUD_MODE = 0
         /** 雷達縮放模式：0=固定, 1=自動, 2=最大化 */
         const val RADAR_ZOOM_MODE = 0
+
+        /** [v1.7.12] 縮放倍率循環切換檔位 (選單點擊使用) */
+        val ZOOM_STEPS = listOf(0.5f, 1.0f, 1.3f, 1.5f, 2.0f, 3.0f)
     }
 
     /** 系統與安全預設標準 */
@@ -155,6 +168,19 @@ object AppConfig {
 
         /** 飛行圍欄：限高 30m 與場地邊界碰撞判定 */
         const val USE_FLIGHT_LIMIT = true
+
+        // --- [v1.7.12] 電子圍欄 (Flight Limits) 全域標準 ---
+        /** 法定限高 (公尺) */
+        const val MAX_ALTITUDE = 30.0f
+        /** 場地左右邊界半寬 (公尺) */
+        const val FIELD_WIDTH_HALF = 50.0f
+        /** 場地前方邊界距離 (公尺) */
+        const val FIELD_Z_FRONT = 46.0f
+        /** 場地後方邊界距離 (公尺) */
+        const val FIELD_Z_BACK = -9.0f
+        /** 邊界預警緩衝區 (公尺) */
+        const val WARNING_BUFFER = 5.0f
+
         /** 專業考核降落標準：落地垂直速度過快即判定損毀 */
         const val USE_STRICT_LANDING = true
         /** 自動隱藏系統狀態欄 (沉浸模式) */
@@ -172,7 +198,7 @@ object AppConfig {
         /** 是否顯示即時光影效果 */
         const val SHOW_SHADOW = true
         /** 是否顯示場地中的實體障礙物 (供進階練習) */
-        const val SHOW_OBSTACLES = false
+        const val SHOW_OBSTACLES = true
 
         /** [v1.7.9.12] 碰撞物理標準 (Impact Physics Standards) */
         /** 安全降落速度上限 (m/s)：低於此值視為安全 */

@@ -51,43 +51,8 @@ fun RadarHUD(
 
     Box(
         modifier = modifier
-            .offset(x = state.radarOffset.x.dp, y = state.radarOffset.y.dp) // [v1.7.7] 應用自由拖拽偏移
             .size(150.dp, 100.dp)
-            .background(Color(0xAA111111), RoundedCornerShape(12.dp))
-            .border(
-                1.5.dp, 
-                if(state.isRadarUnlocked) themeColors.primary else themeColors.primary.copy(0.6f), 
-                RoundedCornerShape(12.dp)
-            )
-            .pointerInput(Unit) {
-                detectDragGestures(
-                    onDragStart = { /* 開始拖拽 */ },
-                    onDragEnd = { /* 拖拽結束 */ },
-                    onDragCancel = { /* 拖拽取消 */ },
-                    onDrag = { change, dragAmount ->
-                        if (state.isRadarUnlocked) {
-                            change.consume()
-                            state.radarOffset += Offset(dragAmount.x / density, dragAmount.y / density)
-                        }
-                    }
-                )
-            }
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = { onClick() },
-                    onLongPress = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        if (state.isRadarUnlocked) {
-                            // 再次長按 2 秒：回到初始位置並上鎖
-                            state.radarOffset = Offset.Zero
-                            state.isRadarUnlocked = false
-                        } else {
-                            // 長按 2 秒：解鎖自由移動
-                            state.isRadarUnlocked = true
-                        }
-                    }
-                )
-            }
+            .background(themeColors.panel.copy(alpha = if(themeColors.isLight) 0.85f else 0.65f), RoundedCornerShape(12.dp))
     ) {
         Box(
             modifier = Modifier
@@ -119,7 +84,9 @@ fun RadarHUD(
                 
                 val buffer = 5f
                 val wtl = toRadar(bL + buffer, bF - buffer); val wbr = toRadar(bR - buffer, bB + buffer)
-                drawRect(Color.Yellow.copy(0.3f), topLeft = wtl, size = Size(wbr.x - wtl.x, wbr.y - wtl.y), 
+                // [v1.7.12] 預警線色彩優化：在白色主題下改用深橘色以提升可讀性
+                val warningLineColor = if (themeColors.isLight) themeColors.accent.copy(0.6f) else Color.Yellow.copy(0.3f)
+                drawRect(warningLineColor, topLeft = wtl, size = Size(wbr.x - wtl.x, wbr.y - wtl.y),
                     style = Stroke(0.8.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f))))
 
                 listOf(16f, 8f).forEach { sz ->

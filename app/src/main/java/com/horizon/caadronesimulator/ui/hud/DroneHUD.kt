@@ -56,7 +56,7 @@ fun DroneHUD(
 
         // 2. 虛擬搖桿
         if (state.showVirtualJoysticks) {
-            Box(modifier = Modifier.fillMaxSize().padding(bottom = 40.dp)) {
+            Box(modifier = Modifier.fillMaxSize().padding(bottom = 10.dp)) {
                 Box(modifier = Modifier.align(Alignment.BottomStart).padding(start = 60.dp, bottom = 40.dp)) {
                     VirtualJoystick(
                         stickX = stickState.stickLX(state),
@@ -102,7 +102,7 @@ fun DroneHUD(
             // [v1.7.7] 校準：Zoom Assistant 則維持中心 Z=6 的觸發
             // [需求修復]：智慧視角 (Smart) 不需要啟動姿態輔助視窗
             val distToOpsCenter = sqrt(state.posX.pow(2) + (state.posZ - 6f).pow(2))
-            val isInZoomZone = state.enableZoomAssistant && distToOpsCenter > 10.0f && 
+            val isInZoomZone = state.enableZoomAssistant && distToOpsCenter > AppConfig.VisualDefaults.ZOOM_ASSISTANT_DISTANCE &&
                                state.cameraMode != AppConfig.CAM_MODE_FPV && 
                                state.cameraMode != AppConfig.CAM_MODE_FOLLOW && 
                                state.cameraMode != AppConfig.CAM_MODE_STATION_SMART && 
@@ -134,7 +134,7 @@ fun DroneHUD(
             Column(modifier = Modifier.align(Alignment.TopCenter).zIndex(10f), horizontalAlignment = Alignment.CenterHorizontally) {
                 // [v1.7.6] 校準：Zoom Assistant 則維持中心 Z=6 的觸發
                 val distToOpsCenter = sqrt(state.posX.pow(2) + (state.posZ - 6f).pow(2))
-                val isInZoomZone = state.enableZoomAssistant && distToOpsCenter > 10.0f && state.cameraMode != AppConfig.CAM_MODE_FPV && state.cameraMode != AppConfig.CAM_MODE_FOLLOW && !state.showSettings
+                val isInZoomZone = state.enableZoomAssistant && distToOpsCenter > AppConfig.VisualDefaults.ZOOM_ASSISTANT_DISTANCE && state.cameraMode != AppConfig.CAM_MODE_FPV && state.cameraMode != AppConfig.CAM_MODE_FOLLOW && !state.showSettings
                 
                 val zoomPad = if (isInZoomZone) 110.dp else 10.dp
 

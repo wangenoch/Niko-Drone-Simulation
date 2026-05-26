@@ -54,11 +54,17 @@ fun StickInteractionLogic(
     val sP = stickState.stickPitch(state)
     val sR = stickState.stickRoll(state)
 
+    // [v1.7.11] 採用無視 Rate 的原始行程進行判定，解決 T4 等機型低靈敏度無法解鎖的問題
+    val rawT = stickState.rawThrottle(state)
+    val rawY = stickState.rawYaw(state)
+    val rawP = stickState.rawPitch(state)
+    val rawR = stickState.rawRoll(state)
+
     // [v1.7.9.8 TRUTH ANCHOR]
     // 解鎖手勢 (CSC) 判定：
     // 標準內八手勢為：左搖桿 (T<0, Y>0) 右下 + 右搖桿 (P<0, R<0) 左下
     // 此處 R 為負值 (-1.0) 完美對應物理向左，解鎖邏輯達成統一人員。
-    val isCSC = (sT < -0.7f && sY > 0.7f && sP < -0.7f && sR < -0.7f)
+    val isCSC = (rawT < -0.7f && rawY > 0.7f && rawP < -0.7f && rawR < -0.7f)
     
     val isGrounded = state.altitude <= spec.groundOffset + 0.15f
     val sticksNeutral = abs(sY) < 0.2f && abs(sP) < 0.2f && abs(sR) < 0.2f

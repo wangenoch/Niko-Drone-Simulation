@@ -33,8 +33,13 @@ fun CollisionOverlay(
 ) {
     val themeColors = NikoTheme.colors
     val isBatteryLow = reason == CrashReason.BATTERY_LOW
+    val isOutOfBounds = reason == CrashReason.OUT_OF_BOUNDS
     
-    val title = if (isBatteryLow) "🔋 電量耗盡" else stringResource(R.string.collision_title)
+    val title = when {
+        isBatteryLow -> "🔋 電量耗盡"
+        isOutOfBounds -> stringResource(R.string.collision_title_out_of_bounds)
+        else -> stringResource(R.string.collision_title)
+    }
     val titleColor = if (isBatteryLow) themeColors.safety else Color.Red
     
     Box(

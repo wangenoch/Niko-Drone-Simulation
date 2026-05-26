@@ -120,6 +120,9 @@ class DroneViewModel : ViewModel() {
             // 5. 相機導演還原
             applyCameraModeDefaults(this, cameraMode)
             
+            // [v1.7.12] 物理同步：強行抹除相機平滑器的記憶，確保畫面瞬間跳回預設位置
+            CameraDirector.snapToDefaults(observerHeight, observerTilt, zoomFactor, mainFOV)
+
             // [v1.7.7] 重置雷達位置
             radarOffset = androidx.compose.ui.geometry.Offset.Zero
             isRadarUnlocked = false
@@ -233,10 +236,10 @@ class DroneViewModel : ViewModel() {
                     zoomFactor = AppConfig.VisualDefaults.ZOOM_FACTOR_TRACKING
                 }
                 AppConfig.CAM_MODE_STATION_SMART -> {
-                    // 智慧視角延用追蹤高度，但縮放更廣
-                    observerHeight = AppConfig.VisualDefaults.OBSERVER_HEIGHT_TRACKING
-                    observerTilt = AppConfig.VisualDefaults.OBSERVER_TILT_TRACKING
-                    zoomFactor = 1.2f
+                    // [v1.7.12] 智慧視角：使用專屬預設值
+                    observerHeight = AppConfig.VisualDefaults.OBSERVER_HEIGHT_SMART
+                    observerTilt = AppConfig.VisualDefaults.OBSERVER_TILT_SMART
+                    zoomFactor = AppConfig.VisualDefaults.ZOOM_FACTOR_SMART
                 }
                 AppConfig.CAM_MODE_FPV -> {
                     // FPV 模式下的階層式視野讀取
@@ -279,7 +282,7 @@ class DroneViewModel : ViewModel() {
             this.horizontalDist = sqrt(x.pow(2) + z.pow(2))
             
             val distToOpsCenter = sqrt(x.pow(2) + (z - 6f).pow(2))
-            this.lastInZoomZone = distToOpsCenter > 10.0f && 
+            this.lastInZoomZone = distToOpsCenter > AppConfig.VisualDefaults.ZOOM_ASSISTANT_DISTANCE &&
                                   cameraMode != AppConfig.CAM_MODE_FPV && 
                                   cameraMode != AppConfig.CAM_MODE_FOLLOW &&
                                   cameraMode != AppConfig.CAM_MODE_STATION_SMART
@@ -293,6 +296,12 @@ class DroneViewModel : ViewModel() {
                     "CRASH_EXTREME" -> "CRASH_EXTREME|${physicsResult.impactSpeed}"
                     "CRASH_STRUCTURAL" -> "CRASH_STRUCTURAL|${physicsResult.impactSpeed}"
                     else -> physicsResult.systemMessage
+                }
+                
+                // [v1.7.12] 分級設置 CrashReason，確保 CollisionOverlay 標題正確顯示
+                state.flight.crashReason = when(physicsResult.systemMessage) {
+                    "CRASH_OUT_OF_BOUNDS" -> com.horizon.caadronesimulator.model.CrashReason.OUT_OF_BOUNDS
+                    else -> com.horizon.caadronesimulator.model.CrashReason.IMPACT
                 }
             }
         } else {

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">NikoDroneSimulator</string>
+    <string name="app_name">NikoNiko考照場地模擬器</string>
 
     <!-- 通用動作 -->
     <string name="action_ok">確定</string>
@@ -106,6 +106,8 @@
     <string name="joystick_mode_4">Mode 4 (反日本手)</string>
     <string name="joystick_rate_up">左手手感</string>
     <string name="joystick_rate_down">右手手感</string>
+    <string name="joystick_throttle_rate_up">上升手感</string>
+    <string name="joystick_throttle_rate_down">下降手感</string>
     <string name="joystick_aux_title">輔助通道綁定 (AUX)</string>
     <string name="joystick_aux_hint">請選擇一個功能，然後撥動遙控器上的切換開關或按鈕</string>
     <string name="joystick_aux_safety">安全與鎖定</string>
@@ -269,6 +271,10 @@
     <string name="status_app_not_supported">此設備不支援原裝 App 快速啟動</string>
     <string name="sys_msg_crash_extreme">❌ 嚴重撞擊損毀 (速度: %1$s m/s)</string>
     <string name="sys_msg_crash_structural">⚠️ 結構衝擊損毀 (速度: %1$s m/s)</string>
+    <string name="sys_msg_out_of_bounds">❌ 已飛離練習空域 (Out of Bounds)</string>
+    <string name="sys_msg_collision_object">❌ 撞擊場地障礙物</string>
+    <string name="sys_msg_collision_cone">❌ 撞擊考照角錐</string>
+    <string name="sys_msg_crash_flipped">❌ 飛機意外翻覆</string>
     <string name="sys_msg_restore_done">已恢復原廠預設值</string>
     <string name="sys_msg_video_syncing">🎥 影像傳輸同步中…</string>
     <string name="log_export_fallback">📋 公共空間權限受阻，日誌已存至 App 私有目錄：\\n%1$s</string>
@@ -375,6 +381,7 @@
     <string name="radar_zoom_precise">精確</string>
     <string name="radar_zoom_dynamic">動態</string>
     <string name="collision_title">發生撞擊</string>
+    <string name="collision_title_out_of_bounds">已飛離空域</string>
     <string name="collision_btn_restart">重新開始</string>
     <string name="joystick_wizard_step1">第一步</string>
     <string name="joystick_wizard_step2">第二步</string>

@@ -17,10 +17,10 @@ object Constants {
     )
 
     // 場地限制定義
-    const val FIELD_WIDTH_HALF = 50f
-    const val FIELD_Z_FRONT = 46f    // 考場前方 40m + H 點偏移 6m
-    const val FIELD_Z_BACK = -9f     // 飛手站位線 (相對於 H 點)
-    const val WARNING_BUFFER = 5f
+    const val FIELD_WIDTH_HALF = AppConfig.SystemDefaults.FIELD_WIDTH_HALF
+    const val FIELD_Z_FRONT = AppConfig.SystemDefaults.FIELD_Z_FRONT
+    const val FIELD_Z_BACK = AppConfig.SystemDefaults.FIELD_Z_BACK
+    const val WARNING_BUFFER = AppConfig.SystemDefaults.WARNING_BUFFER
 
     // [v1.5.9] 實體障礙物定義 [X, Z, 高度, 類型ID, 碰撞半徑]
     val OBSTACLES = arrayOf(

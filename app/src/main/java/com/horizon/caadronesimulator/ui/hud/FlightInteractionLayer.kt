@@ -34,9 +34,6 @@ import kotlin.math.pow
 import androidx.compose.ui.res.stringResource
 import com.horizon.caadronesimulator.R
 
-/**
- * [v1.5.3] 飛行互動控制層 (UI Corrected Version)
- */
 @Composable
 fun FlightInteractionLayer(
     state: DroneState,
@@ -48,13 +45,11 @@ fun FlightInteractionLayer(
     Box(modifier = modifier.fillMaxSize()) {
         // --- 1. 著地安全控制 ---
         val spec = remember(state.droneType) { DroneRegistry.getSpec(state.droneType) }
-        // [v1.5.9] 提高地面判定寬容度至 0.5m，確保物理彈跳時下打油門仍能停槳
         val isNearGround by remember(state.altitude) { derivedStateOf { state.altitude <= (spec.groundOffset + 0.5f) } }
         
         if (isNearGround) {
-            // [v1.7.6] 校準：Zoom Assistant 觸發維持作業中心 Z=6 基準
             val distToOpsCenter = kotlin.math.sqrt(state.posX * state.posX + (state.posZ - 6f) * (state.posZ - 6f))
-            val isInZoomZone = state.enableZoomAssistant && distToOpsCenter > 10.0f && state.cameraMode != AppConfig.CAM_MODE_FPV && state.cameraMode != AppConfig.CAM_MODE_FOLLOW && !state.isMenuExpanded
+            val isInZoomZone = state.enableZoomAssistant && distToOpsCenter > AppConfig.VisualDefaults.ZOOM_ASSISTANT_DISTANCE && state.cameraMode != AppConfig.CAM_MODE_FPV && state.cameraMode != AppConfig.CAM_MODE_FOLLOW && !state.isMenuExpanded
             val isZoomRelocated = state.autoPiPRelocate && (state.observerTilt < -5f || state.altitude > 10f)
             val isZoomInCenter = isInZoomZone && !isZoomRelocated
             val buttonTopPadding = if (isZoomInCenter) 175.dp else 85.dp
@@ -152,24 +147,14 @@ fun FlightInteractionLayer(
                                     DropdownMenuItem(
                                         text = { 
                                             val z = state.zoomFactor
-                                            val label = when { 
-                                                z < 0.75f -> "0.5X"
-                                                z < 1.25f -> "1.0X"
-                                                z < 1.75f -> "1.5X"
-                                                z < 2.5f -> "2.0X"
-                                                else -> "3.0X" 
-                                            }
+                                            val activeStep = AppConfig.VisualDefaults.ZOOM_STEPS.minByOrNull { kotlin.math.abs(it - z) } ?: z
+                                            val label = String.format(java.util.Locale.US, "%.1f", activeStep) + "X"
                                             Text("${stringResource(R.string.menu_zoom_factor)}: $label (${stringResource(R.string.menu_click_to_switch)})", color = NikoTheme.colors.primary, fontSize = 13.sp)
                                         }, 
                                         onClick = { 
                                             val current = state.zoomFactor
-                                            val next = when { 
-                                                current < 0.75f -> 1.0f
-                                                current < 1.25f -> 1.5f
-                                                current < 1.75f -> 2.0f
-                                                current < 2.5f -> 3.0f
-                                                else -> 0.5f 
-                                            }
+                                            val steps = AppConfig.VisualDefaults.ZOOM_STEPS
+                                            val next = steps.firstOrNull { it > current + 0.05f } ?: steps.first()
                                             onUpdateState { zoomFactor = next } 
                                         }
                                     )
@@ -203,7 +188,6 @@ fun FlightInteractionLayer(
                             }
                         }
 
-                        // [v1.5.3] 設定按鈕回歸 (正確使用 Settings 圖示)
                         InteractionBtn(Icons.Default.Settings) { onUpdateState { this.showSettings = true } }
                     }
                 }
@@ -216,14 +200,12 @@ fun FlightInteractionLayer(
 @Composable
 fun InteractionBtn(icon: ImageVector, isSelected: Boolean = false, tint: Color = if (isSelected) NikoTheme.colors.primary else NikoTheme.colors.textPrimary, onClick: () -> Unit) {
     val themeColors = NikoTheme.colors
-    val shapes = NikoTheme.shapes
-    // 使用半透明玻璃背景替代純色，減少明亮模式下的眩光感
     val bgAlpha = if(themeColors.isLight) 0.8f else 0.7f
     IconButton(
         onClick = onClick, 
         modifier = Modifier
             .size(44.dp)
-            .background(themeColors.panel.copy(alpha = bgAlpha), CircleShape) // 按鈕維持圓形，不強制圓角
+            .background(themeColors.panel.copy(alpha = bgAlpha), CircleShape)
             .border(1.dp, if (isSelected) themeColors.primary.copy(0.6f) else themeColors.divider, CircleShape)
     ) { 
         Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp)) 

@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- [v1.7.8] 通殺式裝置過濾器 (Catch-all Filter) -->
-    <!-- 不指定 VID/PID，強制系統對所有插入的 USB 裝置均彈出開啟 APP 的詢問對話框 -->
-    <usb-device />
+
 </resources>

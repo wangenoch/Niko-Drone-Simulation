@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">NikoDroneSimulator</string>
+    <string name="app_name">NikoNikoDroneSimulator</string>
 
     <!-- Generic Actions -->
     <string name="action_ok">OK</string>
@@ -106,6 +106,8 @@
     <string name="joystick_mode_4">Mode 4 (Anti-Japan)</string>
     <string name="joystick_rate_up">Left hand</string>
     <string name="joystick_rate_down">Right hand</string>
+    <string name="joystick_throttle_rate_up">Rising Feel</string>
+    <string name="joystick_throttle_rate_down">Falling Feel</string>
     <string name="joystick_aux_title">Aux Channel Binding (AUX)</string>
     <string name="joystick_aux_hint">Select a function, then move the switch or button on your remote</string>
     <string name="joystick_aux_safety">Safety &amp; Lock</string>
@@ -269,6 +271,10 @@
     <string name="status_app_not_supported">Quick launch not supported for this device</string>
     <string name="sys_msg_crash_extreme">❌ Extreme Crash (Speed: %1$s m/s)</string>
     <string name="sys_msg_crash_structural">⚠️ Structural Impact (Speed: %1$s m/s)</string>
+    <string name="sys_msg_out_of_bounds">❌ Out of Bounds: Session Terminated</string>
+    <string name="sys_msg_collision_object">❌ Collision: Field Obstacle</string>
+    <string name="sys_msg_collision_cone">❌ Collision: Training Cone</string>
+    <string name="sys_msg_crash_flipped">❌ Drone Flipped on Ground</string>
     <string name="sys_msg_restore_done">Factory Defaults Restored</string>
     <string name="sys_msg_video_syncing">🎥 Video Syncing…</string>
     <string name="log_export_fallback">📋 Permission denied. Log saved to private path: \\n%1$s</string>
@@ -367,6 +373,7 @@
     <string name="radar_zoom_precise">Precise</string>
     <string name="radar_zoom_dynamic">Dynamic</string>
     <string name="collision_title">Impact Detected</string>
+    <string name="collision_title_out_of_bounds">Out of Bounds</string>
     <string name="collision_btn_restart">Restart</string>
     <string name="joystick_wizard_step1">Step 1</string>
     <string name="joystick_wizard_step2">Step 2</string>

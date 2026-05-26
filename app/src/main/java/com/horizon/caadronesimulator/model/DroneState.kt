@@ -28,7 +28,7 @@ enum class CommDecisionState {
 }
 
 enum class CrashReason {
-    NONE, IMPACT, BATTERY_LOW
+    NONE, IMPACT, BATTERY_LOW, OUT_OF_BOUNDS
 }
 
 /**

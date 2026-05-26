@@ -18,13 +18,22 @@ object ViewportOptimizer {
         val d = kotlin.math.sqrt(dronePosX * dronePosX + dronePosZ * dronePosZ)
         val h = droneAltitude
 
-        // [v1.5.7] 終極簡化模式
+        // [v1.7.12] 嚴格執行憲法模式：優先尊重 AppConfig 預設值，移除近距離強制 4 度偏移
+        // 這解決了小型裝置在重置時會跳轉到非 0 度視角的問題
         return when {
             // 1. 起槳保護 (H < 0.2m)
-            h < 0.2f -> ViewportParams(fov = 45f, zoom = 1.5f, tilt = 0f)
+            h < 0.2f -> ViewportParams(
+                fov = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.MAIN_FOV, 
+                zoom = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.ZOOM_FACTOR_TRACKING, 
+                tilt = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.OBSERVER_TILT_TRACKING
+            )
 
-            // 2. 垂直越頂鎖定 (D < 2.0m) - 鎖定 45 度以防畸變
-            d < 2.0f -> ViewportParams(fov = 45f, zoom = 1.5f, tilt = 4f)
+            // 2. 垂直越頂鎖定 (D < 2.0m) - 回歸 AppConfig 基準
+            d < 2.0f -> ViewportParams(
+                fov = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.MAIN_FOV, 
+                zoom = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.ZOOM_FACTOR_TRACKING, 
+                tilt = com.horizon.caadronesimulator.model.AppConfig.VisualDefaults.OBSERVER_TILT_TRACKING
+            )
 
             // 3. 遠航/高空模式 (D > 20m 或 H > 15m)
             h > 15f || d > 20f -> ViewportParams(fov = 85f, zoom = 1.0f, tilt = 10f)

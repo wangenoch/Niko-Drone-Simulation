@@ -55,7 +55,7 @@ object T4HeavyLift : DroneModule {
     override val baseExpo = 0.5f
     override val baseRateT_Up = 0.3f
     override val baseRateT_Down = 0.2f
-    override val baseRateY = 0.3f
+    override val baseRateY = 0.4f
     override val baseRateP = 0.4f
     override val baseRateR = 0.4f
 

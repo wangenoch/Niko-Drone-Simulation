@@ -68,7 +68,9 @@ fun HandfeelTuningOverlay(
                         rateUp = if(isGeneMode) rateT_Up else rateT, 
                         rateDown = if(isGeneMode) rateT_Down else rateT, 
                         expo = expoT, onUpdateRate = onUpdateRate, onUpdateExpo = onUpdateExpo,
-                        showAsymmetrical = isGeneMode
+                        showAsymmetrical = isGeneMode,
+                        rateUpLabel = stringResource(R.string.joystick_throttle_rate_up),
+                        rateDownLabel = stringResource(R.string.joystick_throttle_rate_down)
                     )
                     RateCard("Y", "🔄 " + stringResource(R.string.joystick_label_yaw), rateY, rateY, expoY, onUpdateRate, onUpdateExpo)
                 }
@@ -97,7 +99,8 @@ fun HandfeelTuningOverlay(
 fun RateCard(
     key: String, label: String, rateUp: Float, rateDown: Float, expo: Float, 
     onUpdateRate: (String, Float) -> Unit, onUpdateExpo: (String, Float) -> Unit, 
-    isSmall: Boolean = false, showAsymmetrical: Boolean = false
+    isSmall: Boolean = false, showAsymmetrical: Boolean = false,
+    rateUpLabel: String? = null, rateDownLabel: String? = null
 ) {
     val themeColors = NikoTheme.colors
     Surface(color = themeColors.textPrimary.copy(alpha = 0.03f), shape = RoundedCornerShape(10.dp), border = BorderStroke(1.dp, themeColors.divider)) {
@@ -113,8 +116,8 @@ fun RateCard(
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(if(showAsymmetrical) 1.dp else 2.dp)) {
                 Text(label, color = themeColors.textPrimary, fontSize = if(isSmall) 10.sp else 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 1.dp))
                 if (showAsymmetrical) {
-                    AsymmetricalSlider(stringResource(R.string.joystick_rate_up), rateUp, { onUpdateRate("${key}_Up", it) }, isSmall)
-                    AsymmetricalSlider(stringResource(R.string.joystick_rate_down), rateDown, { onUpdateRate("${key}_Down", it) }, isSmall)
+                    AsymmetricalSlider(rateUpLabel ?: stringResource(R.string.joystick_rate_up), rateUp, { onUpdateRate("${key}_Up", it) }, isSmall)
+                    AsymmetricalSlider(rateDownLabel ?: stringResource(R.string.joystick_rate_down), rateDown, { onUpdateRate("${key}_Down", it) }, isSmall)
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) { 
                         Text(stringResource(R.string.hud_rate_short) + ":" + "%.1f".format(Locale.US, rateUp), color = themeColors.primary.copy(0.7f), fontSize = if(isSmall) 7.sp else 8.sp, modifier = Modifier.width(if(isSmall) 28.dp else 34.dp))

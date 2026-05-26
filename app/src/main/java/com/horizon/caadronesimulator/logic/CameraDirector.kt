@@ -18,6 +18,14 @@ object CameraDirector {
     var smoothedHeight = 6.0f; private set
     var smoothedZoomPipFov = 45f; private set
 
+    /** [v1.7.12] 強制歸位：立即同步所有平滑緩衝區，徹底消除重置時的「慢慢飄移」感 */
+    fun snapToDefaults(height: Float, tilt: Float, zoom: Float, fov: Float) {
+        smoothedHeight = height
+        smoothedTilt = tilt
+        smoothedZoom = zoom
+        smoothedFov = fov
+    }
+
     fun update(
         droneX: Float, droneY: Float, droneZ: Float,
         targetHeight: Float, targetTilt: Float, targetZoom: Float, targetFov: Float,
