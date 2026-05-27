@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.horizon.caadronesimulator"
+    namespace = "com.horizon.nikonikodronesimulator"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.horizon.caadronesimulator"
+        applicationId = "com.horizon.nikonikodronesimulator"
         minSdk = 28
         targetSdk = 35
         versionCode = 1
@@ -24,12 +24,12 @@ android {
     productFlavors {
         create("store") {
             dimension = "tier"
-            applicationId = "com.horizon.caadronesimulator"
+            applicationId = "com.horizon.nikonikodronesimulator"
             versionNameSuffix = "-store"
         }
         create("pro") {
             dimension = "tier"
-            applicationId = "com.horizon.caadronesimulator.pro"
+            applicationId = "com.horizon.nikonikodronesimulator.pro"
             versionNameSuffix = "-pro"
         }
     }
@@ -59,7 +59,7 @@ android {
     // 讀取根目錄 README.md 並將升級報告區塊轉譯為 Kotlin 常數，消除檔案冗餘
     val generateReleaseContent by tasks.registering {
         val readmeFile = rootProject.file("README.md")
-        val outputFile = file("src/main/java/com/horizon/caadronesimulator/generated/ReleaseContent.kt")
+        val outputFile = file("src/main/java/com/horizon/nikonikodronesimulator/generated/ReleaseContent.kt")
         
         inputs.file(readmeFile)
         outputs.file(outputFile)
@@ -71,7 +71,7 @@ android {
             
             outputFile.parentFile.mkdirs()
             outputFile.writeText("""
-                package com.horizon.caadronesimulator.generated
+                package com.horizon.nikonikodronesimulator.generated
 
                 /**
                  * 由 Gradle 任務 syncReadme 自動生成，請勿手動修改。

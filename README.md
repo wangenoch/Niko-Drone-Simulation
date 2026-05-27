@@ -40,6 +40,8 @@
     *   縮放倍率集中於 `AppConfig` 管理，快捷選單支持自定義循環切換（如 1.0 -> 1.3 -> 1.5）。
 *   **跨裝置視覺一致性**：
     *   移除小型裝置上的強制抬頭補償，確保所有尺寸裝置皆能精確執行 `AppConfig` 的視覺指令。
+*   **硬體相容性優化 (v1.7.14+)**：
+    *   在 Manifest 中實裝 `android:isGame="true"`，解決部分裝置（如 Samsung A55）因節能服務（GOS）導致的動力積分延遲（30秒啟動延遲問題），確保高頻物理運算主權。
 
 ### 4. 資源淨化與品牌版本管理 📦
 *   **Pro 版專屬視覺標誌**：
@@ -117,10 +119,10 @@
 *   **架構模式**：狀態驅動 (State-driven) 設計，確保低延遲的數據同步。
 
 ## 📂 專案架構 (Packages)
-*   `com.horizon.caadronesimulator.model`: 核心邏輯、物理參數與全局狀態機。
-*   `com.horizon.caadronesimulator.ui`: 主視圖 HUD 與層級式設定介面。
-*   `com.horizon.caadronesimulator.render`: 基於 OpenGL ES 的 3D 渲染引擎與攝像機運算。
-*   `com.horizon.caadronesimulator.audio`: 根據油門動態變頻的模擬引擎音效。
+*   `nikonikodronesimulator.model`: 核心邏輯、物理參數與全局狀態機。
+*   `nikonikodronesimulator.ui`: 主視圖 HUD 與層級式設定介面。
+*   `nikonikodronesimulator.render`: 基於 OpenGL ES 的 3D 渲染引擎與攝像機運算。
+*   `nikonikodronesimulator.audio`: 根據油門動態變頻的模擬引擎音效。
 
 ## 📱 系統配置要求
 *   最低版本：Android 9.0 (Pie) / API Level 28。

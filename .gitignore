@@ -7,6 +7,7 @@ local.properties
 
 # Log/OS Files
 *.log
+.DS_Store
 
 # Android Studio generated files and folders
 captures/
@@ -32,4 +33,4 @@ google-services.json
 
 # Android Profiling
 *.hprof
-/app/src/main/java/com/horizon/caadronesimulator/generated/ReleaseContent.kt
+/app/src/main/java/com/horizon/nikonikodronesimulator/generated/ReleaseContent.kt

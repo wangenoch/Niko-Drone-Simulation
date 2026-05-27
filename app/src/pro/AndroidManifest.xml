@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- [v1.7.14] Pro 版專屬權限：僅在專業版本保留 Internet 功能用於網絡調試 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+</manifest>

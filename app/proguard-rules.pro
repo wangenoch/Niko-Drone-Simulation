@@ -11,13 +11,13 @@
 
 # --- 2. 核心算法保護 (物理引擎與數據模型) ---
 # 這些類別會被混淆成亂碼 (a, b, c...)，保護商業機密
--keep class com.horizon.caadronesimulator.logic.PhysicsEngine { *; } # 若有反射調用才需 keep，否則建議混淆
+-keep class com.horizon.nikonikodronesimulator.logic.PhysicsEngine { *; } # 若有反射調用才需 keep，否則建議混淆
 -keepclassmembers class * {
     @androidx.compose.runtime.Composable *;
 }
 
 # --- 3. 必須保留的進入點 (Keep Points) ---
--keep class com.horizon.caadronesimulator.MainActivity { *; }
+-keep class com.horizon.nikonikodronesimulator.MainActivity { *; }
 
 # --- 4. 資源與 Compose 相容性 ---
 # 確保 Compose 的狀態管理與重組邏輯不被損壞
