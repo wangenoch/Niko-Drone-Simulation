@@ -25,7 +25,7 @@ object AppConfig {
     }
 
     val SPECIAL_THANKS = listOf(
-        "測試與建議：全體考照班教官與學員"
+        "測試與建議：飛能科技、飛恩模型 全體考照班教官與學員。"
     )
 
     /** [v1.7.6] 攝影機模式內部 ID */
