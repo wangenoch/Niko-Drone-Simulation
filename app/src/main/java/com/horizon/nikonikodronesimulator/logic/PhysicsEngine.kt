@@ -99,7 +99,18 @@ object PhysicsEngine {
             (1.0f - (tiltAngle / 45f) * 0.3f).coerceIn(0.7f, 1.0f)
         } else 1.0f
 
-        val targetVelY = input.throttle * 8.0f * liftLossFactor
+        // [v1.7.15] 核心修正：起動動力喚醒補丁
+        // 目的：解決 Samsung A55 等硬體在 120Hz 下數值下溢導致的起飛延遲 (30s 延遲問題)
+        val rawThrottle = input.throttle
+        val ds = com.horizon.nikonikodronesimulator.model.DroneState.getInstance()
+        
+        val baseLift = rawThrottle * 8.0f
+        val targetVelY = if (ds.useIdleWakeupPatch && !isAirborne && rawThrottle > -0.98f && baseLift < 0.05f) {
+            0.05f // [喚醒脈衝] 僅在地面啟動階段跳過數值黑洞
+        } else {
+            baseLift // 離地後恢復原本對稱推力，確保降落功能正常
+        } * liftLossFactor
+
         val verticalAcc = (targetVelY - state.velY) * (5.0f / mass)
         state.velY += verticalAcc * dt
         

@@ -57,6 +57,7 @@ class ConfigurationStore(private val context: Context) {
             putBoolean("isSunSimEnabled", state.isSunSimEnabled); putFloat("sunPosition", state.sunPosition)
             putBoolean("showClouds", state.showClouds); putFloat("cloudDensity", state.cloudDensity); putBoolean("showMountains", state.showMountains)
             putBoolean("useStrictLanding", state.useStrictLanding); putBoolean("optimizationPromptIgnored", state.optimizationPromptIgnored)
+            putBoolean("useIdleWakeupPatch", state.useIdleWakeupPatch) // [v1.7.15] 持久化動力補丁開關
             putString("appLanguage", state.appLanguage)
             putString("appTheme", state.appTheme)
             commit() // [關鍵修復] 使用 commit() 確保語系設定立即落地，防止 Activity 重啟時讀取到舊數據
@@ -161,6 +162,7 @@ class ConfigurationStore(private val context: Context) {
             this.isSunSimEnabled = prefs.getBoolean("isSunSimEnabled", false); this.sunPosition = prefs.getFloat("sunPosition", 0.5f)
             this.showClouds = prefs.getBoolean("showClouds", true); this.cloudDensity = prefs.getFloat("cloudDensity", 0.5f); this.showMountains = prefs.getBoolean("showMountains", true)
             this.useStrictLanding = prefs.getBoolean("useStrictLanding", true); this.optimizationPromptIgnored = prefs.getBoolean("optimizationPromptIgnored", false)
+            this.useIdleWakeupPatch = prefs.getBoolean("useIdleWakeupPatch", AppConfig.SystemDefaults.ENABLE_IDLE_WAKEUP_PATCH)
             
             // [v1.7.6] 語言讀取優化：若 SharedPreferences 為空，則優先參考系統語言
             val defaultLang = if (java.util.Locale.getDefault().language.startsWith("zh")) "zh" else "en"

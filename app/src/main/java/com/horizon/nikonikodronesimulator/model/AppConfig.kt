@@ -209,6 +209,9 @@ object AppConfig {
         /** [v1.7.8] 預設是否優先使用標準搖桿模式 (USB HID) */
         const val USE_HID_PRIORITY = true
 
+        /** [v1.7.15] 預設是否開啟起動動力增益 (解決部分硬體如 A55 的 30s 延遲問題) */
+        const val ENABLE_IDLE_WAKEUP_PATCH = true
+
         // --- 專家模式保護區 ---
         /** 專家模式管理密碼 (解鎖需前往一般設定，點擊 Developer 文字 7 次) */
         const val ADMIN_PASSWORD = "12345678"

@@ -124,6 +124,9 @@ class DroneState {
     /** [v1.7.8] 響導防抖動時間戳 */
     var lastWizardStepTime by mutableLongStateOf(0L)
 
+    /** [v1.7.15] 是否開啟起動動力增益 (解決 Samsung A55 等裝置起飛延遲) */
+    var useIdleWakeupPatch by mutableStateOf(AppConfig.SystemDefaults.ENABLE_IDLE_WAKEUP_PATCH)
+
     /** [v1.7.6] 當前有效的標題文字 (含預設與自定義) */
     var currentTitleText by mutableStateOf("")
 
