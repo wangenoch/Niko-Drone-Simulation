@@ -3,6 +3,7 @@ package com.horizon.nikonikodronesimulator.mission
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -26,6 +27,8 @@ import java.util.Locale
 import kotlin.math.*
 
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.layout.onGloballyPositioned
 
 /**
  * [v1.5.9] 定點計時評測器 - 高精確度校準版
@@ -127,22 +130,10 @@ class SpotTimerEvaluator : MissionEvaluator {
     @Composable
     override fun OverlayUI(state: DroneState, onUpdateState: (DroneState.() -> Unit) -> Unit) {
         if (!state.isSpotTimerEnabled || state.isCollision || state.showSettings) return
-        val spec = remember(state.droneType) { DroneRegistry.getSpec(state.droneType) }
-        val isNearGround = state.altitude <= (spec.groundOffset + 0.15f)
         
-        // [v1.7.6] 校準：作業中心與觸發基準
-        val distToOpsCenter = sqrt(state.posX * state.posX + (state.posZ - 6f) * (state.posZ - 6f))
-        val isInZoomZone = state.enableZoomAssistant && distToOpsCenter > 10.0f && state.cameraMode != AppConfig.CAM_MODE_FPV && state.cameraMode != AppConfig.CAM_MODE_FOLLOW && !state.isMenuExpanded
-        val isZoomRelocated = state.autoPiPRelocate && (state.observerTilt < -5f || state.altitude > 10f)
-        val isZoomInCenter = isInZoomZone && !isZoomRelocated
-
-        // [v1.7.6] 佈局優化：調整與「起槳」按鈕的避讓間距，防止重疊
-        val targetPadding by animateDpAsState(targetValue = when { 
-            state.isMenuExpanded -> 120.dp 
-            isZoomInCenter -> 150.dp // 增加避讓，避免與 Zoom Assistant 重疊
-            isNearGround -> 155.dp // 移動至「起槳 (85dp)」按鈕下方，防止遮擋
-            else -> 65.dp
-        }, label = "pad")
+        // [v1.7.15] 定位策略：飛機上方浮動跟隨邏輯 (Floating Tag)
+        val dronePos = state.droneScreenPos
+        var boxWidth by remember { mutableIntStateOf(0) }
 
         val rawMsg = state.spotTimerMessage ?: ""
         val parts = rawMsg.split("|")
@@ -152,48 +143,78 @@ class SpotTimerEvaluator : MissionEvaluator {
         val translatedMessage = when(msgId) {
             "IDLE" -> if (state.isCollision) stringResource(R.string.status_crash) else if (state.isMotorLocked) stringResource(R.string.status_motor_locked) else stringResource(R.string.mission_spot_timer_takeoff)
             "SEARCHING" -> stringResource(R.string.mission_spot_timer_searching)
-            "TOO_LOW" -> {
-                val pText = String.format(java.util.Locale.US, "%.1f", param)
-                stringResource(R.string.mission_spot_timer_too_low, pText)
-            }
-            "TOO_HIGH" -> {
-                val pText = String.format(java.util.Locale.US, "%.1f", param)
-                stringResource(R.string.mission_spot_timer_too_high, pText)
-            }
+            "TOO_LOW" -> stringResource(R.string.mission_spot_timer_too_low, String.format(java.util.Locale.US, "%.1f", param))
+            "TOO_HIGH" -> stringResource(R.string.mission_spot_timer_too_high, String.format(java.util.Locale.US, "%.1f", param))
             "ROTATING" -> stringResource(R.string.mission_spot_timer_wait_stable)
-            "YAW_ERROR_H" -> {
-                val pText = String.format(java.util.Locale.US, "%.0f", param)
-                stringResource(R.string.mission_spot_timer_yaw_error, pText)
-            }
-            "YAW_ERROR_G" -> {
-                val pText = String.format(java.util.Locale.US, "%.0f", param)
-                stringResource(R.string.mission_spot_timer_yaw_error_generic, pText)
-            }
+            "YAW_ERROR_H" -> stringResource(R.string.mission_spot_timer_yaw_error, String.format(java.util.Locale.US, "%.0f", param))
+            "YAW_ERROR_G" -> stringResource(R.string.mission_spot_timer_yaw_error_generic, String.format(java.util.Locale.US, "%.0f", param))
             "PERFECT_H" -> stringResource(R.string.mission_spot_timer_perfect)
             "SUCCESS_G" -> stringResource(R.string.mission_spot_timer_success)
             "COUNTING_H" -> stringResource(R.string.mission_spot_timer_prefix_h) + ": " + "%.1fs".format(param)
             "COUNTING_G" -> stringResource(R.string.mission_spot_timer_prefix_generic) + ": " + "%.1fs".format(param)
             else -> rawMsg
         }
-
-        Box(modifier = Modifier.fillMaxSize().statusBarsPadding().padding(top = targetPadding), contentAlignment = Alignment.TopCenter) {
+        
+        Box(modifier = Modifier.fillMaxSize()) {
             val themeColors = NikoTheme.colors
-            Surface(color = themeColors.panel.copy(alpha = 0.85f), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.5.dp, themeColors.divider)) {
-                Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    val indicatorColor = when { state.spotTimerSuccess -> Color.Green; state.spotTimerStable -> Color.Cyan; else -> Color.Red }
-                    Box(modifier = Modifier.size(8.dp).background(indicatorColor, RoundedCornerShape(50)))
-                    Text(text = translatedMessage, color = themeColors.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                    if (state.spotTimerInZone || state.spotTimerSuccess) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(28.dp)) {
-                            Canvas(modifier = Modifier.fillMaxSize()) { 
-                                drawCircle(themeColors.textPrimary.copy(alpha = 0.1f), style = Stroke(2.dp.toPx()))
-                                if (state.spotTimerSeconds < 5f) {
-                                    drawArc(color = if(state.spotTimerSuccess) Color.Green else themeColors.primary, startAngle = -90f, sweepAngle = (1f - state.spotTimerSeconds / 5.0f) * 360f, useCenter = false, style = Stroke(3.dp.toPx())) 
+            
+            // 只有在抓到飛機位置時才顯示浮動標籤
+            if (dronePos != null) {
+                val baseOffset = IntOffset(
+                    x = dronePos.x.toInt(),
+                    y = (dronePos.y - 160).toInt() // [v1.7.15] 提升至飛機上方 160 像素處
+                )
+
+                // 使用平滑動畫防止座標抖動
+                val animatedOffset by animateIntOffsetAsState(
+                    targetValue = baseOffset,
+                    animationSpec = spring(stiffness = Spring.StiffnessLow),
+                    label = "timer_float"
+                )
+
+                Surface(
+                    modifier = Modifier
+                        .onGloballyPositioned { boxWidth = it.size.width } // 即時測量寬度
+                        .offset { 
+                            // [v1.7.15] 精確居中修正：X 座標減去組件寬度的一半
+                            IntOffset(animatedOffset.x - (boxWidth / 2), animatedOffset.y) 
+                        },
+                    color = themeColors.panel.copy(alpha = 0.75f),
+                    shape = RoundedCornerShape(8.dp), 
+                    border = BorderStroke(1.dp, themeColors.divider.copy(alpha = 0.5f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), 
+                        verticalAlignment = Alignment.CenterVertically, 
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val indicatorColor = when { state.spotTimerSuccess -> Color.Green; state.spotTimerStable -> Color.Cyan; else -> Color.Red }
+                        Box(modifier = Modifier.size(6.dp).background(indicatorColor, CircleShape))
+                        Text(text = translatedMessage, color = themeColors.textPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        
+                        if (state.spotTimerInZone || state.spotTimerSuccess) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(20.dp)) {
+                                Canvas(modifier = Modifier.fillMaxSize()) { 
+                                    drawCircle(themeColors.textPrimary.copy(alpha = 0.1f), style = Stroke(1.5.dp.toPx()))
+                                    if (state.spotTimerSeconds < 5f) {
+                                        drawArc(color = if(state.spotTimerSuccess) Color.Green else themeColors.primary, startAngle = -90f, sweepAngle = (1f - state.spotTimerSeconds / 5.0f) * 360f, useCenter = false, style = Stroke(2.dp.toPx())) 
+                                    }
                                 }
+                                if (state.spotTimerSuccess) Icon(Icons.Default.Check, null, tint = Color.Green, modifier = Modifier.size(12.dp))
+                                else Text(text = String.format(Locale.US, "%.0f", state.spotTimerSeconds), color = themeColors.textPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
-                            if (state.spotTimerSuccess) Icon(Icons.Default.Check, null, tint = Color.Green, modifier = Modifier.size(16.dp))
-                            else Text(text = String.format(Locale.US, "%.0f", state.spotTimerSeconds), color = themeColors.textPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
+                    }
+                }
+            } else {
+                // 回退模式：若無投影座標，顯示在頂部中央
+                Box(modifier = Modifier.fillMaxSize().padding(top = 100.dp), contentAlignment = Alignment.TopCenter) {
+                    Surface(
+                        color = themeColors.panel.copy(alpha = 0.85f),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, themeColors.divider)
+                    ) {
+                        Text(text = translatedMessage, color = themeColors.textPrimary, modifier = Modifier.padding(10.dp))
                     }
                 }
             }

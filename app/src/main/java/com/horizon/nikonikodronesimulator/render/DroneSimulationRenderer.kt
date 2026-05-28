@@ -44,6 +44,7 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
     var randomWindPhase = 0f; var turbulencePhase = 0f
     private var specialTitleScreenPos: androidx.compose.ui.geometry.Offset? = null
     var onTitlePosUpdate: ((androidx.compose.ui.geometry.Offset?) -> Unit)? = null // [v1.7.6] 專屬投影位置回調
+    var onDronePosUpdate: ((androidx.compose.ui.geometry.Offset?) -> Unit)? = null // [v1.7.15] 飛機投影位置回調
     private var titleTextureId = -1; private var texH = -1; private var texCoordH = -1; private var useTexH = -1
     private var flagVisualAngle = 0f; private var cloudTextureId = -1; private var mountainTextureId = -1
     var weatherMode = 0; private var lastWeatherMode = -1; private var lastDensity = -1f; var cloudU = 0f; var cloudV = 0f
@@ -198,7 +199,7 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
         
         Matrix.perspectiveM(pMatrix, 0, finalFov / finalZoom, viewWidth.toFloat() / viewHeight, 1.0f, 6000f)
         com.horizon.nikonikodronesimulator.logic.CameraDirector.computeMainViewMatrix(vMatrix, cameraMode, physicsState.posX, physicsState.posY, physicsState.posZ, physicsState.yaw, physicsState.posX + physicsState.velX * 0.12f, physicsState.posZ + physicsState.velZ * 0.12f, cameraTilt, droneType)
-        System.arraycopy(pMatrix, 0, mainPMatrix, 0, 16); System.arraycopy(vMatrix, 0, mainVMatrix, 0, 16); calculateProjectedTitlePos()
+        System.arraycopy(pMatrix, 0, mainPMatrix, 0, 16); System.arraycopy(vMatrix, 0, mainVMatrix, 0, 16); calculateProjectedPositions()
         
         onTitlePosUpdate?.invoke(specialTitleScreenPos)
         renderScene()
@@ -271,7 +272,39 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
         physicsState.reset(getGroundY(), 0f)
         onFlightDataUpdate(physicsState.posY, 0f, 0f, 0f, 0f, 0f, 0f, false, 4.2f, 100, null, finalTime, null, null, null) 
     }
-    private fun calculateProjectedTitlePos() { if (!showSpecialTitle) { specialTitleScreenPos = null; return }; val worldPos = floatArrayOf(0f, 0.015f, 3.0f, 1.0f); val mvp = FloatArray(16); Matrix.multiplyMM(mvp, 0, mainPMatrix, 0, mainVMatrix, 0); val screenPos = FloatArray(4); Matrix.multiplyMV(screenPos, 0, mvp, 0, worldPos, 0); if (screenPos[3] > 0) { val ndcX = screenPos[0] / screenPos[3]; val ndcY = screenPos[1] / screenPos[3]; specialTitleScreenPos = androidx.compose.ui.geometry.Offset((ndcX + 1f) / 2f * viewWidth, (1f - ndcY) / 2f * viewHeight) } else { specialTitleScreenPos = null } }
+    private fun calculateProjectedPositions() {
+        if (!showSpecialTitle) { 
+            specialTitleScreenPos = null
+            onTitlePosUpdate?.invoke(null)
+            onDronePosUpdate?.invoke(null)
+            return 
+        }
+        val worldPos = floatArrayOf(0f, 0.015f, 3.0f, 1.0f)
+        val mvp = FloatArray(16)
+        Matrix.multiplyMM(mvp, 0, mainPMatrix, 0, mainVMatrix, 0)
+        val screenPos = FloatArray(4)
+        Matrix.multiplyMV(screenPos, 0, mvp, 0, worldPos, 0)
+        
+        if (screenPos[3] > 0) {
+            val ndcX = screenPos[0] / screenPos[3]
+            val ndcY = screenPos[1] / screenPos[3]
+            specialTitleScreenPos = androidx.compose.ui.geometry.Offset((ndcX + 1f) / 2f * viewWidth, (1f - ndcY) / 2f * viewHeight)
+        } else {
+            specialTitleScreenPos = null
+        }
+
+        // [v1.7.15] 飛機投影計算
+        val dWP = floatArrayOf(physicsState.posX, physicsState.posY, physicsState.posZ, 1.0f)
+        val dSP = FloatArray(4)
+        Matrix.multiplyMV(dSP, 0, mvp, 0, dWP, 0)
+        if (dSP[3] > 0) {
+            val ndcX = dSP[0] / dSP[3]
+            val ndcY = dSP[1] / dSP[3]
+            onDronePosUpdate?.invoke(androidx.compose.ui.geometry.Offset((ndcX + 1f) / 2f * viewWidth, (1f - ndcY) / 2f * viewHeight))
+        } else {
+            onDronePosUpdate?.invoke(null)
+        }
+    }
 
     private fun generateCloudTexture() {
         val size = 512; val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888); val canvas = android.graphics.Canvas(bitmap); val paint = android.graphics.Paint().apply { isAntiAlias = true }

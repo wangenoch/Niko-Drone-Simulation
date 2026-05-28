@@ -78,6 +78,8 @@ class DroneState {
         var cameraMode by mutableStateOf(AppConfig.VisualDefaults.CAMERA_MODE); var mainFOV by mutableFloatStateOf(AppConfig.VisualDefaults.MAIN_FOV); var zoomFactor by mutableFloatStateOf(AppConfig.VisualDefaults.ZOOM_FACTOR); var cameraTilt by mutableFloatStateOf(0f)
         var observerHeight by mutableFloatStateOf(AppConfig.VisualDefaults.OBSERVER_HEIGHT); var observerTilt by mutableFloatStateOf(AppConfig.VisualDefaults.OBSERVER_TILT); var enableZoomAssistant by mutableStateOf(true); var showGroundAnchor by mutableStateOf(AppConfig.VisualDefaults.SHOW_GROUND_ANCHOR)
         var lastManualTouchTime by mutableLongStateOf(0L); var specialTitleScreenPos by mutableStateOf<Offset?>(null); var useSmartObserver by mutableStateOf(false)
+        /** [v1.7.15] 飛機在螢幕上的 2D 投影位置，用於 UI 智慧避讓 */
+        var droneScreenPos by mutableStateOf<Offset?>(null)
         var radarZoomMode by mutableIntStateOf(AppConfig.VisualDefaults.RADAR_ZOOM_MODE); var hudMode by mutableIntStateOf(AppConfig.VisualDefaults.HUD_MODE)
         
         // [v1.7.7] 雷達互動座標與狀態
@@ -143,6 +145,7 @@ class DroneState {
     var currentRadarScale: Float get() = flight.currentRadarScale; set(v) { flight.currentRadarScale = v }
     var crashReason: CrashReason get() = flight.crashReason; set(v) { flight.crashReason = v }
     var sessionFlightTime: Float get() = flight.sessionFlightTime; set(v) { flight.sessionFlightTime = v }
+    var droneScreenPos: Offset? get() = camera.droneScreenPos; set(v) { camera.droneScreenPos = v }
 
     var inputMode: Int get() = hardware.inputMode; set(v) { hardware.inputMode = v }
     var connectionStatus: ConnectionStatus get() = hardware.connectionStatus; set(v) { hardware.connectionStatus = v }

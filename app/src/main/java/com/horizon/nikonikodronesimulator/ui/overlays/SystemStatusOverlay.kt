@@ -105,16 +105,16 @@ fun SystemStatusOverlay(
     }
 
     Box(
-        modifier = modifier.fillMaxSize().padding(bottom = 75.dp),
+        modifier = modifier.fillMaxSize().padding(bottom = 55.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
         SurfaceWrapper(
-            color = themeColors.panel.copy(alpha = 0.85f),
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, themeColors.divider)
+            color = themeColors.panel.copy(alpha = if (state.isMotorLocked) 0.85f else 0.4f), // 飛行中增加透明度
+            shape = RoundedCornerShape(8.dp),
+            border = BorderStroke(1.dp, themeColors.divider.copy(alpha = 0.5f))
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 val isWarn = rawMsg.contains("⚠️") || rawMsg.contains("SAFETY_WARN") || rawMsg.contains("HEAVY_LANDING") || rawMsg.contains("CRASH")

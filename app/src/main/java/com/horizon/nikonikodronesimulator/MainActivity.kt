@@ -108,6 +108,7 @@ class MainActivity : androidx.activity.ComponentActivity() {
         }
         // 視覺投影位置更新 (分離物理數據以防止無限碰撞)
         renderer.onTitlePosUpdate = { pos -> droneState.specialTitleScreenPos = pos }
+        renderer.onDronePosUpdate = { pos -> droneState.droneScreenPos = pos }
 
         // 6. UI 視圖層載入
         setContent {
