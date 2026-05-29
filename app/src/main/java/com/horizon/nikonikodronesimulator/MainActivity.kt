@@ -61,9 +61,8 @@ class MainActivity : androidx.activity.ComponentActivity() {
         // 1. 系統 UI 與存儲初始化
         WindowCompat.setDecorFitsSystemWindows(window, false)
         configStore = ConfigurationStore(this)
-        configStore.loadSettings(droneState)
         
-        // [v1.7.6] 語言讀取優化：根據設定檔或系統語言初始化
+        // [v1.7.20] 優化：移除重複的 loadSettings 呼叫，減輕啟動 I/O 負擔
         configStore.loadSettings(droneState)
         
         // [v1.7.7] 首次啟動攔截：若未「手動」選擇過語言，則強制開啟選擇器
@@ -89,8 +88,8 @@ class MainActivity : androidx.activity.ComponentActivity() {
             this, droneState, stickInputState, configStore
         )
 
-        // 4. 音效系統啟動
-        soundManager = com.horizon.nikonikodronesimulator.audio.DroneSoundManager(); soundManager.start()
+        // 4. 音效系統初始化 (延遲至 UI 準備好後啟動)
+        soundManager = com.horizon.nikonikodronesimulator.audio.DroneSoundManager()
 
         // 5. 3D 渲染引擎配置
         renderer = DroneSimulationRenderer { alt, x, z, yaw, pitch, roll, speed, isImpact, volt, perc, _, ft, windAng, cU, cV ->
@@ -122,7 +121,11 @@ class MainActivity : androidx.activity.ComponentActivity() {
                     configStore = configStore,
                     viewModel = viewModel, 
                     showSplash = showSplash, 
-                    onCloseSplash = { showSplash = false }, 
+                    onCloseSplash = { 
+                        showSplash = false 
+                        // [v1.7.20] 優化：延遲啟動音效引擎，避開啟動時的硬體資源競爭
+                        soundManager.start()
+                    },
                     onResetFlight = { viewModel.resetFlight(droneState, renderer) }, 
                     onRerollWind = { renderer.rerollWindDirection() },
                     onRestoreDefaults = { 

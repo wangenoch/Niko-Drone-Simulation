@@ -63,7 +63,7 @@ class ConfigurationStore(private val context: Context) {
             putBoolean("showFpvBody", state.camera.showFpvBody) // [v1.7.18] 持久化 FPV 機身顯示開關
             putString("appLanguage", state.appLanguage)
             putString("appTheme", state.appTheme)
-            commit() // [關鍵修復] 使用 commit() 確保語系設定立即落地，防止 Activity 重啟時讀取到舊數據
+            apply() // [v1.7.20] 優化：使用 apply() 非同步寫入，解決 A55 啟動阻塞
         }
         
         val targetPrefs = if (state.inputMode == 1) {
@@ -82,7 +82,7 @@ class ConfigurationStore(private val context: Context) {
             putFloat("rateY", state.rateY); putFloat("expoY", state.expoY)
             putFloat("rateP", state.rateP); putFloat("expoP", state.expoP)
             putFloat("rateR", state.rateR); putFloat("expoR", state.expoR)
-            commit()
+            apply() // [v1.7.20] 優化
         }
     }
 
