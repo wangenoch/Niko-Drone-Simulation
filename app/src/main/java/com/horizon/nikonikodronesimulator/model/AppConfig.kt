@@ -6,7 +6,7 @@ package com.horizon.nikonikodronesimulator.model
  */
 object AppConfig {
     // --- 基礎資訊 ---
-    const val CURRENT_VERSION = "1.7.20"
+    const val CURRENT_VERSION = "1.7.21"
     const val RELEASE_DATE = "2026-05"
     const val DEVELOPER = "Enoch Wang"
 

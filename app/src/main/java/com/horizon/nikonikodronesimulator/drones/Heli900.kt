@@ -54,6 +54,7 @@ object Heli900 : DroneModule {
     // [v1.7.17] 物理特性重構：低恢復、高慣性的 900 級直昇機
     override val physicsDamping: Float get() = 0.99f // 極高的水平慣性，使其收桿後持續滑行
     override val attitudeRestorationForce: Float get() = 1.8f // 極低的自動水平恢復力，模擬 3D 陀螺儀手感
+    override val brakingInertiaScale: Float = 2.5f // [v1.7.21] 專業直昇機動能對抗
 
     // [v1.7.17] 聲學基因：穩定轉速、具有 18Hz 週期性拍擊聲的傳統旋翼機
     override val soundProfile = com.horizon.nikonikodronesimulator.model.SoundProfile(

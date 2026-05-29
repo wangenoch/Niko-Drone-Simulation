@@ -182,20 +182,20 @@ object PhysicsEngine {
         var accX = rawAccX
         var accZ = rawAccZ
 
-        // [v1.7.17] 專業直昇機動力補丁 B：動能對抗 (Kinetic Momentum Opposition)
-        // 當操作力方向與速度方向相反時，虛擬質量提升 2.5 倍，拉長煞車距離
-        if (useAdvancedHeli && isAirborne) {
+        // [v1.7.21] 基因驅動動能對抗：若開啟真實物理，套用該機種專屬的煞車慣性係數
+        if (atmos.applyPhysicalSpecs && isAirborne) {
+            val bInertia = spec.brakingInertiaScale
             val isBrakingX = (accX * state.velX) < 0
             val isBrakingZ = (accZ * state.velZ) < 0
-            if (isBrakingX) accX /= 2.5f
-            if (isBrakingZ) accZ /= 2.5f
+            if (isBrakingX) accX /= bInertia
+            if (isBrakingZ) accZ /= bInertia
 
             // [v1.7.17] 專業直昇機動力補丁 C：側向漂移 (Translating Tendency)
-            // 模擬尾槳向右推力產生的側滑，強制飛手必須微調 Roll 軸
-            // 常駐一個微小的向右物理力量 (約 0.08G)
-            val driftRad = Math.toRadians(state.yaw.toDouble()).toFloat()
-            accX += cos(driftRad) * 0.8f 
-            accZ += sin(driftRad) * 0.8f
+            if (spec.category == com.horizon.nikonikodronesimulator.model.DroneCategory.HELI) {
+                val driftRad = Math.toRadians(state.yaw.toDouble()).toFloat()
+                accX += cos(driftRad) * 0.8f 
+                accZ += sin(driftRad) * 0.8f
+            }
         }
         
         if (isAirborne) {

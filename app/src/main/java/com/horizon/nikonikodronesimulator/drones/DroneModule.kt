@@ -94,6 +94,9 @@ interface DroneModule {
     /** [v1.7.17] 姿態自動回正恢復力 (數值越小，慣性越重) */
     val attitudeRestorationForce: Float get() = 8.0f
 
+    /** [v1.7.21] 煞車慣性係數 (數值越高，反向操作時滑行越長) */
+    val brakingInertiaScale: Float get() = 1.0f
+
     // --- 翻譯層 B：UI 文字格式化 ---
     fun getFormattedSpecs(): String {
         val h = hardwareSpecs
