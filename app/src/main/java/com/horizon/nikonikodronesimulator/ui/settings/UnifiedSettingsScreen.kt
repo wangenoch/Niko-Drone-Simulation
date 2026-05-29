@@ -215,7 +215,20 @@ fun UnifiedSettingsScreen(
                                 }
                                 SettingsTab.CAMERA -> VisualNavigationScreen(
                                     cameraMode = state.cameraMode, mainFOV = state.mainFOV, zoomFactor = state.zoomFactor, showSpecialTitle = state.showSpecialTitle, currentTitleText = state.currentTitleText, showSideSliders = state.showSideSliders, showSideRulers = state.showSideRulers, reverseSliderSides = state.reverseSliderSides, showGroundAnchor = state.showGroundAnchor, autoPiPRelocate = state.autoPiPRelocate, enableZoomAssistant = state.enableZoomAssistant,
-                                    onUpdateCameraMode = { onUpdateState { cameraMode = it } }, onUpdateFOV = { onUpdateState { mainFOV = it } }, onUpdateZoom = { onUpdateState { zoomFactor = it } }, onToggleSpecialTitle = { onUpdateState { showSpecialTitle = it } }, onUpdateSpecialTitle = { onUpdateState { currentTitleText = it } }, onToggleSideSliders = { onUpdateState { showSideSliders = it } }, onToggleSideRulers = { onUpdateState { showSideRulers = it } }, onToggleReverseSliders = { onUpdateState { reverseSliderSides = it } }, onToggleGroundAnchor = { onUpdateState { showGroundAnchor = it } }, onTogglePiPRelocate = { onUpdateState { autoPiPRelocate = it } }, onToggleZoomAssistant = { onUpdateState { enableZoomAssistant = it } }, onSave = onSaveSettings,
+                                    onUpdateCameraMode = { onUpdateState { cameraMode = it } }, 
+                                    onUpdateFOV = { 
+                                        onUpdateState { 
+                                            mainFOV = it 
+                                            // [v1.7.15] 實時寫回模式專屬 FOV 存儲
+                                            when(cameraMode) {
+                                                AppConfig.CAM_MODE_STATION_FIXED -> camera.fovFixed = it
+                                                AppConfig.CAM_MODE_STATION_TRACK -> camera.fovTracking = it
+                                                AppConfig.CAM_MODE_STATION_SMART -> camera.fovSmart = it
+                                            }
+                                        } 
+                                    }, 
+                                    onUpdateZoom = { onUpdateState { zoomFactor = it } }, 
+                                    onToggleSpecialTitle = { onUpdateState { showSpecialTitle = it } }, onUpdateSpecialTitle = { onUpdateState { currentTitleText = it } }, onToggleSideSliders = { onUpdateState { showSideSliders = it } }, onToggleSideRulers = { onUpdateState { showSideRulers = it } }, onToggleReverseSliders = { onUpdateState { reverseSliderSides = it } }, onToggleGroundAnchor = { onUpdateState { showGroundAnchor = it } }, onTogglePiPRelocate = { onUpdateState { autoPiPRelocate = it } }, onToggleZoomAssistant = { onUpdateState { enableZoomAssistant = it } }, onSave = onSaveSettings,
                                     onManualInteraction = { onUpdateState { lastManualTouchTime = System.currentTimeMillis() } }
                                 )
                                 SettingsTab.DRONE_SELECTION -> DroneSelectionScreen(currentType = state.droneType, onTypeSelected = { t -> onUpdateState { droneType = t }; onLoadModelSettings(t) }, onLongPressType = { t -> onUpdateState { showModelConfigConfirm = t } }, state = state)

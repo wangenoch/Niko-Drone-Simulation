@@ -92,15 +92,9 @@ object AppConfig {
         /** 主視角視野角度 (Field of View) */
         const val MAIN_FOV = 45f
         const val DEFAULT_FPV_FOV = 85f // [v1.7.7] 全域 FPV 視野預設值
-        /** 縮放倍率 */
-        const val ZOOM_FACTOR = 0.5f
         
-        /** 初始攝影機模式 */
-        const val CAMERA_MODE = CAM_MODE_STATION_TRACK
-        /** 智慧縮放模式 ID */
-        const val CAMERA_MODE_SMART_ID = CAM_MODE_STATION_SMART
-
         // --- 站位視角 (固定) 專屬預設值 ---
+        const val DEFAULT_FIXED_FOV = 45f // [v1.7.15] 隔離 FOV
         /** 觀察員站位高度 (公尺) */
         const val OBSERVER_HEIGHT = 1.6f
         /** 站位視角固定預設仰角 (度) */
@@ -109,6 +103,7 @@ object AppConfig {
         const val ZOOM_FACTOR_FIXED = 0.5f
 
         // --- 站位視角 (追蹤) 專屬預設值 ---
+        const val DEFAULT_TRACKING_FOV = 45f // [v1.7.15] 隔離 FOV
         /** 追蹤模式初始高度 (公尺) */
         const val OBSERVER_HEIGHT_TRACKING = 6.0f
         /** 追蹤模式初始仰角 (度) */
@@ -117,6 +112,7 @@ object AppConfig {
         const val ZOOM_FACTOR_TRACKING = 1.3f
 
         // --- 站位視角 (智慧) 專屬預設值 ---
+        const val DEFAULT_SMART_FOV = 45f // [v1.7.15] 隔離 FOV
         /** 智慧模式初始高度 (公尺) */
         const val OBSERVER_HEIGHT_SMART = 6.0f
         /** 智慧模式初始仰角 (度) */

@@ -167,8 +167,8 @@ class DroneViewModel : ViewModel() {
             // 視覺還原
             mainFOV = com.horizon.nikonikodronesimulator.model.AppConfig.VisualDefaults.MAIN_FOV
             // 視覺還原 (依照 AppConfig 預設初始模式進行對接)
-            cameraMode = com.horizon.nikonikodronesimulator.model.AppConfig.VisualDefaults.CAMERA_MODE
-            mainFOV = com.horizon.nikonikodronesimulator.model.AppConfig.VisualDefaults.MAIN_FOV
+            cameraMode = "STATION_TRACK"
+            mainFOV = 45f
             
             if (cameraMode == AppConfig.CAM_MODE_STATION_FIXED) {
                 observerHeight = com.horizon.nikonikodronesimulator.model.AppConfig.VisualDefaults.OBSERVER_HEIGHT
@@ -226,27 +226,27 @@ class DroneViewModel : ViewModel() {
                     observerHeight = AppConfig.VisualDefaults.OBSERVER_HEIGHT
                     observerTilt = AppConfig.VisualDefaults.OBSERVER_TILT
                     zoomFactor = AppConfig.VisualDefaults.ZOOM_FACTOR_FIXED
+                    mainFOV = camera.fovFixed // [v1.7.15] 使用隔離 FOV
                 }
                 AppConfig.CAM_MODE_STATION_TRACK -> {
                     observerHeight = AppConfig.VisualDefaults.OBSERVER_HEIGHT_TRACKING
                     observerTilt = AppConfig.VisualDefaults.OBSERVER_TILT_TRACKING
                     zoomFactor = AppConfig.VisualDefaults.ZOOM_FACTOR_TRACKING
+                    mainFOV = camera.fovTracking // [v1.7.15] 使用隔離 FOV
                 }
                 AppConfig.CAM_MODE_STATION_SMART -> {
-                    // [v1.7.12] 智慧視角：使用專屬預設值
                     observerHeight = AppConfig.VisualDefaults.OBSERVER_HEIGHT_SMART
                     observerTilt = AppConfig.VisualDefaults.OBSERVER_TILT_SMART
                     zoomFactor = AppConfig.VisualDefaults.ZOOM_FACTOR_SMART
+                    mainFOV = camera.fovSmart // [v1.7.15] 使用隔離 FOV
                 }
                 AppConfig.CAM_MODE_FPV -> {
-                    // FPV 模式下的階層式視野讀取
                     val spec = DroneRegistry.getSpec(droneType)
                     mainFOV = spec.fpvFov
                     zoomFactor = 1.0f
-                    cameraTilt = 0f // [v1.7.7] 進入 FPV 時雲台水平歸零
+                    cameraTilt = 0f
                 }
             }
-            // 觸發最後操作時間，防止視角被平滑平滑掉
             lastManualTouchTime = System.currentTimeMillis()
         }
     }

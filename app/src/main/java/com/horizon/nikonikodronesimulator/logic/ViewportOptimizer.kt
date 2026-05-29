@@ -18,21 +18,21 @@ object ViewportOptimizer {
         val d = kotlin.math.sqrt(dronePosX * dronePosX + dronePosZ * dronePosZ)
         val h = droneAltitude
 
-        // [v1.7.12] 嚴格執行憲法模式：優先尊重 AppConfig 預設值，移除近距離強制 4 度偏移
-        // 這解決了小型裝置在重置時會跳轉到非 0 度視角的問題
-        return when {
-            // 1. 起槳保護 (H < 0.2m)
-            h < 0.2f -> ViewportParams(
-                fov = com.horizon.nikonikodronesimulator.model.AppConfig.VisualDefaults.MAIN_FOV,
-                zoom = com.horizon.nikonikodronesimulator.model.AppConfig.VisualDefaults.ZOOM_FACTOR_TRACKING,
-                tilt = com.horizon.nikonikodronesimulator.model.AppConfig.VisualDefaults.OBSERVER_TILT_TRACKING
-            )
+        val v = com.horizon.nikonikodronesimulator.model.AppConfig.VisualDefaults
+        val baseFov = when(cameraMode) {
+            com.horizon.nikonikodronesimulator.model.AppConfig.CAM_MODE_STATION_FIXED -> v.DEFAULT_FIXED_FOV
+            com.horizon.nikonikodronesimulator.model.AppConfig.CAM_MODE_STATION_TRACK -> v.DEFAULT_TRACKING_FOV
+            com.horizon.nikonikodronesimulator.model.AppConfig.CAM_MODE_STATION_SMART -> v.DEFAULT_SMART_FOV
+            else -> v.MAIN_FOV
+        }
 
-            // 2. 垂直越頂鎖定 (D < 2.0m) - 回歸 AppConfig 基準
-            d < 2.0f -> ViewportParams(
-                fov = com.horizon.nikonikodronesimulator.model.AppConfig.VisualDefaults.MAIN_FOV,
-                zoom = com.horizon.nikonikodronesimulator.model.AppConfig.VisualDefaults.ZOOM_FACTOR_TRACKING,
-                tilt = com.horizon.nikonikodronesimulator.model.AppConfig.VisualDefaults.OBSERVER_TILT_TRACKING
+        // [v1.7.15] 憲法級動態視覺優化：基於模式專屬 FOV 進行階梯式縮放
+        return when {
+            // 1. 起槳與近場保護 (H < 0.2m 或 D < 2.0m)
+            h < 0.2f || d < 2.0f -> ViewportParams(
+                fov = baseFov,
+                zoom = v.ZOOM_FACTOR_TRACKING,
+                tilt = v.OBSERVER_TILT_TRACKING
             )
 
             // 3. 遠航/高空模式 (D > 20m 或 H > 15m)

@@ -48,6 +48,8 @@ class ConfigurationStore(private val context: Context) {
             putBoolean("isExpertModeLocked", state.isExpertModeLocked); putFloat("zoomFactor", state.zoomFactor); putString("lockedProtocol", state.lockedProtocol)
             putString("lastSeenVersion", AppConfig.CURRENT_VERSION); putBoolean("reverseSliderSides", state.reverseSliderSides); putFloat("observerHeight", state.observerHeight)
             putFloat("observerTilt", state.observerTilt); putBoolean("useGlobalRates", state.useGlobalRates); putBoolean("showIndividualRates", state.showIndividualRates)
+            // [v1.7.15] 隔離 FOV 持久化
+            putFloat("fovFixed", state.camera.fovFixed); putFloat("fovTracking", state.camera.fovTracking); putFloat("fovSmart", state.camera.fovSmart)
             putFloat("globalRate", state.globalRate); putFloat("globalExpo", state.globalExpo); putInt("radarZoomMode", state.radarZoomMode)
             putBoolean("showVirtualJoysticks", state.showVirtualJoysticks); putInt("baudRate", state.baudRate); putInt("windLevel", state.windLevel)
             putString("cameraMode", state.cameraMode); putString("windDirection", state.windDirection)
@@ -129,10 +131,16 @@ class ConfigurationStore(private val context: Context) {
             this.lockedProtocol = loadedProtocol; this.showVirtualJoysticks = prefs.getBoolean("showVirtualJoysticks", false)
             this.reverseSliderSides = prefs.getBoolean("reverseSliderSides", true); this.observerHeight = prefs.getFloat("observerHeight", 6.0f)
             this.observerTilt = prefs.getFloat("observerTilt", 0f); this.shadowIntensity = prefs.getFloat("shadowIntensity", 0.5f)
+            
+            // [v1.7.15] 隔離 FOV 載入
+            this.camera.fovFixed = prefs.getFloat("fovFixed", AppConfig.VisualDefaults.DEFAULT_FIXED_FOV)
+            this.camera.fovTracking = prefs.getFloat("fovTracking", AppConfig.VisualDefaults.DEFAULT_TRACKING_FOV)
+            this.camera.fovSmart = prefs.getFloat("fovSmart", AppConfig.VisualDefaults.DEFAULT_SMART_FOV)
+
             this.windLevel = prefs.getInt("windLevel", 0) 
             
-            // [v1.7.6] 語系狀態遷移 (Migration)：處理舊版中文字串
-            val rawCamMode = prefs.getString("cameraMode", AppConfig.VisualDefaults.CAMERA_MODE) ?: AppConfig.VisualDefaults.CAMERA_MODE
+            // [v1.7.15] 視覺還原路徑修正 (避免變量污染)
+            val rawCamMode = prefs.getString("cameraMode", "STATION_TRACK") ?: "STATION_TRACK"
             this.cameraMode = when(rawCamMode) {
                 "站位視角 (追蹤)" -> AppConfig.CAM_MODE_STATION_TRACK
                 "站位視角 (智慧)" -> AppConfig.CAM_MODE_STATION_SMART

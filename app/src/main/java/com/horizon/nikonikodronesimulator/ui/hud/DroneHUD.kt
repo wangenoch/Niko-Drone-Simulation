@@ -38,6 +38,15 @@ fun DroneHUD(
     onUpdateZoomPipRect: (android.graphics.Rect?) -> Unit,
     onUpdateTutorialTargets: (String, androidx.compose.ui.geometry.Rect) -> Unit = { _, _ -> }
 ) {
+    // [v1.7.15] 效能優化：將重複的距離運算與狀態判定提升至頂層
+    val distToOpsCenter = sqrt(state.posX.pow(2) + (state.posZ - 6f).pow(2))
+    val isInZoomZone = state.enableZoomAssistant && 
+                       distToOpsCenter > AppConfig.VisualDefaults.ZOOM_ASSISTANT_DISTANCE &&
+                       state.cameraMode != AppConfig.CAM_MODE_FPV && 
+                       state.cameraMode != AppConfig.CAM_MODE_FOLLOW && 
+                       state.cameraMode != AppConfig.CAM_MODE_STATION_SMART && 
+                       !state.showSettings
+
     Box(modifier = modifier.fillMaxSize()) {
         // 1. 儀表層 (MFD)
         InstrumentsLayer(
@@ -92,30 +101,42 @@ fun DroneHUD(
 
         // 4. 頂部狀態顯示與姿態輔助視窗 (Zoom Assistant)
         Box(modifier = Modifier.fillMaxSize()) {
-            // [v1.7.7] 校準：Zoom Assistant 則維持中心 Z=6 的觸發
-            // [需求修復]：智慧視角 (Smart) 不需要啟動姿態輔助視窗
-            val distToOpsCenter = sqrt(state.posX.pow(2) + (state.posZ - 6f).pow(2))
-            val isInZoomZone = state.enableZoomAssistant && distToOpsCenter > AppConfig.VisualDefaults.ZOOM_ASSISTANT_DISTANCE &&
-                               state.cameraMode != AppConfig.CAM_MODE_FPV && 
-                               state.cameraMode != AppConfig.CAM_MODE_FOLLOW && 
-                               state.cameraMode != AppConfig.CAM_MODE_STATION_SMART && 
-                               !state.showSettings
-            
-            val currentSpec = DroneRegistry.getSpec(state.droneType)
-            // [v1.7.7] 優化：只有在「智慧視角 (Smart)」或「固定視角 (Fixed)」且低頭或高空時才進行避讓
-            // 「站位視角 (追蹤)」模式下應維持在中央，以提供最穩定的輔助參考
+            // [v1.7.15] 幾何避讓 3.0：效仿物理碰撞機制 (AABB Intersection)
+            // 邏輯：定義 UI 與飛機的 2D 實體矩陣，計算兩者是否產生面積重疊
+            val dronePos = state.droneScreenPos
+            val isDroneObscured = if (dronePos != null) {
+                // A. 定義 UI 視窗感應盒 (螢幕中上衝突區)
+                val uiBox = androidx.compose.ui.geometry.Rect(left = 250f, top = 0f, right = 750f, bottom = 520f)
+                // B. 定義飛機視覺足跡 (含高度與寬度緩衝，以 T4 為體積基準)
+                val droneBox = androidx.compose.ui.geometry.Rect(
+                    left = dronePos.x - 180f,
+                    top = dronePos.y - 150f,
+                    right = dronePos.x + 180f,
+                    bottom = dronePos.y + 60f
+                )
+                // C. 碰撞判定：只要面積重疊，判決成立
+                uiBox.overlaps(droneBox)
+            } else false
+
+            // 2. 綜合判定：相機俯仰、手動覆蓋、或 2D 實體碰撞
             val shouldRelocate = state.cameraMode != AppConfig.CAM_MODE_STATION_TRACK && 
-                                (state.observerTilt < -5f || (state.altitude - currentSpec.groundOffset) > 10f)
+                                (state.observerTilt < -5f || isDroneObscured)
             
             val isZoomRelocated = state.autoPiPRelocate && shouldRelocate
             val zoomAlign = if (isZoomRelocated) Alignment.TopEnd else Alignment.TopCenter
-            // [v1.7.7 校準] 統一對齊高度：將 TopCenter 的 padding 調回與 Radar HUD 一致的 16.dp
-            val zoomPad = if (isZoomRelocated) Modifier.padding(end = 65.dp, top = 16.dp) else Modifier.padding(top = 16.dp)
+            
+            // 3. 漸進式上浮邏輯
+            val dynamicTopPadding = if (!isZoomRelocated && dronePos != null) {
+                (4 + (dronePos.y / 1000f) * 12).coerceIn(4f, 16f).dp
+            } else 16.dp
 
             if (isInZoomZone) {
                 PrecisionZoomView(
                     state = state,
-                    modifier = zoomPad.align(zoomAlign).zIndex(5f),
+                    modifier = Modifier
+                        .padding(top = dynamicTopPadding, end = if(isZoomRelocated) 65.dp else 0.dp)
+                        .align(zoomAlign)
+                        .zIndex(5f),
                     onUpdateRect = { r -> 
                         onUpdateZoomPipRect(r?.let { android.graphics.Rect(it.left.toInt(), it.top.toInt(), it.right.toInt(), it.bottom.toInt()) }) 
                     }
@@ -125,12 +146,7 @@ fun DroneHUD(
             }
 
             Column(modifier = Modifier.align(Alignment.TopCenter).zIndex(10f), horizontalAlignment = Alignment.CenterHorizontally) {
-                // [v1.7.6] 校準：Zoom Assistant 則維持中心 Z=6 的觸發
-                val distToOpsCenter = sqrt(state.posX.pow(2) + (state.posZ - 6f).pow(2))
-                val isInZoomZone = state.enableZoomAssistant && distToOpsCenter > AppConfig.VisualDefaults.ZOOM_ASSISTANT_DISTANCE && state.cameraMode != AppConfig.CAM_MODE_FPV && state.cameraMode != AppConfig.CAM_MODE_FOLLOW && !state.showSettings
-                
                 val zoomPad = if (isInZoomZone) 110.dp else 10.dp
-
                 if (state.isNearBoundary) {
                     Spacer(Modifier.height(zoomPad))
                     Surface(

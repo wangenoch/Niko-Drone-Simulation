@@ -75,7 +75,13 @@ class DroneState {
 
     // --- 3. 視覺導演域 ---
     class CameraDomain {
-        var cameraMode by mutableStateOf(AppConfig.VisualDefaults.CAMERA_MODE); var mainFOV by mutableFloatStateOf(AppConfig.VisualDefaults.MAIN_FOV); var zoomFactor by mutableFloatStateOf(AppConfig.VisualDefaults.ZOOM_FACTOR); var cameraTilt by mutableFloatStateOf(0f)
+        var cameraMode by mutableStateOf<String>("STATION_TRACK"); var mainFOV by mutableFloatStateOf(45f); var zoomFactor by mutableFloatStateOf(1.5f); var cameraTilt by mutableFloatStateOf(0f)
+        
+        /** [v1.7.15] 攝影機模式專屬 FOV 隔離存儲，防止模式切換時產生魚眼畸變 */
+        var fovFixed by mutableFloatStateOf(AppConfig.VisualDefaults.DEFAULT_FIXED_FOV)
+        var fovTracking by mutableFloatStateOf(AppConfig.VisualDefaults.DEFAULT_TRACKING_FOV)
+        var fovSmart by mutableFloatStateOf(AppConfig.VisualDefaults.DEFAULT_SMART_FOV)
+
         var observerHeight by mutableFloatStateOf(AppConfig.VisualDefaults.OBSERVER_HEIGHT); var observerTilt by mutableFloatStateOf(AppConfig.VisualDefaults.OBSERVER_TILT); var enableZoomAssistant by mutableStateOf(true); var showGroundAnchor by mutableStateOf(AppConfig.VisualDefaults.SHOW_GROUND_ANCHOR)
         var lastManualTouchTime by mutableLongStateOf(0L); var specialTitleScreenPos by mutableStateOf<Offset?>(null); var useSmartObserver by mutableStateOf(false)
         /** [v1.7.15] 飛機在螢幕上的 2D 投影位置，用於 UI 智慧避讓 */
