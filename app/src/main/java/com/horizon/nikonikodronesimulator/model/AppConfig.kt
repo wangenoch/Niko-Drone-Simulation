@@ -152,9 +152,9 @@ object AppConfig {
     /** [v1.7.17] 全域音訊輸出增益配置 */
     object AudioDefaults {
         /** 飛機馬達主音量增益 (0.0 ~ 1.0) */
-        const val MASTER_MOTOR_VOLUME = 2.8f
+        const val MASTER_MOTOR_VOLUME = 0.8f
         /** 環境與風聲主音量增益 (0.0 ~ 1.0) */
-        const val MASTER_ENV_VOLUME = 50.4f
+        const val MASTER_ENV_VOLUME = 0.5f
     }
 
     /** 系統與安全預設標準 */
