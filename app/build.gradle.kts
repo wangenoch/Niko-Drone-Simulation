@@ -12,8 +12,8 @@ android {
         applicationId = "com.horizon.nikonikodronesimulator"
         minSdk = 28
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.7.14"
+        versionCode = 3
+        versionName = "1.7.15"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -38,6 +38,10 @@ android {
         release {
             isMinifyEnabled = true // [v1.7.7] 開啟代碼混淆與壓縮 (R8)
             isShrinkResources = true // [v1.7.7] 移除未使用的資源檔
+            
+            // [v1.7.15] 自動包含原生偵錯符號，解決 Google Play Console 警告
+            ndk.debugSymbolLevel = "FULL"
+
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
