@@ -4,8 +4,8 @@
     android:viewportWidth="512"
     android:viewportHeight="512">
 
-    <!-- [v1.7.15] NikoNiko Global Icon (Circular Safe Scale v27) -->
-    <!-- Entire design scaled to 65% to fit within Android 12+ Splash Screen circular mask -->
+    <!-- [v1.7.15] NikoNiko Localized Icon (Japanese Katakana v29) -->
+    <!-- Corrected: Ni (ニ) aligned vertically with Ko (コ) -->
 
     <group
         android:name="safe_container"
@@ -32,15 +32,16 @@
             <path android:pathData="M150,12 L165,27 L190,0" android:strokeColor="#1B4332" android:strokeWidth="12" android:strokeLineCap="round" android:strokeLineJoin="round"/>
         </group>
 
-        <group android:name="niko_text" android:translateX="131" android:translateY="350">
-            <path android:pathData="M0,40 V0 L20,40 V0" android:strokeColor="#1B4332" android:strokeWidth="8" android:strokeLineCap="round" android:strokeLineJoin="round"/>
-            <path android:pathData="M35,0 V40" android:strokeColor="#1B4332" android:strokeWidth="8" android:strokeLineCap="round"/>
-            <path android:pathData="M50,0 V40 M70,0 L50,20 L70,40" android:strokeColor="#1B4332" android:strokeWidth="8" android:strokeLineCap="round" android:strokeLineJoin="round"/>
-            <path android:pathData="M85,20 A10,20 0 1,1 105,20 A10,20 0 1,1 85,20" android:strokeColor="#1B4332" android:strokeWidth="8" android:strokeLineCap="round"/>
-            <path android:pathData="M145,40 V0 L165,40 V0" android:strokeColor="#1B4332" android:strokeWidth="8" android:strokeLineCap="round" android:strokeLineJoin="round"/>
-            <path android:pathData="M180,0 V40" android:strokeColor="#1B4332" android:strokeWidth="8" android:strokeLineCap="round"/>
-            <path android:pathData="M195,0 V40 M215,0 L195,20 L215,40" android:strokeColor="#1B4332" android:strokeWidth="8" android:strokeLineCap="round" android:strokeLineJoin="round"/>
-            <path android:pathData="M230,20 A10,20 0 1,1 250,20 A10,20 0 1,1 230,20" android:strokeColor="#1B4332" android:strokeWidth="8" android:strokeLineCap="round"/>
+        <!-- Japanese Branding: ニコニコ (Vertically Aligned) -->
+        <group android:name="ja_text" android:translateX="153" android:translateY="360">
+            <!-- ニ (Ni) - Adjusted to match Ko's vertical span -->
+            <path android:pathData="M5,8 h25 M0,38 h35" android:strokeColor="#1B4332" android:strokeWidth="8" android:strokeLineCap="round" />
+            <!-- コ (Ko) -->
+            <path android:pathData="M55,5 h35 v35 h-35" android:strokeColor="#1B4332" android:strokeWidth="8" android:strokeLineCap="round" android:strokeLineJoin="round" />
+            <!-- ニ (Ni) - Adjusted -->
+            <path android:pathData="M115,8 h25 M110,38 h35" android:strokeColor="#1B4332" android:strokeWidth="8" android:strokeLineCap="round" />
+            <!-- コ (Ko) -->
+            <path android:pathData="M165,5 h35 v35 h-35" android:strokeColor="#1B4332" android:strokeWidth="8" android:strokeLineCap="round" android:strokeLineJoin="round" />
         </group>
     </group>
 </vector>

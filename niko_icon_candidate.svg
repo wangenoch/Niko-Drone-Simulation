@@ -1,0 +1,32 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- White Background -->
+    <rect width="512" height="512" rx="100" fill="white"/>
+
+    <!-- Forest Green (#1B4332) -->
+    <!-- [v1.7.15] Perfected Smile Roundness + Widened N Geometry -->
+    <g id="final_logo" transform="translate(185, 70)">
+        <!-- Left Pillar (Long) -->
+        <path d="M0 0V160" stroke="#1B4332" stroke-width="18" stroke-linecap="round"/>
+        <!-- Diagonal: Top-Left to Bottom-Middle (Widened to 100) -->
+        <path d="M0 0L100 90" stroke="#1B4332" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Middle Pillar (Shortened to match 'i') -->
+        <path d="M100 0V90" stroke="#1B4332" stroke-width="18" stroke-linecap="round"/>
+        <!-- Right Pillar (The 'i' - Same height as Middle) -->
+        <path d="M135 0V90" stroke="#1B4332" stroke-width="18" stroke-linecap="round"/>
+        <!-- The Smile Curve: Deeper and much rounder -->
+        <path d="M30 130C55 155 80 160 110 130" stroke="#1B4332" stroke-width="18" stroke-linecap="round"/>
+    </g>
+
+    <!-- Three Small Checkmarks -->
+    <g id="checkmarks" transform="translate(160, 300)">
+        <path d="M0 12L15 27L40 0" stroke="#1B4332" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M75 12L90 27L115 0" stroke="#1B4332" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M150 12L165 27L190 0" stroke="#1B4332" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <!-- Branding Text - Precision Scale and Kerning from v15 -->
+    <text x="256" y="390" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="44" fill="#1B4332" letter-spacing="4">ニコニコ</text>
+
+    <!-- Chinese Branding - Precision Scale from v15 -->
+    <text x="256" y="455" text-anchor="middle" font-family="PingFang TC, Heiti TC, Microsoft JhengHei, sans-serif" font-weight="bold" font-size="52" fill="#1B4332">無人機考場模擬</text>
+</svg>

@@ -11,14 +11,12 @@ import kotlin.math.*
  * 融合原本的高亮度質感與現有的 (0,0,0) 導航原點。
  */
 object FieldRenderer {
-    fun drawField(posH: Int, colorH: Int, mvpH: Int, mvpMatrix: FloatArray, windLevel: Int, windDirection: String, windAngleDeg: Float, flightTime: Float, showObstacles: Boolean, isSunSimEnabled: Boolean = false, sunPosition: Float = 0.5f, useSimplified: Boolean = false,
+    fun drawField(posH: Int, colorH: Int, mvpH: Int, mvpMatrix: FloatArray, showObstacles: Boolean, isSunSimEnabled: Boolean = false, sunPosition: Float = 0.5f, useSimplified: Boolean = false,
                   titleTextureId: Int = -1, texH: Int = -1, texCoordH: Int = -1, useTexH: Int = -1) {
         
         // 1. 廣闊地面背景
         RenderUtils.drawRect(posH, colorH, mvpH, mvpMatrix, 0f, -0.1f, 0f, 800f, 800f, floatArrayOf(0.15f, 0.35f, 0.15f, 1f))
         RenderUtils.drawRect(posH, colorH, mvpH, mvpMatrix, 0f, -0.05f, 6f, 120f, 100f, floatArrayOf(0.35f, 0.35f, 0.35f, 1f)) // 中心點位於 Z=6
-        
-        drawWindFlag(posH, colorH, mvpH, mvpMatrix, 0f, windLevel, windDirection, windAngleDeg, flightTime)
         
         // 2. 多樣化障礙物 (從 Constants 讀取實體數據)
         if (showObstacles) {
@@ -102,26 +100,6 @@ object FieldRenderer {
         RenderUtils.drawRect(posH, colorH, mvpH, mvpMatrix, 0f, y, offsetZ - h/2f, w+t, t, color)
         RenderUtils.drawRect(posH, colorH, mvpH, mvpMatrix, -w/2f, y, offsetZ, t, h-t, color)
         RenderUtils.drawRect(posH, colorH, mvpH, mvpMatrix, w/2f, y, offsetZ, t, h-t, color)
-    }
-
-    private fun drawWindFlag(posH: Int, colorH: Int, mvpH: Int, mvpMatrix: FloatArray, x: Float, windLevel: Int, windDirection: String, windAngleDeg: Float, flightTime: Float) {
-        val baseM = FloatArray(16); Matrix.setIdentityM(baseM, 0)
-        val z = 19f
-        RenderUtils.drawBox(posH, colorH, mvpH, mvpMatrix, baseM, x, 1.5f, z, 0.1f, 3f, 0.1f, floatArrayOf(0.4f, 0.4f, 0.4f, 1f))
-        if (windLevel > 0) {
-            val flagM = baseM.copyOf(); Matrix.translateM(flagM, 0, x, 2.8f, z)
-            // [v1.7.9.11 視覺統一人員]
-            // 核心憲法：旗子必須無條件順著物理流向飄動。
-            // 使用 270 - flow 進行投影對位 (OpenGL 座標系修正)，確保旗尖指向與 currentFlowAngle 物理一致。
-            val currentFlowAngle = com.horizon.nikonikodronesimulator.model.DroneState.getInstance().env.currentWindAngle
-            Matrix.rotateM(flagM, 0, 270f - currentFlowAngle, 0f, 1f, 0f)
-            for (i in 0 until 4) {
-                val offX = i * 0.3f; val dip = (i * i * 0.05f) * (1f - windLevel * 0.15f)
-                val wobble = sin(flightTime * 5f + i) * 0.02f * windLevel; val size = 0.3f - i * 0.04f
-                val color = if (i % 2 == 0) floatArrayOf(1f, 0.3f, 0f, 1f) else floatArrayOf(1f, 1f, 1f, 1f)
-                RenderUtils.drawBox(posH, colorH, mvpH, mvpMatrix, flagM, offX + 0.15f, -dip + wobble, 0f, 0.3f, size, size, color)
-            }
-        }
     }
 
     private fun drawCone(posH: Int, colorH: Int, mvpH: Int, mvpMatrix: FloatArray, x: Float, z: Float) {

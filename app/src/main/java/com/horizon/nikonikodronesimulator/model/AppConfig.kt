@@ -6,12 +6,13 @@ package com.horizon.nikonikodronesimulator.model
  */
 object AppConfig {
     // --- 基礎資訊 ---
-    const val CURRENT_VERSION = "1.7.15"
+    const val CURRENT_VERSION = "1.7.16"
     const val RELEASE_DATE = "2026-05"
     const val DEVELOPER = "Enoch Wang"
 
     const val SPECIAL_TITLE_ZH = "NikoNiko考照場地模擬器"
     const val SPECIAL_TITLE_EN = "NikoNiko Drone Licensing Simulator"
+    const val SPECIAL_TITLE_JA = "ニコニコドローン考照シミュレーター"
 
     /** [v1.7.8] 運行時版本標記 (由 ProHardwareBridge 初始化) */
     var isProVersion = false
@@ -20,6 +21,7 @@ object AppConfig {
     fun getDefaultSpecialTitle(lang: String): String {
         return when (lang) {
             "zh" -> SPECIAL_TITLE_ZH
+            "ja" -> SPECIAL_TITLE_JA
             else -> SPECIAL_TITLE_EN
         }
     }
@@ -141,10 +143,18 @@ object AppConfig {
         /** 多功能儀表板 (MFD) 模式：0=標準, 1=OSD, 2=姿態球 */
         const val HUD_MODE = 0
         /** 雷達縮放模式：0=固定, 1=自動, 2=最大化 */
-        const val RADAR_ZOOM_MODE = 0
+        const val RADAR_ZOOM_MODE = 1
 
         /** [v1.7.12] 縮放倍率循環切換檔位 (選單點擊使用) */
         val ZOOM_STEPS = listOf(0.5f, 1.0f, 1.3f, 1.5f, 2.0f, 3.0f)
+    }
+
+    /** [v1.7.17] 全域音訊輸出增益配置 */
+    object AudioDefaults {
+        /** 飛機馬達主音量增益 (0.0 ~ 1.0) */
+        const val MASTER_MOTOR_VOLUME = 2.8f
+        /** 環境與風聲主音量增益 (0.0 ~ 1.0) */
+        const val MASTER_ENV_VOLUME = 50.4f
     }
 
     /** 系統與安全預設標準 */

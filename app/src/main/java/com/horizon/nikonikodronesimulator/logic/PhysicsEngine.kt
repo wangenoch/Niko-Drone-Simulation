@@ -158,25 +158,45 @@ object PhysicsEngine {
         val rollInput = input.roll; val pitchInput = input.pitch
         
         if (isAirborne) {
-            state.visPitch += (pitchInput * 25f - state.visPitch) * 8f * dt
-            state.visRoll += (rollInput * 25f - state.visRoll) * 8f * dt
+            // [v1.7.17] 基因驅動姿態：根據機種決定回正速度
+            val restoreForce = if (atmos.applyPhysicalSpecs) spec.attitudeRestorationForce else 8.0f
+            state.visPitch += (pitchInput * 25f - state.visPitch) * restoreForce * dt
+            state.visRoll += (rollInput * 25f - state.visRoll) * restoreForce * dt
         } else {
             state.visPitch = 0f; state.visRoll = 0f
         }
 
         // --- 4. [1:1 Git] 水平位移：平滑加速度模型 ---
-        // [v1.7.9.2 最終校準] 採用與 Yaw (CW) 匹配的位移矩陣
-        // 在 Yaw 順時針增加的坐標系下，公式為：
-        // X' = roll*cosY + pitch*sinY
-        // Z' = -roll*sinY + pitch*cosY
-        // 當 Yaw=0, cos=1, sin=0 -> accX = rollInput (向右), accZ = pitchInput (向前)
-        // [v1.7.9.8 FINAL FIX] 核心座標系對位：
-        // 根據 Log 診斷：向右推時，outX 為正，rollInput 為正。
-        // 為使飛機在視覺上向右飛行，物理 accX 必須為正。
-        // 原公式在 OpenGL 視角下會產生向左位移，故將 roll 項目取反。
-        val accX = (-rollInput * cosY + pitchInput * sinY) * (if (atmos.applyPhysicalSpecs) spec.physicsPower else 18.0f)
-        val accZ = (rollInput * sinY + pitchInput * cosY) * (if (atmos.applyPhysicalSpecs) spec.physicsPower else 18.0f)
+        val isHeli = spec.category == com.horizon.nikonikodronesimulator.model.DroneCategory.HELI
+        val useAdvancedHeli = atmos.applyPhysicalSpecs && isHeli
         
+        // [v1.7.17] 專業直昇機動力補丁 A：推力爬升率 (Thrust Ramp-up)
+        // 模擬大型旋翼盤改變相位時的滯後感，消除數位開關感
+        val smoothedRoll = if (useAdvancedHeli) state.visRoll / 25f else rollInput
+        val smoothedPitch = if (useAdvancedHeli) state.visPitch / 25f else pitchInput
+
+        // [v1.7.9.2 最終校準] 採用與 Yaw (CW) 匹配的位移矩陣
+        val rawAccX = (-smoothedRoll * cosY + smoothedPitch * sinY) * (if (atmos.applyPhysicalSpecs) spec.physicsPower else 18.0f)
+        val rawAccZ = (smoothedRoll * sinY + smoothedPitch * cosY) * (if (atmos.applyPhysicalSpecs) spec.physicsPower else 18.0f)
+        
+        var accX = rawAccX
+        var accZ = rawAccZ
+
+        // [v1.7.17] 專業直昇機動力補丁 B：動能對抗 (Kinetic Momentum Opposition)
+        // 當操作力方向與速度方向相反時，虛擬質量提升 2.5 倍，拉長煞車距離
+        if (useAdvancedHeli && isAirborne) {
+            val isBrakingX = (accX * state.velX) < 0
+            val isBrakingZ = (accZ * state.velZ) < 0
+            if (isBrakingX) accX /= 2.5f
+            if (isBrakingZ) accZ /= 2.5f
+
+            // [v1.7.17] 專業直昇機動力補丁 C：側向漂移 (Translating Tendency)
+            // 模擬尾槳向右推力產生的側滑，強制飛手必須微調 Roll 軸
+            // 常駐一個微小的向右物理力量 (約 0.08G)
+            val driftRad = Math.toRadians(state.yaw.toDouble()).toFloat()
+            accX += cos(driftRad) * 0.8f 
+            accZ += sin(driftRad) * 0.8f
+        }
         
         if (isAirborne) {
             state.velX += accX * dt

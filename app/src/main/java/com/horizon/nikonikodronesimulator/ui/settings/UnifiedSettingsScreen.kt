@@ -215,6 +215,7 @@ fun UnifiedSettingsScreen(
                                 }
                                 SettingsTab.CAMERA -> VisualNavigationScreen(
                                     cameraMode = state.cameraMode, mainFOV = state.mainFOV, zoomFactor = state.zoomFactor, showSpecialTitle = state.showSpecialTitle, currentTitleText = state.currentTitleText, showSideSliders = state.showSideSliders, showSideRulers = state.showSideRulers, reverseSliderSides = state.reverseSliderSides, showGroundAnchor = state.showGroundAnchor, autoPiPRelocate = state.autoPiPRelocate, enableZoomAssistant = state.enableZoomAssistant,
+                                    showFpvBody = state.camera.showFpvBody,
                                     onUpdateCameraMode = { onUpdateState { cameraMode = it } }, 
                                     onUpdateFOV = { 
                                         onUpdateState { 
@@ -228,7 +229,9 @@ fun UnifiedSettingsScreen(
                                         } 
                                     }, 
                                     onUpdateZoom = { onUpdateState { zoomFactor = it } }, 
-                                    onToggleSpecialTitle = { onUpdateState { showSpecialTitle = it } }, onUpdateSpecialTitle = { onUpdateState { currentTitleText = it } }, onToggleSideSliders = { onUpdateState { showSideSliders = it } }, onToggleSideRulers = { onUpdateState { showSideRulers = it } }, onToggleReverseSliders = { onUpdateState { reverseSliderSides = it } }, onToggleGroundAnchor = { onUpdateState { showGroundAnchor = it } }, onTogglePiPRelocate = { onUpdateState { autoPiPRelocate = it } }, onToggleZoomAssistant = { onUpdateState { enableZoomAssistant = it } }, onSave = onSaveSettings,
+                                    onToggleSpecialTitle = { onUpdateState { showSpecialTitle = it } }, onUpdateSpecialTitle = { onUpdateState { currentTitleText = it } }, onToggleSideSliders = { onUpdateState { showSideSliders = it } }, onToggleSideRulers = { onUpdateState { showSideRulers = it } }, onToggleReverseSliders = { onUpdateState { reverseSliderSides = it } }, onToggleGroundAnchor = { onUpdateState { showGroundAnchor = it } }, onTogglePiPRelocate = { onUpdateState { autoPiPRelocate = it } }, onToggleZoomAssistant = { onUpdateState { enableZoomAssistant = it } }, 
+                                    onToggleFpvBody = { onUpdateState { camera.showFpvBody = it } },
+                                    onSave = onSaveSettings,
                                     onManualInteraction = { onUpdateState { lastManualTouchTime = System.currentTimeMillis() } }
                                 )
                                 SettingsTab.DRONE_SELECTION -> DroneSelectionScreen(currentType = state.droneType, onTypeSelected = { t -> onUpdateState { droneType = t }; onLoadModelSettings(t) }, onLongPressType = { t -> onUpdateState { showModelConfigConfirm = t } }, state = state)
@@ -271,7 +274,11 @@ fun UnifiedSettingsScreen(
                                                     verticalAlignment = Alignment.CenterVertically,
                                                     horizontalArrangement = Arrangement.SpaceBetween
                                                 ) {
-                                                    val currentLangLabel = if (state.appLanguage == "zh") stringResource(R.string.settings_lang_zh) else stringResource(R.string.settings_lang_en)
+                                                    val currentLangLabel = when(state.appLanguage) {
+                                                        "zh" -> stringResource(R.string.settings_lang_zh)
+                                                        "ja" -> stringResource(R.string.settings_lang_ja)
+                                                        else -> stringResource(R.string.settings_lang_en)
+                                                    }
                                                     Text(currentLangLabel, color = NikoTheme.colors.primary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                                                     Icon(Icons.Default.ArrowDropDown, null, tint = NikoTheme.colors.primary)
                                                 }
@@ -286,6 +293,10 @@ fun UnifiedSettingsScreen(
                                                 DropdownMenuItem(
                                                     text = { Text(stringResource(R.string.settings_lang_zh), color = NikoTheme.colors.textPrimary) },
                                                     onClick = { onLanguageChange("zh"); langMenuExpanded = false }
+                                                )
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(R.string.settings_lang_ja), color = NikoTheme.colors.textPrimary) },
+                                                    onClick = { onLanguageChange("ja"); langMenuExpanded = false }
                                                 )
                                                 DropdownMenuItem(
                                                     text = { Text(stringResource(R.string.settings_lang_en), color = NikoTheme.colors.textPrimary) },

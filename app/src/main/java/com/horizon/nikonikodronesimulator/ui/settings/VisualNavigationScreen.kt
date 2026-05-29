@@ -38,6 +38,7 @@ fun VisualNavigationScreen(
     showGroundAnchor: Boolean,
     autoPiPRelocate: Boolean,
     enableZoomAssistant: Boolean,
+    showFpvBody: Boolean = false, // [v1.7.18]
     onUpdateCameraMode: (String) -> Unit,
     onUpdateFOV: (Float) -> Unit,
     onUpdateZoom: (Float) -> Unit,
@@ -49,10 +50,12 @@ fun VisualNavigationScreen(
     onToggleGroundAnchor: (Boolean) -> Unit,
     onTogglePiPRelocate: (Boolean) -> Unit,
     onToggleZoomAssistant: (Boolean) -> Unit,
+    onToggleFpvBody: (Boolean) -> Unit = {}, // [v1.7.18]
     onSave: () -> Unit = {},
     onManualInteraction: () -> Unit = {}
 ) {
     var showTitleDialog by remember { mutableStateOf(false) }
+    val isFpv = cameraMode == AppConfig.CAM_MODE_FPV // [v1.7.18] 提升作用域
 
     Row(
         modifier = Modifier
@@ -168,6 +171,16 @@ fun VisualNavigationScreen(
                         )
                     )
                 }
+                
+                if (isFpv) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    VisualSwitchItem(
+                        label = "顯示 FPV 機身結構 (沈浸式)",
+                        checked = showFpvBody,
+                        onToggle = { onToggleFpvBody(it); onSave() },
+                        onManualInteraction = onManualInteraction
+                    )
+                }
             }
         }
 
@@ -276,18 +289,28 @@ fun VisualNavigationScreen(
                         Text(stringResource(R.string.action_apply), color = if(NikoTheme.colors.isLight) Color.White else Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                 }
+                
+                if (isFpv) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    VisualSwitchItem(
+                        label = "顯示 FPV 機身結構 (沈浸式)",
+                        checked = showFpvBody,
+                        onToggle = { onToggleFpvBody(it); onSave() },
+                        onManualInteraction = onManualInteraction
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun VisualSwitchItem(label: String, checked: Boolean, onToggle: (Boolean) -> Unit, onSave: () -> Unit) {
+fun VisualSwitchItem(label: String, checked: Boolean, onToggle: (Boolean) -> Unit, onManualInteraction: () -> Unit = {}) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().height(32.dp)) {
         Text(label, color = NikoTheme.colors.textPrimary.copy(0.9f), fontSize = 11.sp, modifier = Modifier.weight(1f))
         Switch(
             checked = checked,
-            onCheckedChange = { onToggle(it); onSave() },
+            onCheckedChange = { onToggle(it); onManualInteraction() },
             modifier = Modifier.scale(0.55f),
             colors = SwitchDefaults.colors(checkedThumbColor = NikoTheme.colors.primary)
         )

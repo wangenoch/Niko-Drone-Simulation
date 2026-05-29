@@ -18,8 +18,9 @@ object T4HeavyLift : DroneModule {
     override val shadowSizeBase = 0.55f
     override val maxLandingSpeed = 1.8f
     
-    override val fpvFov = 45f
-    override val cameraVisualOffset = 0.38f
+    override val fpvFov = 90f
+    override val cameraVisualOffset = 0.55f // [v1.7.19] 統一前移量：後移至座艙區域，確保看得到腳架
+    override val cameraHeightOffset = -0.28f // [v1.7.19] 架高鏡頭：避開機身內部屏蔽
 
     override val geometry = listOf(
         com.horizon.nikonikodronesimulator.model.DronePart(tx = 0f, ty = 0.1f, tz = 0f, w = 0.6f, h = 0.05f, d = 0.6f, color = floatArrayOf(0f, 0.3f, 0.8f, 1f)),
@@ -65,4 +66,12 @@ object T4HeavyLift : DroneModule {
     }
 
     override val physicsDamping: Float get() = 0.98f
+
+    // [v1.7.17] 聲學基因：極低頻、極沉穩、伴隨強力氣流感的起重機
+    override val soundProfile = com.horizon.nikonikodronesimulator.model.SoundProfile(
+        baseFreq = 110f, // 大幅降低基礎頻率 (160 -> 110)，展現重型馬達的厚重感
+        harmonicPower = 0.75f, // 提升諧波強度，聲音更結實
+        noiseFactor = 0.15f, // 增加大型槳葉撥動空氣的噪音
+        isMultiMotor = true
+    )
 }

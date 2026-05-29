@@ -12,8 +12,8 @@ android {
         applicationId = "com.horizon.nikonikodronesimulator"
         minSdk = 28
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.7.15"
+        versionCode = 4
+        versionName = "1.7.16"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

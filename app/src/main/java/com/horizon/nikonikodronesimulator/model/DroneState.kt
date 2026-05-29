@@ -82,6 +82,9 @@ class DroneState {
         var fovTracking by mutableFloatStateOf(AppConfig.VisualDefaults.DEFAULT_TRACKING_FOV)
         var fovSmart by mutableFloatStateOf(AppConfig.VisualDefaults.DEFAULT_SMART_FOV)
 
+        /** [v1.7.18] FPV 機身顯示開關：控制近剪裁面以顯現或隱藏機身零件 */
+        var showFpvBody by mutableStateOf(false)
+
         var observerHeight by mutableFloatStateOf(AppConfig.VisualDefaults.OBSERVER_HEIGHT); var observerTilt by mutableFloatStateOf(AppConfig.VisualDefaults.OBSERVER_TILT); var enableZoomAssistant by mutableStateOf(true); var showGroundAnchor by mutableStateOf(AppConfig.VisualDefaults.SHOW_GROUND_ANCHOR)
         var lastManualTouchTime by mutableLongStateOf(0L); var specialTitleScreenPos by mutableStateOf<Offset?>(null); var useSmartObserver by mutableStateOf(false)
         /** [v1.7.15] 飛機在螢幕上的 2D 投影位置，用於 UI 智慧避讓 */

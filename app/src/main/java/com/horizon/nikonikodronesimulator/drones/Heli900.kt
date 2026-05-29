@@ -16,6 +16,10 @@ object Heli900 : DroneModule {
     override val scale = 0.5625f
     override val shadowSizeBase = 0.52f
     override val maxLandingSpeed = 1.5f
+    
+    override val fpvFov = 75f
+    override val cameraVisualOffset = 0.70f
+    override val cameraHeightOffset = 0.15f // [v1.7.19] 鏡頭高度
 
     override val geometry = listOf(
         com.horizon.nikonikodronesimulator.model.DronePart(tx = 0f, ty = 0.35f, tz = 0.4f, w = 0.25f, h = 0.45f, d = 0.6f, color = floatArrayOf(0.1f, 0.1f, 0.1f, 1f)),
@@ -32,8 +36,13 @@ object Heli900 : DroneModule {
         )
     }
 
-    override val baseRate = 1.0f
-    override val baseExpo = 0.4f
+    override val baseRate = 0.9f
+    override val baseExpo = 0.5f
+    override val baseRateT_Up = 0.5f
+    override val baseRateT_Down = 0.4f
+    override val baseRateY = 0.7f
+    override val baseRateP = 0.7f
+    override val baseRateR = 0.7f
 
     @androidx.compose.runtime.Composable
     override fun RenderIcon(modifier: androidx.compose.ui.Modifier, isSelected: Boolean) {
@@ -41,4 +50,17 @@ object Heli900 : DroneModule {
     }
 
     override val physicsPower: Float get() = 17.5f
+
+    // [v1.7.17] 物理特性重構：低恢復、高慣性的 900 級直昇機
+    override val physicsDamping: Float get() = 0.99f // 極高的水平慣性，使其收桿後持續滑行
+    override val attitudeRestorationForce: Float get() = 1.8f // 極低的自動水平恢復力，模擬 3D 陀螺儀手感
+
+    // [v1.7.17] 聲學基因：穩定轉速、具有 18Hz 週期性拍擊聲的傳統旋翼機
+    override val soundProfile = com.horizon.nikonikodronesimulator.model.SoundProfile(
+        baseFreq = 185f,
+        harmonicPower = 0.5f,
+        noiseFactor = 0.08f,
+        isMultiMotor = false,
+        modulationHz = 18f
+    )
 }

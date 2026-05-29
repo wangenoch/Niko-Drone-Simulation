@@ -168,11 +168,23 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
         // 1. 離屏渲染 (FBO Pass)
         pipRect?.let { 
             fpvFbo.bind()
-            val skyColor = com.horizon.nikonikodronesimulator.logic.EnvironmentManager.getSkyClearColor(com.horizon.nikonikodronesimulator.model.DroneState.getInstance())
+            val ds = com.horizon.nikonikodronesimulator.model.DroneState.getInstance()
+            val skyColor = com.horizon.nikonikodronesimulator.logic.EnvironmentManager.getSkyClearColor(ds)
             GLES20.glClearColor(skyColor[0], skyColor[1], skyColor[2], skyColor[3])
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
-            Matrix.perspectiveM(pMatrix, 0, spec.fpvFov, 1f, 0.5f, 500f)
-            com.horizon.nikonikodronesimulator.logic.CameraDirector.computeMainViewMatrix(vMatrix, AppConfig.CAM_MODE_FPV, physicsState.posX, physicsState.posY, physicsState.posZ, physicsState.yaw, physicsState.posX + physicsState.velX * 0.12f, physicsState.posZ + physicsState.velZ * 0.12f, cameraTilt, droneType)
+            
+            // [v1.7.18] 同步近剪裁面：沉浸模式下縮小無視區
+            val nearPlane = if (ds.camera.showFpvBody) 0.01f else 0.5f
+            Matrix.perspectiveM(pMatrix, 0, spec.fpvFov, 1f, nearPlane, 500f)
+            
+            // [v1.7.19] 統一 FPV 座標：移除沈浸位覆寫，將主權完全交還給 spec.cameraVisualOffset
+            val effectiveVisualOffset = spec.cameraVisualOffset
+            
+            com.horizon.nikonikodronesimulator.logic.CameraDirector.computeMainViewMatrix(
+                vMatrix, AppConfig.CAM_MODE_FPV, physicsState.posX, physicsState.posY, physicsState.posZ, 
+                physicsState.yaw, physicsState.posX + physicsState.velX * 0.12f, physicsState.posZ + physicsState.velZ * 0.12f, 
+                cameraTilt, droneType, effectiveVisualOffset
+            )
             renderScene(isOffscreen = true)
             fpvFbo.unbind()
         }
@@ -197,8 +209,18 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
         // [v1.7.7] 校準：FPV 模式現在也支持 zoomFactor 縮放
         val finalZoom = if (cameraMode == AppConfig.CAM_MODE_FPV) zoomFactor else com.horizon.nikonikodronesimulator.logic.CameraDirector.smoothedZoom
         
-        Matrix.perspectiveM(pMatrix, 0, finalFov / finalZoom, viewWidth.toFloat() / viewHeight, 1.0f, 6000f)
-        com.horizon.nikonikodronesimulator.logic.CameraDirector.computeMainViewMatrix(vMatrix, cameraMode, physicsState.posX, physicsState.posY, physicsState.posZ, physicsState.yaw, physicsState.posX + physicsState.velX * 0.12f, physicsState.posZ + physicsState.velZ * 0.12f, cameraTilt, droneType)
+        // [v1.7.18] 主畫面近剪裁面同步
+        val mainNearPlane = if (cameraMode == AppConfig.CAM_MODE_FPV && ds.camera.showFpvBody) 0.01f else 1.0f
+        Matrix.perspectiveM(pMatrix, 0, finalFov / finalZoom, viewWidth.toFloat() / viewHeight, mainNearPlane, 6000f)
+        
+        // [v1.7.19] 主畫面鏡頭偏移統一：主權交還給機種基因
+        val mainVisualOffset = if (cameraMode == AppConfig.CAM_MODE_FPV) spec.cameraVisualOffset else null
+        
+        com.horizon.nikonikodronesimulator.logic.CameraDirector.computeMainViewMatrix(
+            vMatrix, cameraMode, physicsState.posX, physicsState.posY, physicsState.posZ, 
+            physicsState.yaw, physicsState.posX + physicsState.velX * 0.12f, physicsState.posZ + physicsState.velZ * 0.12f, 
+            cameraTilt, droneType, mainVisualOffset
+        )
         System.arraycopy(pMatrix, 0, mainPMatrix, 0, 16); System.arraycopy(vMatrix, 0, mainVMatrix, 0, 16); calculateProjectedPositions()
         
         onTitlePosUpdate?.invoke(specialTitleScreenPos)
@@ -252,7 +274,13 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
             cloudRenderer.draw(pMatrix, vMatrix, cloudTextureId, Pair(this.cloudU, this.cloudV), cColor, actualDensity); GLES20.glUseProgram(program)
         }
         if (showMountains) { backdropRenderer.draw(pMatrix, vMatrix, mountainTextureId, timeOfDay); GLES20.glUseProgram(program) }
-        FieldRenderer.drawField(posH, colorH, mvpH, mvpMatrix, windLevel, windDirection, flagVisualAngle, physicsState.flightTime, showObstacles, isSunSimEnabled, sunPosition, useSimplifiedMarkers, if(showSpecialTitle) titleTextureId else -1, texH, texCoordH, useTexH)
+        
+        // [v1.7.15] 修正 FieldRenderer 調用：移除已移出的風力相關參數，對齊新簽名
+        FieldRenderer.drawField(posH, colorH, mvpH, mvpMatrix, showObstacles, isSunSimEnabled, sunPosition, useSimplifiedMarkers, if(showSpecialTitle) titleTextureId else -1, texH, texCoordH, useTexH)
+        
+        // [v1.7.15] 環境道具渲染：風向旗 (獨立於場地幾何)
+        EnvironmentalPropRenderer.drawWindFlag(posH, colorH, mvpH, mvpMatrix, 0f, windLevel, rendererTime)
+
         ArAnchorRenderer.drawAnchor(mvpMatrix, physicsState.posX, physicsState.posY, physicsState.posZ, 0f, posH, colorH, mvpH, showGroundAnchor, useTexH)
         DroneRenderer.drawDroneShadow(posH, colorH, mvpH, mvpMatrix, droneType, physicsState.posX, physicsState.posY, physicsState.posZ, timeOfDay, showShadow, shadowIntensity, isSunSimEnabled, sunPosition)
         DroneRenderer.drawActiveDrone(posH, colorH, mvpH, mvpMatrix, droneType, physicsState.posX, physicsState.posY, physicsState.posZ, physicsState.yaw, physicsState.visPitch, physicsState.visRoll, physicsState.flightTime, isMotorLocked, this.motorRpmFactor)
@@ -380,7 +408,7 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
     private fun generateTitleTexture() {
         val ds = com.horizon.nikonikodronesimulator.model.DroneState.getInstance()
         val textToRender = if (currentTitleText.isNotBlank()) currentTitleText else com.horizon.nikonikodronesimulator.model.AppConfig.getDefaultSpecialTitle(ds.appLanguage)
-        val bitmap = android.graphics.Bitmap.createBitmap(2048, 256, android.graphics.Bitmap.Config.ARGB_8888); val canvas = android.graphics.Canvas(bitmap); val paint = android.graphics.Paint().apply { color = android.graphics.Color.WHITE; textSize = 140f; isAntiAlias = true; textAlign = android.graphics.Paint.Align.CENTER; typeface = android.graphics.Typeface.DEFAULT_BOLD; alpha = 255 }
+        val bitmap = android.graphics.Bitmap.createBitmap(2048, 256, android.graphics.Bitmap.Config.ARGB_8888); val canvas = android.graphics.Canvas(bitmap); val paint = android.graphics.Paint().apply { color = android.graphics.Color.WHITE; textSize = 120f; isAntiAlias = true; textAlign = android.graphics.Paint.Align.CENTER; typeface = android.graphics.Typeface.DEFAULT_BOLD; alpha = 255 }
         canvas.drawText(textToRender, 1024f, 170f, paint)
         if (titleTextureId != -1) GLES20.glDeleteTextures(1, intArrayOf(titleTextureId), 0)
         val textures = IntArray(1); GLES20.glGenTextures(1, textures, 0); titleTextureId = textures[0]; GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, titleTextureId); GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR); GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR); android.opengl.GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0); bitmap.recycle(); renderedTitleText = textToRender

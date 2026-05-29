@@ -68,12 +68,16 @@ data class DroneSpecs(
     // [v1.5.3] 擴展屬性
     val fpvFov: Float,
     val cameraVisualOffset: Float,
+    val cameraHeightOffset: Float, // [v1.7.19]
     val isHoldSupported: Boolean = false,
     val maxLandingSpeed: Float,
     val flightTimeMin: Int,
     
     val baseRate: Float = 1.0f,
-    val baseExpo: Float = 0.0f
+    val baseExpo: Float = 0.0f,
+
+    // [v1.7.17] 姿態基因
+    val attitudeRestorationForce: Float = 8.0f
 )
 
 object DroneRegistry {
@@ -101,11 +105,13 @@ object DroneRegistry {
         physicsDamping = it.physicsDamping,
         fpvFov = it.fpvFov,
         cameraVisualOffset = it.cameraVisualOffset,
+        cameraHeightOffset = it.cameraHeightOffset,
         isHoldSupported = it.isHoldSupported,
         maxLandingSpeed = it.maxLandingSpeed,
         flightTimeMin = it.hardwareSpecs.flightTimeMin,
         baseRate = it.baseRate,
-        baseExpo = it.baseExpo
+        baseExpo = it.baseExpo,
+        attitudeRestorationForce = it.attitudeRestorationForce
     ) }
     
     private val NEUTRAL_MASS = 1.0f
@@ -117,7 +123,8 @@ object DroneRegistry {
         val it = MODELS.find { m -> m.id == StandardDrone.id } ?: StandardDrone
         DroneSpecs(
             it.id, it.name, DroneCategory.MULTI_ROTOR, it.groundOffset, it.visualOffset, it.collisionRadius, it.scale, it.shadowSizeBase, it.icon, 
-            it.physicsMass, it.physicsPower, it.physicsDamping, it.fpvFov, it.cameraVisualOffset, it.isHoldSupported, it.maxLandingSpeed, it.hardwareSpecs.flightTimeMin, it.baseRate, it.baseExpo
+            it.physicsMass, it.physicsPower, it.physicsDamping, it.fpvFov, it.cameraVisualOffset, it.cameraHeightOffset, it.isHoldSupported, it.maxLandingSpeed, it.hardwareSpecs.flightTimeMin, it.baseRate, it.baseExpo,
+            it.attitudeRestorationForce
         )
     }
     fun getModule(id: String): DroneModule = MODELS.find { it.id == id } ?: StandardDrone

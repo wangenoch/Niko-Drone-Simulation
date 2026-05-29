@@ -17,6 +17,10 @@ object StandardDrone : DroneModule {
     override val shadowSizeBase = 0.5f
     override val maxLandingSpeed = 2.5f
 
+    override val fpvFov = 85f
+    override val cameraVisualOffset = 0.45f
+    override val cameraHeightOffset = 0.00f // [v1.7.19] 鏡頭高度
+
     override val geometry = listOf(
         com.horizon.nikonikodronesimulator.model.DronePart(tx = 0f, ty = 0f, tz = 0f, w = 0.4f, h = 0.15f, d = 0.8f, color = floatArrayOf(0.12f, 0.12f, 0.12f, 1f)),
         com.horizon.nikonikodronesimulator.model.DronePart(tx = 0f, ty = 0.05f, tz = 0.4f, w = 0.25f, h = 0.06f, d = 0.12f, color = floatArrayOf(1f, 0.4f, 0.0f, 1f))
@@ -43,4 +47,11 @@ object StandardDrone : DroneModule {
     }
 
     override val physicsPower: Float get() = 24.0f
+
+    // [v1.7.17] 聲學基因：高頻、具有拍頻共振的小蜜蜂
+    override val soundProfile = com.horizon.nikonikodronesimulator.model.SoundProfile(
+        baseFreq = 220f,
+        harmonicPower = 0.3f,
+        isMultiMotor = true
+    )
 }

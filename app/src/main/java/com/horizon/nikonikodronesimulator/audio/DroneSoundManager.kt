@@ -17,6 +17,10 @@ class DroneSoundManager {
     @Volatile private var currentFreq = 100f
     @Volatile private var volume = 0f
     @Volatile private var windVolume = 0f
+    
+    // [v1.7.17] 實時聲學 Profile 緩衝
+    @Volatile private var activeProfile = com.horizon.nikonikodronesimulator.model.SoundProfile()
+
     private var lastUpdateTime = 0L
 
     // Project C: 預建立樣本緩衝區，避免在迴圈中重複配置
@@ -52,29 +56,54 @@ class DroneSoundManager {
         Thread {
             val samples = cachedSamples ?: return@Thread
             var angle = 0f
+            var modAngle = 0f // [v1.7.17] 用於直昇機調幅
+            
             while (isPlaying) {
-                // 平滑頻率過渡
-                currentFreq = currentFreq * 0.98f + targetFreq * 0.02f // 調低係數使音頻變化更絲滑
+                currentFreq = currentFreq * 0.98f + targetFreq * 0.02f
                 
-                val currentVol = volume // 取得快照避免頻繁讀取 Volatile
+                val currentVol = volume
                 val currentWind = windVolume
+                val profile = activeProfile // 取得 Profile 快照
                 
                 for (i in samples.indices) {
-                    // Additive Synthesis 模擬馬達
+                    // 1. [馬達合成核心]
                     val f1 = sin(angle)
-                    val f2 = sin(angle * 2.01f) * 0.5f
-                    val f3 = sin(angle * 3.98f) * 0.2f
-                    val motor = (f1 + f2 + f3) / 1.7f
+                    val f2 = sin(angle * 2.01f) * profile.harmonicPower
+                    val f3 = sin(angle * 3.98f) * (profile.harmonicPower * 0.4f)
                     
-                    // 隨機噪音優化：使用更快的 LCG 隨機算法替代 Math.random() (選做)
-                    val airNoise = ((System.nanoTime() % 1000) / 1000f * 2f - 1f) * 0.05f
+                    val motor = if (profile.isMultiMotor) {
+                        val beat = sin(angle * 1.005f) * 0.5f + sin(angle * 0.994f) * 0.3f
+                        (f1 + f2 + f3 + beat) / (1.7f + profile.harmonicPower)
+                    } else {
+                        (f1 + f2 + f3) / (1.0f + profile.harmonicPower)
+                    }
                     
-                    val finalSample = ((motor * currentVol + airNoise * currentVol + (airNoise * currentWind)) * 28000).toInt()
+                    // 2. [直昇機調幅核心]
+                    val modulation = if (profile.modulationHz > 0) {
+                        val depth = 0.6f + (currentVol * 0.4f)
+                        (1.0f - depth) + (sin(modAngle) + 1.0f) * 0.5f * depth
+                    } else 1.0f
                     
+                    // 3. [環境風聲核心 - v1.7.17 物理過濾版]
+                    // 隨機噪音源 (粉紅噪音傾向)
+                    val rawNoise = ((System.nanoTime() % 1000) / 1000f * 2f - 1f)
+                    
+                    // 動態共振模擬：隨風力與航速改變音調
+                    // 透過調整 noiseFactor 的時域變化來模擬帶通濾波效果
+                    val windOsc = sin(angle * 0.05f) * 0.2f + 0.8f // 低頻音量起伏 (陣風感)
+                    val windSample = rawNoise * profile.noiseFactor * windOsc
+                    
+                    val finalSample = ((motor * currentVol * modulation + windSample * currentVol + (windSample * currentWind)) * 28000).toInt()
                     samples[i] = finalSample.coerceIn(-32768, 32767).toShort()
                     
+                    // 角度累積
                     angle += 2f * PI.toFloat() * currentFreq / 44100f
                     if (angle > 2f * PI.toFloat()) angle -= 2f * PI.toFloat()
+                    
+                    if (profile.modulationHz > 0) {
+                        modAngle += 2f * PI.toFloat() * profile.modulationHz / 44100f
+                        if (modAngle > 2f * PI.toFloat()) modAngle -= 2f * PI.toFloat()
+                    }
                 }
                 audioTrack?.write(samples, 0, samples.size)
             }
@@ -97,6 +126,9 @@ class DroneSoundManager {
             targetFreq = 100f
             windVolume = 0f
         } else {
+            val module = com.horizon.nikonikodronesimulator.model.DroneRegistry.getModule(state.droneType)
+            activeProfile = module.soundProfile // [v1.7.17] 即時獲取機種專屬聲學基因
+            
             val throttle = stickInput.stickThrottle(state)
             val throttleFactor = (throttle + 1f) / 2f
             
@@ -104,13 +136,17 @@ class DroneSoundManager {
             val dx = state.posX.toDouble(); val dy = (state.altitude - 1.6f).toDouble(); val dz = (state.posZ - (-6.0f)).toDouble()
             val distance = kotlin.math.sqrt(dx*dx + dy*dy + dz*dz).toFloat()
             
-            val baseVolume = (0.25f + throttleFactor * 0.25f + (state.speed * 0.005f)).coerceAtMost(0.6f)
+            val baseVolume = (0.25f + throttleFactor * 0.25f + (state.speed * 0.005f)).coerceAtMost(1.0f)
             val falloff = 1.0f / (1.0f + (distance.coerceAtLeast(2.0f) - 2.0f) * 0.15f)
-            volume = (baseVolume * falloff).coerceIn(0.05f, 0.6f)
+            
+            // [v1.7.17] 套用 AppConfig 飛機馬達主音量增益
+            volume = (baseVolume * falloff * com.horizon.nikonikodronesimulator.model.AppConfig.AudioDefaults.MASTER_MOTOR_VOLUME).coerceIn(0.05f, 1.0f)
             
             val freqLoss = (distance * 0.2f).coerceAtMost(20f)
-            targetFreq = (150f + throttleFactor * 120f + (state.speed * 2f)) - freqLoss
-            windVolume = (state.windLevel * 0.03f + state.speed * 0.005f).coerceAtMost(0.2f)
+            targetFreq = (activeProfile.baseFreq + throttleFactor * 120f + (state.speed * 2f)) - freqLoss
+            
+            // [v1.7.17] 套用 AppConfig 環境風聲主音量增益
+            windVolume = ((state.windLevel * 0.03f + state.speed * 0.005f).coerceAtMost(0.2f)) * com.horizon.nikonikodronesimulator.model.AppConfig.AudioDefaults.MASTER_ENV_VOLUME
         }
     }
 

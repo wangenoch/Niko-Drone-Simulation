@@ -399,6 +399,7 @@
     <string name="joystick_label_axis">軸向 Axis</string>
     <string name="settings_lang_zh">繁體中文</string>
     <string name="settings_lang_en">English</string>
+    <string name="settings_lang_ja">日本語</string>
     <string name="settings_expert_unlock_title">解鎖專家模式</string>
     <string name="settings_expert_unlock_desc">警告：專家模式允許修改核心物理係數，不當設定可能導致飛行異常。</string>
     <string name="settings_expert_unlock_hint">請輸入解鎖密碼：</string>

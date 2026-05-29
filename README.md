@@ -1,4 +1,4 @@
-# 🚁 Niko Drone Simulator (v1.6.0)
+# 🚁 Niko Drone Simulator (v1.7.0)
 
 [![Android Version](https://img.shields.io/badge/Android-9.0%20%2B-brightgreen.svg)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.10-blue.svg)](https://kotlinlang.org)

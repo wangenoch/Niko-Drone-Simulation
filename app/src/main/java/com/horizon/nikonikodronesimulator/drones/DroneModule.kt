@@ -28,6 +28,8 @@ interface DroneModule {
     // 4. 擴展視覺參數
     val fpvFov: Float get() = com.horizon.nikonikodronesimulator.model.AppConfig.VisualDefaults.DEFAULT_FPV_FOV
     val cameraVisualOffset: Float get() = 0.4f
+    /** [v1.7.19] 鏡頭垂直高度偏移 (Y軸) */
+    val cameraHeightOffset: Float get() = 0.1f
 
     // 5. 基礎手感 (通用預設)
     val baseRate: Float
@@ -75,7 +77,10 @@ interface DroneModule {
     @androidx.compose.runtime.Composable
     fun RenderIcon(modifier: androidx.compose.ui.Modifier, isSelected: Boolean)
 
-    // --- 翻譯層 A：物理參數轉換 ---
+    // --- 翻譯層 A：物理與聲學參數轉換 ---
+    /** [v1.7.17] 專屬聲學基因：定義機種的聽覺靈魂 */
+    val soundProfile: com.horizon.nikonikodronesimulator.model.SoundProfile
+
     val physicsMass: Float get() = (hardwareSpecs.takeoffWeightKg / 5.3f).coerceAtLeast(0.1f)
     val physicsPower: Float get() = when(hardwareSpecs.type) {
         DroneType.SRH -> (hardwareSpecs.motorKv.toFloat() * 0.06f)
@@ -85,6 +90,9 @@ interface DroneModule {
         DroneType.SRH -> 0.95f
         else -> (0.90f + (hardwareSpecs.wheelbaseMm / 12000f)).coerceIn(0.85f, 0.99f)
     }
+
+    /** [v1.7.17] 姿態自動回正恢復力 (數值越小，慣性越重) */
+    val attitudeRestorationForce: Float get() = 8.0f
 
     // --- 翻譯層 B：UI 文字格式化 ---
     fun getFormattedSpecs(): String {
