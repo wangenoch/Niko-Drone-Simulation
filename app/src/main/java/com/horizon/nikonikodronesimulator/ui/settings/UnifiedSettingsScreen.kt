@@ -333,6 +333,16 @@ fun UnifiedSettingsScreen(
                                             )
                                             HorizontalDivider(color = NikoTheme.colors.divider)
 
+                                            // [v1.7.25] 音效開關遷移至此
+                                            SystemSettingRow(
+                                                label = stringResource(R.string.settings_mute_label),
+                                                description = stringResource(R.string.settings_mute_desc),
+                                                checked = state.isMuted,
+                                                onToggle = { onUpdateState { isMuted = it } },
+                                                thumbColor = NikoTheme.colors.primary
+                                            )
+                                            HorizontalDivider(color = NikoTheme.colors.divider)
+
                                             SystemSettingRow(stringResource(R.string.settings_hide_status_bar), state.hideStatusBar, { onUpdateState { hideStatusBar = it } })
                                             HorizontalDivider(color = NikoTheme.colors.divider)
                                             SystemSettingRow(stringResource(R.string.settings_pause_in_settings), state.pauseInSettings, { onUpdateState { pauseInSettings = it } })
@@ -358,6 +368,26 @@ fun UnifiedSettingsScreen(
                                                 onToggle = { onUpdateState { useStrictLanding = it } },
                                                 thumbColor = NikoTheme.colors.safety
                                             )
+
+                                            if (!state.isExpertModeLocked) {
+                                                HorizontalDivider(color = NikoTheme.colors.divider, modifier = Modifier.padding(vertical = 4.dp))
+                                                Text("實驗性物理 (Beta)", color = NikoTheme.colors.warning, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 4.dp))
+                                                
+                                                SystemSettingRow(
+                                                    label = "地面效應模擬 (Ground Effect)",
+                                                    description = "模擬靠近地面時的額外氣流升力",
+                                                    checked = state.enableGroundEffect,
+                                                    onToggle = { onUpdateState { enableGroundEffect = it } },
+                                                    thumbColor = NikoTheme.colors.warning
+                                                )
+                                                SystemSettingRow(
+                                                    label = "非中心點受力 (Multi-point Force)",
+                                                    description = "模擬馬達非均衡推力產生的力矩",
+                                                    checked = state.enableNonCenterForce,
+                                                    onToggle = { onUpdateState { enableNonCenterForce = it } },
+                                                    thumbColor = NikoTheme.colors.warning
+                                                )
+                                            }
                                         }
                                     }
 

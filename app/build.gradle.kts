@@ -7,15 +7,19 @@ plugins {
 android {
     namespace = "com.horizon.nikonikodronesimulator"
     compileSdk = 35
+    ndkVersion = "27.0.12077973"
 
     defaultConfig {
         applicationId = "com.horizon.nikonikodronesimulator"
         minSdk = 28
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.7.21"
+        versionCode = 6
+        versionName = "1.7.25"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        ndk {
+            debugSymbolLevel = "FULL"
+        }
     }
 
     // [v1.7.6] 多風味版本隔離 (Product Flavors)
@@ -38,9 +42,9 @@ android {
         release {
             isMinifyEnabled = true // [v1.7.7] 開啟代碼混淆與壓縮 (R8)
             isShrinkResources = true // [v1.7.7] 移除未使用的資源檔
-            
+
             // [v1.7.15] 自動包含原生偵錯符號，解決 Google Play Console 警告
-            ndk.debugSymbolLevel = "FULL"
+
 
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -49,6 +53,13 @@ android {
         }
         debug {
             isMinifyEnabled = false
+        }
+    }
+
+    // [v1.7.22] 強制保留原生庫的偵錯符號，防止外部官方庫（如 androidx.graphics）在 Strip 任務中丟失符號
+    packaging {
+        jniLibs {
+            keepDebugSymbols.add("**/*.so")
         }
     }
     compileOptions {

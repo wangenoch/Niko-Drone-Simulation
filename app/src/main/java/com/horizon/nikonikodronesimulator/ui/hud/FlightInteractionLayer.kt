@@ -107,8 +107,16 @@ fun FlightInteractionLayer(
                                 }
                             } 
                         }
-                        InteractionBtn(if (state.isMuted) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp, !state.isMuted) { onUpdateState { this.isMuted = !this.isMuted } }
                         
+                        // [v1.7.25] 繫留練習模式開關 (取代原有的音效開關)
+                        InteractionBtn(
+                            icon = Icons.Default.Anchor, 
+                            isSelected = state.isTetherModeEnabled,
+                            tint = if (state.isTetherModeEnabled) NikoTheme.colors.primary else NikoTheme.colors.textPrimary
+                        ) { 
+                            onUpdateState { isTetherModeEnabled = !isTetherModeEnabled } 
+                        }
+
                         var viewExpanded by remember { mutableStateOf(false) }
                         var cameraMenuExpanded by remember { mutableStateOf(false) }
                         Box {

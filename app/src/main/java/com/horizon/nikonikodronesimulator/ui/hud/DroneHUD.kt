@@ -41,6 +41,7 @@ fun DroneHUD(
     // [v1.7.15] 效能優化：將重複的距離運算與狀態判定提升至頂層
     val distToOpsCenter = sqrt(state.posX.pow(2) + (state.posZ - 6f).pow(2))
     val isInZoomZone = state.enableZoomAssistant && 
+                       !state.isTetherModeEnabled &&
                        distToOpsCenter > AppConfig.VisualDefaults.ZOOM_ASSISTANT_DISTANCE &&
                        state.cameraMode != AppConfig.CAM_MODE_FPV && 
                        state.cameraMode != AppConfig.CAM_MODE_FOLLOW && 
@@ -147,7 +148,30 @@ fun DroneHUD(
 
             Column(modifier = Modifier.align(Alignment.TopCenter).zIndex(10f), horizontalAlignment = Alignment.CenterHorizontally) {
                 val zoomPad = if (isInZoomZone) 110.dp else 10.dp
-                if (state.isNearBoundary) {
+                
+                // [v1.7.25] 繫留警告顯示 (優先權高於邊界警告)
+                val tetherMsg = when(state.systemMessage) {
+                    "TETHER_ALT_LIMIT" -> stringResource(R.string.sys_msg_tether_alt)
+                    "TETHER_DIST_LIMIT" -> stringResource(R.string.sys_msg_tether_dist)
+                    "TETHER_GROUND_LIMIT" -> stringResource(R.string.sys_msg_tether_ground)
+                    else -> null
+                }
+                
+                if (tetherMsg != null) {
+                    Spacer(Modifier.height(zoomPad))
+                    Surface(
+                        color = Color.Red.copy(alpha = 0.8f),
+                        shape = NikoTheme.shapes.medium,
+                        border = BorderStroke(2.dp, Color.White)
+                    ) {
+                        Text(
+                            tetherMsg,
+                            color = Color.White,
+                            style = NikoTheme.typography.h2,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
+                        )
+                    }
+                } else if (state.isNearBoundary) {
                     Spacer(Modifier.height(zoomPad))
                     Surface(
                         color = NikoTheme.colors.panel.copy(alpha = 0.85f),

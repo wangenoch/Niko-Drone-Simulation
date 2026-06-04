@@ -276,6 +276,9 @@
     <string name="sys_msg_collision_cone">❌ パイロンに衝突しました</string>
     <string name="sys_msg_crash_flipped">❌ 機体が反転しました</string>
     <string name="sys_msg_restore_done">初期設定に戻しました</string>
+    <string name="sys_msg_tether_alt">繫留モード：高度制限 (3.5m)</string>
+    <string name="sys_msg_tether_dist">繫留モード：水平制限 (1.5m)</string>
+    <string name="sys_msg_tether_ground">繫留モード：着陸済み (最低高度制限)</string>
     <string name="sys_msg_video_syncing">🎥 映像同期中…</string>
     <string name="log_export_fallback">📋 権限エラー。ログはアプリ専用フォルダに保存されました：\\n%1$s</string>
     <string name="log_export_fail">❌ エクスポート失敗: %1$s</string>
@@ -362,4 +365,6 @@
     <string name="settings_lang_zh">繁体字中国語</string>
     <string name="settings_lang_en">English</string>
     <string name="settings_lang_ja">日本語</string>
+    <string name="settings_mute_label">飛行音響スイッチ</string>
+    <string name="settings_mute_desc">飛行シミュレーション中のモーター音と環境音を制御します。</string>
 </resources>

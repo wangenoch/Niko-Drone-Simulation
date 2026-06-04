@@ -37,6 +37,8 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
     var windLevel = 0; var windDirection = AppConfig.WIND_DIR_NONE; var windVariation = 0f; var windDirVariation = 0f; var timeOfDay = AppConfig.TIME_NOON
     var showShadow = true; var shadowIntensity = 0.5f; var showObstacles = false; var isPaused = false; var applyPhysicalSpecs = false
     var enableVerticalDraft = false; var useHardcorePhysics = false; var isSunSimEnabled = false; var sunPosition = 0.5f
+    var enableGroundEffect = false; var enableNonCenterForce = false
+    var isTetherModeEnabled = false
     var observerTilt = 0f; var showClouds = true; var cloudDensity = 0.5f; var showMountains = true 
     var useSimplifiedMarkers = false; var showSpecialTitle = false; var currentTitleText = ""; private var renderedTitleText = ""; var useFlightLimit = true; var mainFOV = 45f
     var showGroundAnchor = false; var isThrottleHoldActive = true; var lastManualTouchTime = 0L      
@@ -144,7 +146,8 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
                 windLevel, windDirection, windVariation.toInt(), windDirVariation.toInt(),
                 enableVerticalDraft, useFlightLimit, randomWindPhase, turbulencePhase, 0f,
                 applyPhysicalSpecs, isMotorLocked, useHardcorePhysics, 
-                com.horizon.nikonikodronesimulator.model.DroneState.getInstance().useStrictLanding, showObstacles
+                com.horizon.nikonikodronesimulator.model.DroneState.getInstance().useStrictLanding, showObstacles,
+                enableGroundEffect, enableNonCenterForce, isTetherModeEnabled
             )
             
             val result = com.horizon.nikonikodronesimulator.logic.PhysicsEngine.step(

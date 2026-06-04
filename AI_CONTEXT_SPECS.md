@@ -33,6 +33,16 @@ Important: Always refer to .aierules for core development standards.
 
 **權衡取捨：** 這些準則偏向「謹慎」而非「速度」。若處理瑣碎任務，請自行斟酌。
 
+## 0. 專案事實與座標系 (Ground Truth - v1.7.25)
+為了避免記憶偏差，AI 在涉及座標、路徑或核心數值時必須以此為準：
+*   **座標原點 (0,0,0)**：H 坪中心點。
+*   **觀察員站位**：位於 `(0, 1.6, 6.0)` (Z=6 為其後退觀察位置)。
+*   **繫留中心點**：必須對齊 H 坪，即 `(0, 0, 0)`。
+*   **練習模式標準**：限高 `3.5m`，水平緩衝 `1.5m` (外圈起算，總半徑 `2.0m`)。
+*   **機型檔案路徑**：`app/src/main/java/com/horizon/nikonikodronesimulator/drones/`。
+*   **機型命名規範**：以 `<Name>Drone.kt` 命名（如 `StandardDrone.kt`）。
+*   **屬性定義位置**：`physicsPower` 等物理參數定義在各機型 `object` 內部，非全域 Registry。
+
 ## 1. 動手開發前先思考
 
 **不預設、不隱瞞疑慮、明確點出權衡點。**

@@ -172,7 +172,7 @@ class ConfigurationStore(private val context: Context) {
             this.showClouds = prefs.getBoolean("showClouds", true); this.cloudDensity = prefs.getFloat("cloudDensity", 0.5f); this.showMountains = prefs.getBoolean("showMountains", true)
             this.useStrictLanding = prefs.getBoolean("useStrictLanding", true); this.optimizationPromptIgnored = prefs.getBoolean("optimizationPromptIgnored", false)
             this.useIdleWakeupPatch = prefs.getBoolean("useIdleWakeupPatch", AppConfig.SystemDefaults.ENABLE_IDLE_WAKEUP_PATCH)
-            
+
             // [v1.7.18] 載入 FPV 機身顯示偏好
             this.camera.showFpvBody = prefs.getBoolean("showFpvBody", false)
 

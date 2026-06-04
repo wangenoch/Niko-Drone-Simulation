@@ -20,6 +20,7 @@ import com.horizon.nikonikodronesimulator.model.StickInputState
 import com.horizon.nikonikodronesimulator.render.DroneSimulationRenderer
 import com.horizon.nikonikodronesimulator.ui.hud.DroneHUD
 import com.horizon.nikonikodronesimulator.ui.hud.FlightInteractionLayer
+import com.horizon.nikonikodronesimulator.ui.hud.StickInteractionLogic
 import com.horizon.nikonikodronesimulator.ui.interaction.TouchZoomLayer
 import com.horizon.nikonikodronesimulator.ui.overlays.OverlayDispatcher
 
@@ -97,7 +98,9 @@ fun MainAppScreen(
         droneState.cloudDensity, droneState.useSimplifiedMarkers, droneState.showSpecialTitle,
         droneState.currentTitleText, droneState.useFlightLimit, droneState.mainFOV,
         droneState.showGroundAnchor, droneState.isThrottleHoldActive, droneState.isMotorLocked,
-        droneState.applyPhysicalSpecs, droneState.enableVerticalDraft
+        droneState.applyPhysicalSpecs, droneState.enableVerticalDraft,
+        droneState.enableGroundEffect, droneState.enableNonCenterForce,
+        droneState.isTetherModeEnabled
     ) {
         renderer.weatherMode = droneState.weatherMode
         renderer.timeOfDay = droneState.timeOfDay
@@ -123,7 +126,10 @@ fun MainAppScreen(
         renderer.showGroundAnchor = droneState.showGroundAnchor
         renderer.applyPhysicalSpecs = droneState.applyPhysicalSpecs
         renderer.enableVerticalDraft = droneState.enableVerticalDraft
-        renderer.isThrottleHoldActive = droneState.isThrottleHoldActive 
+        renderer.enableGroundEffect = droneState.enableGroundEffect
+        renderer.enableNonCenterForce = droneState.enableNonCenterForce
+        renderer.isTetherModeEnabled = droneState.isTetherModeEnabled
+        renderer.isThrottleHoldActive = droneState.isThrottleHoldActive
         renderer.isMotorLocked = droneState.isMotorLocked
 
         if (droneState.windDirection == AppConfig.WIND_DIR_RANDOM && droneState.env.randomWindAngle == 0f) {
@@ -168,6 +174,13 @@ fun MainAppScreen(
     LaunchedEffect(Unit) {
         viewModel.startPhysicsLoop(droneState, stickInputState, renderer, soundManager)
     }
+
+    // [v1.7.23] 搖桿交互邏輯 (CSC 解鎖與自動上鎖)
+    StickInteractionLogic(
+        state = droneState,
+        stickState = stickInputState,
+        onUpdateState = { action -> droneState.action() }
+    )
 
     Box(modifier = Modifier.fillMaxSize()) {
         AndroidView(

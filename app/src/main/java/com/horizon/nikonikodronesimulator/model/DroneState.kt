@@ -126,9 +126,17 @@ class DroneState {
     var useSimplifiedMarkers by mutableStateOf(true); var showSpecialTitle by mutableStateOf(AppConfig.VisualDefaults.SHOW_SPECIAL_TITLE); var settingsTab by mutableStateOf(SettingsTab.CONTROLLER); var showSettings by mutableStateOf(false)
     var showHardwareMonitor by mutableStateOf(false); var isInteractionLocked by mutableStateOf(false)
     var useStrictLanding by mutableStateOf(AppConfig.SystemDefaults.USE_STRICT_LANDING) // [v1.5.9] 專業考核降落安全標準開關
+    
+    /** [v1.7.25] 繫留練習模式開關 */
+    var isTetherModeEnabled by mutableStateOf(false)
+
+    /** [v1.7.23] 實驗性物理模組開關 */
+    var enableGroundEffect by mutableStateOf<Boolean>(true)
+    var enableNonCenterForce by mutableStateOf<Boolean>(true)
+
     var systemMessage by mutableStateOf<String?>(null); var diagnosticLog by mutableStateOf("")
 
-    /** [v1.7.8] 是否優先使用標準搖桿模式 (USB HID) */
+    /** [v1.7.8] 是否優先與標準搖桿模式 (USB HID) */
     var isHidPriorityEnabled by mutableStateOf(AppConfig.SystemDefaults.USE_HID_PRIORITY)
     /** [v1.7.8] 響導防抖動時間戳 */
     var lastWizardStepTime by mutableLongStateOf(0L)
@@ -229,6 +237,9 @@ class DroneState {
     var weatherMode: Int get() = env.weatherMode; set(v) { env.weatherMode = v }
     var cloudU: Float get() = env.cloudU; set(v) { env.cloudU = v }
     var cloudV: Float get() = env.cloudV; set(v) { env.cloudV = v }
+
+    // [v1.7.23] 實驗性物理代理
+    // var enableGroundEffect: Boolean ... (已在上方定義為類成員，無需代理)
 
     var reverseSliderSides by mutableStateOf(AppConfig.VisualDefaults.REVERSE_SLIDERS); var autoPiPRelocate by mutableStateOf(AppConfig.VisualDefaults.AUTO_PIP_RELOCATE); var showSideRulers by mutableStateOf(AppConfig.VisualDefaults.SHOW_SIDE_RULERS); var showSideSliders by mutableStateOf(AppConfig.VisualDefaults.SHOW_SIDE_SLIDERS)
     var showTutorial by mutableStateOf(true); var showJoystickTutorial by mutableStateOf(false); var showClimateTutorial by mutableStateOf(false); var hasShownJoystickTutorial by mutableStateOf(false); var hasShownClimateTutorial by mutableStateOf(false); var showVirtualJoysticks by mutableStateOf(false)
@@ -336,5 +347,8 @@ class DroneState {
         this.shadowIntensity = other.shadowIntensity; this.observerTilt = other.observerTilt; this.isSunSimEnabled = other.isSunSimEnabled
         this.sunPosition = other.sunPosition; this.enableZoomAssistant = other.enableZoomAssistant; this.showMountains = other.showMountains; this.weatherMode = other.weatherMode
         this.useStrictLanding = other.useStrictLanding
+        this.isTetherModeEnabled = other.isTetherModeEnabled
+        this.enableGroundEffect = other.enableGroundEffect
+        this.enableNonCenterForce = other.enableNonCenterForce
     }
 }

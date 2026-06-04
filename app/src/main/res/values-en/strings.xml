@@ -277,6 +277,9 @@
     <string name="sys_msg_crash_flipped">❌ Drone Flipped on Ground</string>
     <string name="sys_msg_restore_done">Factory Defaults Restored</string>
     <string name="sys_msg_video_syncing">🎥 Video Syncing…</string>
+    <string name="sys_msg_tether_alt">Tether Mode: Max Altitude (3.5m)</string>
+    <string name="sys_msg_tether_dist">Tether Mode: Horizontal Limit (1.5m)</string>
+    <string name="sys_msg_tether_ground">Tether Mode: Drone Grounded (Min Limit)</string>
     <string name="log_export_fallback">📋 Permission denied. Log saved to private path: \\n%1$s</string>
     <string name="log_export_fail">❌ Export Failed: %1$s</string>
     <string name="log_msg_state_change">State Change ➔ %1$s</string>
@@ -391,6 +394,8 @@
     <string name="joystick_label_axis">Axis</string>
     <string name="settings_lang_zh">繁體中文</string>
     <string name="settings_lang_en">English</string>
+    <string name="settings_mute_label">Mute Audio</string>
+    <string name="settings_mute_desc">Toggle flight engine and environment sound effects.</string>
     <string name="settings_expert_unlock_title">Unlock Expert Mode</string>
     <string name="settings_expert_unlock_desc">Warning: Expert mode allows core physics modifications.</string>
     <string name="settings_expert_unlock_hint">Enter password:</string>

@@ -277,6 +277,9 @@
     <string name="sys_msg_crash_flipped">❌ 飛機意外翻覆</string>
     <string name="sys_msg_restore_done">已恢復原廠預設值</string>
     <string name="sys_msg_video_syncing">🎥 影像傳輸同步中…</string>
+    <string name="sys_msg_tether_alt">已達繫留高度上限 (3.5m)</string>
+    <string name="sys_msg_tether_dist">已達繫留水平範圍 (1.5m)</string>
+    <string name="sys_msg_tether_ground">繫留模式：飛機已落地 (已達限低)</string>
     <string name="log_export_fallback">📋 公共空間權限受阻，日誌已存至 App 私有目錄：\\n%1$s</string>
     <string name="log_export_fail">❌ 匯出徹底失敗: %1$s</string>
     <string name="log_msg_state_change">系統狀態變更 ➔ %1$s</string>
@@ -400,6 +403,8 @@
     <string name="settings_lang_zh">繁體中文</string>
     <string name="settings_lang_en">English</string>
     <string name="settings_lang_ja">日本語</string>
+    <string name="settings_mute_label">飛行音效開關</string>
+    <string name="settings_mute_desc">控制飛行模擬中的馬達聲與環境音效。</string>
     <string name="settings_expert_unlock_title">解鎖專家模式</string>
     <string name="settings_expert_unlock_desc">警告：專家模式允許修改核心物理係數，不當設定可能導致飛行異常。</string>
     <string name="settings_expert_unlock_hint">請輸入解鎖密碼：</string>

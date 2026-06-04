@@ -6,8 +6,8 @@ package com.horizon.nikonikodronesimulator.model
  */
 object AppConfig {
     // --- 基礎資訊 ---
-    const val CURRENT_VERSION = "1.7.21"
-    const val RELEASE_DATE = "2026-05"
+    const val CURRENT_VERSION = "1.7.25"
+    const val RELEASE_DATE = "2026-05-24"
     const val DEVELOPER = "Enoch Wang"
 
     const val SPECIAL_TITLE_ZH = "NikoNiko考照場地模擬器"
@@ -228,5 +228,13 @@ object AppConfig {
         const val IS_SPOT_TIMER_ENABLED = false
         /** 定點停留合格要求的秒數 */
         const val SPOT_TIMER_SECONDS = 5.0f
+
+        // --- [v1.7.25] 繫留練習模式 (Tethered Mentor) 標準 ---
+        /** 練習模式最高限高 (公尺) */
+        const val TETHER_MAX_ALTITUDE = 2.5f
+        /** 練習模式水平緩衝半徑 (公尺，從 H 坪外圈起算 1.5m，總半徑約 2m) */
+        const val TETHER_RADIUS_LIMIT = 2.0f
+        /** 練習模式中心點 Z 座標 (H 坪中心) */
+        const val TETHER_CENTER_Z = 0.0f
     }
 }
