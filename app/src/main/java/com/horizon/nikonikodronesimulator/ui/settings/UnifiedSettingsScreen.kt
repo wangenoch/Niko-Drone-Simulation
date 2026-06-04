@@ -326,7 +326,7 @@ fun UnifiedSettingsScreen(
                                             // [v1.7.15] 起動動力增益切換 (解決部分硬體如 A55 起飛延遲問題)
                                             SystemSettingRow(
                                                 label = "起動動力增益",
-                                                description = "解決部分裝置推桿起飛延遲問題 (解決數值下溢)。",
+                                                description = "解決部分裝置(如A55)推桿起飛延遲問題 (解決數值下溢)。",
                                                 checked = state.useIdleWakeupPatch,
                                                 onToggle = { onUpdateState { useIdleWakeupPatch = it } },
                                                 thumbColor = NikoTheme.colors.primary

@@ -46,7 +46,7 @@ object StandardDrone : DroneModule {
         com.horizon.nikonikodronesimulator.ui.settings.SmallDroneIcon(modifier)
     }
 
-    override val physicsPower: Float get() = 35.0f
+    override val physicsPower: Float get() = 42.0f
 
     // [v1.7.17] 聲學基因：高頻、具有拍頻共振的小蜜蜂
     override val soundProfile = com.horizon.nikonikodronesimulator.model.SoundProfile(

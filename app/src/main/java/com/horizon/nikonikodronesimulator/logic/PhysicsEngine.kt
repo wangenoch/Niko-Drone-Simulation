@@ -5,8 +5,8 @@ import com.horizon.nikonikodronesimulator.model.DroneRegistry
 import kotlin.math.*
 
 /**
- * [v1.7.24] 模擬器物理核心 - 地面鎖定優化版
- * 職責：整合「Breakaway Guarantee」與「Ground Lock」解決 A55 起飛與 L5 風偏問題。
+ * [v1.7.25] 模擬器物理核心 - 穩定回退版
+ * 職責：還原至 v1.7.25 的速度追隨模型，解決 v1.7.29 的彈射問題。
  */
 object PhysicsEngine {
     var stepResult: PhysicsResult? = null
@@ -91,23 +91,33 @@ object PhysicsEngine {
         simulateBattery(dt, state, atmos.useFlightLimit, droneType)
         WindManager.update(state.flightTime, atmos.windLevel, atmos.windVariation, atmos.useHardcore)
 
-        // --- 2. [v1.7.24] 垂直動力：穩定優化版 ---
-        val isAirborne = state.posY > spec.groundOffset + 0.01f
-        
+        // --- 2. [v1.7.30] 垂直動力：中位基準穩定版 (Center-Zero Stable) ---
+        val isAirborne = state.posY > spec.groundOffset + 0.005f
         val rawThrottle = input.throttle
+        val ds = com.horizon.nikonikodronesimulator.model.DroneState.getInstance()
         
-        // [v1.7.24] 恢復原始動力基數：rawThrottle * 8.0f，確保手感不變
+        // A. 基礎動力公式 (線性回歸)
         val baseLift = rawThrottle * 8.0f
         
-        // [v1.7.24] 極微小 Breakaway 修正 (0.15f)：解決 A55 數值死鎖，但不引起上衝
-        val breakawayAcc = if (!isAirborne && rawThrottle > -0.9f) {
-            0.15f
-        } else 0f
+        // B. [Patch Guard] 起飛喚醒補丁：適配中位 (0.01)
+        // 只有在【油門過中位】且【在地面】時才啟動喚醒
+        val targetVelY = if (!isAirborne && rawThrottle > 0.01f && ds.useIdleWakeupPatch) {
+            0.05f 
+        } else {
+            baseLift 
+        }
 
-        val verticalAcc = (baseLift - state.velY) * (5.0f / mass)
+        // C. [A55 專修] 打破下溢死鎖：適配中位 (0.05)
+        val breakawayAcc = if (!isAirborne && rawThrottle > 0.05f) 0.15f else 0f
+
+        // D. 加速度計算與安全限幅
+        val verticalAcc = (targetVelY - state.velY) * (5.0f / mass)
         state.velY += (verticalAcc + breakawayAcc) * dt
         
-        // [v1.7.25] 繫留練習模式：高度天花板 (3.5m)
+        // [憲法級限速] 徹底杜絕 58m/s 數值爆炸
+        state.velY = state.velY.coerceIn(-15f, 15f)
+        
+        // E. [v1.7.25] 繫留練習模式：高度天花板 (3.5m)
         if (atmos.isTetherModeEnabled) {
             val tetherMaxAlt = com.horizon.nikonikodronesimulator.model.AppConfig.SystemDefaults.TETHER_MAX_ALTITUDE
             if (state.posY > spec.groundOffset + tetherMaxAlt) {
@@ -132,7 +142,6 @@ object PhysicsEngine {
         // [v1.7.24] 注入地面效應 (Ground Effect)
         if (atmos.enableGroundEffect && !atmos.isMotorLocked) {
             val h = (state.posY - spec.groundOffset).coerceAtLeast(0.01f)
-            // 槳葉直徑參考值 (從 spec 獲取或預設 5 inch)
             val d = (5f * 0.0254f).coerceAtLeast(0.1f) 
             val hoD = h / d
             if (hoD < 1.0f) {
@@ -144,6 +153,15 @@ object PhysicsEngine {
         var nextY = state.posY + state.velY * dt
         val maxAlt = spec.groundOffset + com.horizon.nikonikodronesimulator.model.AppConfig.SystemDefaults.MAX_ALTITUDE
         var systemMsg: String? = null
+
+        // [v1.7.31] 繫留練習模式：高度天花板 (3.5m) 警告注入
+        if (atmos.isTetherModeEnabled) {
+            val tetherMaxAlt = com.horizon.nikonikodronesimulator.model.AppConfig.SystemDefaults.TETHER_MAX_ALTITUDE
+            if (state.posY > spec.groundOffset + tetherMaxAlt - 0.05f) {
+                if (systemMsg == null) systemMsg = "TETHER_ALT_LIMIT"
+            }
+        }
+
         if (atmos.useFlightLimit && nextY > maxAlt) { 
             nextY = maxAlt; state.velY = 0f; systemMsg = "ALT_LIMIT"
         }
@@ -151,8 +169,6 @@ object PhysicsEngine {
         // --- 3. [1:1 Git] 姿態與旋轉 ---
         if (isAirborne) {
             state.yaw -= input.yaw * 120.0f * dt
-            
-            // [v1.7.24] 注入非中心點受力 (NCF Beta)
             if (atmos.enableNonCenterForce) {
                 state.yaw += input.roll * 15.0f * dt
             }
@@ -166,7 +182,6 @@ object PhysicsEngine {
             val restoreForce = if (atmos.applyPhysicalSpecs) spec.attitudeRestorationForce else 8.0f
             state.visPitch += (pitchInput * 25f - state.visPitch) * restoreForce * dt
             state.visRoll += (rollInput * 25f - state.visRoll) * restoreForce * dt
-            
             if (atmos.enableNonCenterForce) {
                 state.visRoll += pitchInput * 5.0f * dt
             }
@@ -202,10 +217,9 @@ object PhysicsEngine {
             state.velZ += accZ * dt
         }
         
-        // [v1.7.25 Hotfix 2] 優先施加風力：確保後續的繫留邊界判定能捕捉到風力位移
         applyWind(dt, state, atmos, mass, spec.groundOffset)
 
-        // [v1.7.25] 繫留練習模式：水平中心拉力 (Tether Spring)
+        // [v1.7.25] 繫留練習模式：水平邊界判定
         if (isAirborne && atmos.isTetherModeEnabled) {
             val centerX = 0f
             val centerZ = com.horizon.nikonikodronesimulator.model.AppConfig.SystemDefaults.TETHER_CENTER_Z
@@ -216,76 +230,43 @@ object PhysicsEngine {
             val dist = sqrt(dx * dx + dz * dz)
             
             if (dist > radiusLimit) {
-                val springConst = 8.0f // [Hotfix] 增強拉力
+                val springConst = 8.0f
                 val overDist = dist - radiusLimit
-                val force = overDist * springConst
+                state.velX -= (dx / dist) * overDist * springConst * dt
+                state.velZ -= (dz / dist) * overDist * springConst * dt
                 
-                // 1. 施加強拉力
-                state.velX -= (dx / dist) * force * dt
-                state.velZ -= (dz / dist) * force * dt
-                
-                // 2. [Hotfix] 硬邊界截斷：若速度依然向外，則強制減速
-                val dotProduct = (state.velX * dx + state.velZ * dz)
-                if (dotProduct > 0) {
-                    state.velX *= 0.5f 
+                val dot = (state.velX * dx + state.velZ * dz)
+                if (dot > 0) {
+                    state.velX *= 0.5f
                     state.velZ *= 0.5f
                 }
             }
         }
 
-        // [v1.7.24] 地面鎖定 (Ground Lock) - 關鍵修復
-        // 核心邏輯：在地面且油門未達起飛門檻 (-0.8) 時，強制鎖定水平速度為 0，確保 100% 抵消風力。
+        // 地面鎖定 (Ground Lock)
         val isTrulyAirborne = state.posY > spec.groundOffset + 0.05f
         val isTakeoffAttempt = rawThrottle > -0.8f
-        
         if (!isTrulyAirborne && !isTakeoffAttempt) {
-            state.velX = 0f
-            state.velZ = 0f
+            state.velX = 0f; state.velZ = 0f
         }
 
         // --- 6. [1:1 Git] 阻尼與積分 ---
-        var damping = if (atmos.applyPhysicalSpecs) spec.physicsDamping else 0.92f
-        
-        // [v1.7.25] 繫留練習模式：增強阻尼以提升穩定性
-        if (atmos.isTetherModeEnabled) {
-            damping = (damping * 0.95f).coerceIn(0.85f, 0.98f)
-        }
-
+        val damping = if (atmos.applyPhysicalSpecs) spec.physicsDamping else 0.92f
         state.velX *= (1.0f - (1.0f - damping) * 60f * dt).coerceIn(0f, 1f)
         state.velZ *= (1.0f - (1.0f - damping) * 60f * dt).coerceIn(0f, 1f)
-
-        // [v1.7.25 Hotfix 4] 柔性座標修正：取代硬性截斷，使用插值平滑歸位
-        if (atmos.isTetherModeEnabled) {
-            val radiusLimit = com.horizon.nikonikodronesimulator.model.AppConfig.SystemDefaults.TETHER_RADIUS_LIMIT
-            val curDist = sqrt(state.posX * state.posX + state.posZ * state.posZ)
-            if (curDist > radiusLimit + 0.05f) {
-                // 不再直接寫死座標，而是朝向邊界點 Lerp，減少視覺震盪
-                val targetFactor = radiusLimit / curDist
-                state.posX += (state.posX * targetFactor - state.posX) * 12.0f * dt
-                state.posZ += (state.posZ * targetFactor - state.posZ) * 12.0f * dt
-            }
-        }
 
         val nextX = state.posX + state.velX * dt
         val nextZ = state.posZ + state.velZ * dt
         
-        // --- 7. [v1.7.9.17] 憲法級審判執行層 ---
+        // --- 7. 碰撞與警告 ---
         val collisionResult = checkCollisionDetail(droneType, nextX, nextY, nextZ, state.visPitch, state.visRoll, atmos.useStrictLanding, atmos.showObstacles)
         var isHardLanding = false
         
-        // [v1.7.25] 繫留警告判定
         if (atmos.isTetherModeEnabled) {
-            val tetherMaxAlt = com.horizon.nikonikodronesimulator.model.AppConfig.SystemDefaults.TETHER_MAX_ALTITUDE
-            if (nextY >= spec.groundOffset + tetherMaxAlt - 0.01f) {
-                if (systemMsg == null) systemMsg = "TETHER_ALT_LIMIT"
-            }
-            
             val radiusLimit = com.horizon.nikonikodronesimulator.model.AppConfig.SystemDefaults.TETHER_RADIUS_LIMIT
             if (sqrt(nextX * nextX + nextZ * nextZ) >= radiusLimit - 0.05f) {
                 if (systemMsg == null) systemMsg = "TETHER_DIST_LIMIT"
             }
-
-            // [v1.7.25 Hotfix 4] 落地警告
             if (nextY <= spec.groundOffset + 0.01f) {
                 if (systemMsg == null) systemMsg = "TETHER_GROUND_LIMIT"
             }
@@ -293,35 +274,21 @@ object PhysicsEngine {
 
         if (isPredictiveCrash) {
             isHardLanding = true
-            state.posY = spec.groundOffset
-            state.velY = 0f; state.velX = 0f; state.velZ = 0f
+            state.posY = spec.groundOffset; state.velY = 0f; state.velX = 0f; state.velZ = 0f
             if (systemMsg == null) systemMsg = predictiveSystemMsg
         } else if (collisionResult.isImpact) {
-            state.posY = spec.groundOffset
-            state.velY = 0f; state.velX = 0f; state.velZ = 0f
+            state.posY = spec.groundOffset; state.velY = 0f; state.velX = 0f; state.velZ = 0f
             if (systemMsg == null) systemMsg = collisionResult.reason
         } else if (nextY <= spec.groundOffset + 0.001f) {
-            state.posY = spec.groundOffset
-            state.velY = 0f; state.velX = 0f; state.velZ = 0f
+            state.posY = spec.groundOffset; state.velY = 0f; state.velX = 0f; state.velZ = 0f
         } else {
             state.posY = nextY; state.posX = nextX; state.posZ = nextZ
         }
 
         val isImpact = collisionResult.isImpact || isHardLanding
-        if (isImpact) {
-            isLatchedImpact = true
-            latchedSystemMsg = systemMsg
-            latchedImpactSpeed = entrySpeed
-        }
+        if (isImpact) { isLatchedImpact = true; latchedSystemMsg = systemMsg; latchedImpactSpeed = entrySpeed }
         
-        val res = PhysicsResult(
-            isImpact = isImpact, 
-            distanceH = sqrt(state.posX.pow(2) + state.posZ.pow(2)), 
-            systemMessage = systemMsg, 
-            motorRpm = (input.throttle + 1f) / 2f, 
-            impactSpeed = entrySpeed,
-            currentWindAngle = com.horizon.nikonikodronesimulator.model.DroneState.getInstance().env.currentWindAngle 
-        )
+        val res = PhysicsResult(isImpact = isImpact, distanceH = sqrt(state.posX.pow(2) + state.posZ.pow(2)), systemMessage = systemMsg, motorRpm = (input.throttle + 1f) / 2f, impactSpeed = entrySpeed, currentWindAngle = ds.env.currentWindAngle)
         stepResult = res
         return res
     }
