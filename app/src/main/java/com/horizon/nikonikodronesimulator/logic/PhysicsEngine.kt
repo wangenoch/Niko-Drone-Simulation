@@ -5,8 +5,7 @@ import com.horizon.nikonikodronesimulator.model.DroneRegistry
 import kotlin.math.*
 
 /**
- * [v1.7.25] 模擬器物理核心 - 穩定回退版
- * 職責：還原至 v1.7.25 的速度追隨模型，解決 v1.7.29 的彈射問題。
+ * [v1.7.31] 模擬器物理核心 - 穩定版 (Force-based Stabilization)
  */
 object PhysicsEngine {
     var stepResult: PhysicsResult? = null
@@ -91,7 +90,7 @@ object PhysicsEngine {
         simulateBattery(dt, state, atmos.useFlightLimit, droneType)
         WindManager.update(state.flightTime, atmos.windLevel, atmos.windVariation, atmos.useHardcore)
 
-        // --- 2. [v1.7.30] 垂直動力：中位基準穩定版 (Center-Zero Stable) ---
+        // --- 2. [v1.7.31] 垂直動力：中位基準穩定版 ---
         val isAirborne = state.posY > spec.groundOffset + 0.005f
         val rawThrottle = input.throttle
         val ds = com.horizon.nikonikodronesimulator.model.DroneState.getInstance()
@@ -100,9 +99,9 @@ object PhysicsEngine {
         val baseLift = rawThrottle * 8.0f
         
         // B. [Patch Guard] 起飛喚醒補丁：適配中位 (0.01)
-        // 只有在【油門過中位】且【在地面】時才啟動喚醒
+        // [v1.7.35] 改用 max() 融合邏輯：確保 A55 保底升力的同時，不抑制重型機的大推力
         val targetVelY = if (!isAirborne && rawThrottle > 0.01f && ds.useIdleWakeupPatch) {
-            0.05f 
+            max(baseLift, 0.12f)
         } else {
             baseLift 
         }
@@ -113,6 +112,12 @@ object PhysicsEngine {
         // D. 加速度計算與安全限幅
         val verticalAcc = (targetVelY - state.velY) * (5.0f / mass)
         state.velY += (verticalAcc + breakawayAcc) * dt
+        
+        // [v1.7.34 Hotfix] 起飛瞬時脈衝 (Escape Impulse)
+        // 核心邏輯：在地面推桿起飛的瞬間，直接給予一個初始向上速度，徹底打破 A55 數值下溢與地面黏滯感。
+        if (!isAirborne && rawThrottle > 0.05f && state.velY < 0.1f) {
+            state.velY = 0.25f // 給予 0.25 m/s 的起始「脫離力」
+        }
         
         // [憲法級限速] 徹底杜絕 58m/s 數值爆炸
         state.velY = state.velY.coerceIn(-15f, 15f)
@@ -217,9 +222,10 @@ object PhysicsEngine {
             state.velZ += accZ * dt
         }
         
+        // 優先施加風力
         applyWind(dt, state, atmos, mass, spec.groundOffset)
 
-        // [v1.7.25] 繫留練習模式：水平邊界判定
+        // [v1.7.31] 繫留練習模式：水平邊界判定
         if (isAirborne && atmos.isTetherModeEnabled) {
             val centerX = 0f
             val centerZ = com.horizon.nikonikodronesimulator.model.AppConfig.SystemDefaults.TETHER_CENTER_Z

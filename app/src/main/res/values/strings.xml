@@ -12,8 +12,8 @@
     <string name="action_apply">立即套用</string>
     <string name="action_general">一般</string>
     <string name="action_ignore">忽略</string>
-    <string name="action_arm">解鎖 ARM</string>
-    <string name="action_disarm">上鎖 DISARM</string>
+    <string name="action_arm">解鎖</string>
+    <string name="action_disarm">上鎖</string>
     <string name="action_scan">掃描連線</string>
     <string name="action_disconnect">斷開連線</string>
     <string name="action_clear">清除</string>

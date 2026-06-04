@@ -68,6 +68,10 @@ object T4HeavyLift : DroneModule {
     override val physicsDamping: Float get() = 0.98f
     override val brakingInertiaScale: Float = 3.4f // [v1.7.21] 重型機具備明顯動能慣性，增加滑行距離
 
+    // [v1.7.33] 重型機動力基因重組：確保能克服 15kg 的模擬重力
+    override val physicsPower: Float get() = 48.0f
+    override val physicsMass: Float get() = 1.5f
+
     // [v1.7.17] 聲學基因：極低頻、極沉穩、伴隨強力氣流感的起重機
     override val soundProfile = com.horizon.nikonikodronesimulator.model.SoundProfile(
         baseFreq = 110f, // 大幅降低基礎頻率 (160 -> 110)，展現重型馬達的厚重感

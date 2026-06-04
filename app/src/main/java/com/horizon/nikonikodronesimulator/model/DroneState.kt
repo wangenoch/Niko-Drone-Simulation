@@ -22,7 +22,7 @@ enum class ConnectionStatus {
 }
 
 enum class CommDecisionState {
-    IDLE, SCANNING, AWAITING_PERMISSION, ENGAGED, LOCKED, ERROR_PERMISSION
+    IDLE, SCANNING, AWAITING_PERMISSION, ENGAGED, LOCKED
 }
 
 enum class CrashReason {
@@ -238,10 +238,8 @@ class DroneState {
     var cloudU: Float get() = env.cloudU; set(v) { env.cloudU = v }
     var cloudV: Float get() = env.cloudV; set(v) { env.cloudV = v }
 
-    // [v1.7.23] 實驗性物理代理
-    // var enableGroundEffect: Boolean ... (已在上方定義為類成員，無需代理)
-
-    var reverseSliderSides by mutableStateOf(AppConfig.VisualDefaults.REVERSE_SLIDERS); var autoPiPRelocate by mutableStateOf(AppConfig.VisualDefaults.AUTO_PIP_RELOCATE); var showSideRulers by mutableStateOf(AppConfig.VisualDefaults.SHOW_SIDE_RULERS); var showSideSliders by mutableStateOf(AppConfig.VisualDefaults.SHOW_SIDE_SLIDERS)
+    var reverseSliderSides by mutableStateOf(AppConfig.VisualDefaults.REVERSE_SLIDERS)
+ var autoPiPRelocate by mutableStateOf(AppConfig.VisualDefaults.AUTO_PIP_RELOCATE); var showSideRulers by mutableStateOf(AppConfig.VisualDefaults.SHOW_SIDE_RULERS); var showSideSliders by mutableStateOf(AppConfig.VisualDefaults.SHOW_SIDE_SLIDERS)
     var showTutorial by mutableStateOf(true); var showJoystickTutorial by mutableStateOf(false); var showClimateTutorial by mutableStateOf(false); var hasShownJoystickTutorial by mutableStateOf(false); var hasShownClimateTutorial by mutableStateOf(false); var showVirtualJoysticks by mutableStateOf(false)
     var isMenuExpanded by mutableStateOf(false); var showFlightPath by mutableStateOf(false); var showUpdateNotice by mutableStateOf(false); var isNearBoundary by mutableStateOf(false); var showAuxMappingOverlay by mutableStateOf(false); var showTroubleshootingHint by mutableStateOf(false)
     var showModelConfigConfirm by mutableStateOf<String?>(null); var showModelMappingOverlay by mutableStateOf<String?>(null); var isCalibrating by mutableStateOf(false); var calibrationStep by mutableIntStateOf(0)
@@ -332,23 +330,5 @@ class DroneState {
         val userExpo = if (useGlobalRates) globalExpo else when(key) { "T" -> activeProfile.expoT; "Y" -> activeProfile.expoY; "P" -> activeProfile.expoP; "R" -> activeProfile.expoR; else -> 0.0f }
         val geneExpo = when(key) { "T" -> modelGene.expoT; "Y" -> modelGene.expoY; "P" -> modelGene.expoP; "R" -> modelGene.expoR; else -> 0.0f }
         return (userExpo + geneExpo).coerceIn(0f, 1f)
-    }
-
-    fun updateFrom(other: DroneState) {
-        this.inputMode = other.inputMode; this.joystickMode = other.joystickMode; this.droneType = other.droneType
-        this.mappingLY = other.mappingLY; this.mappingLX = other.mappingLX; this.mappingRY = other.mappingRY; this.mappingRX = other.mappingRX
-        this.useGlobalRates = other.useGlobalRates; this.globalRate = other.globalRate; this.globalExpo = other.globalExpo
-        this.rateT = other.rateT; this.rateY = other.rateY; this.rateP = other.rateP; this.rateR = other.rateR
-        this.expoT = other.expoT; this.expoY = other.expoY; this.expoP = other.expoP; this.expoR = other.expoR
-        this.joystickDeadzone = other.joystickDeadzone; this.halfThrottle = other.halfThrottle; this.hideStatusBar = other.hideStatusBar
-        this.pauseInSettings = other.pauseInSettings; this.applyPhysicalSpecs = other.applyPhysicalSpecs; this.showSideSliders = other.showSideSliders
-        this.showSpecialTitle = other.showSpecialTitle; this.useSimplifiedMarkers = other.useSimplifiedMarkers; this.windLevel = other.windLevel
-        this.windDirection = other.windDirection; this.timeOfDay = other.timeOfDay; this.showShadow = other.showShadow
-        this.shadowIntensity = other.shadowIntensity; this.observerTilt = other.observerTilt; this.isSunSimEnabled = other.isSunSimEnabled
-        this.sunPosition = other.sunPosition; this.enableZoomAssistant = other.enableZoomAssistant; this.showMountains = other.showMountains; this.weatherMode = other.weatherMode
-        this.useStrictLanding = other.useStrictLanding
-        this.isTetherModeEnabled = other.isTetherModeEnabled
-        this.enableGroundEffect = other.enableGroundEffect
-        this.enableNonCenterForce = other.enableNonCenterForce
     }
 }

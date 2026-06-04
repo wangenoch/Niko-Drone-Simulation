@@ -394,6 +394,7 @@
     <string name="joystick_label_axis">Axis</string>
     <string name="settings_lang_zh">繁體中文</string>
     <string name="settings_lang_en">English</string>
+    <string name="settings_lang_ja">Japanese</string>
     <string name="settings_mute_label">Mute Audio</string>
     <string name="settings_mute_desc">Toggle flight engine and environment sound effects.</string>
     <string name="settings_expert_unlock_title">Unlock Expert Mode</string>

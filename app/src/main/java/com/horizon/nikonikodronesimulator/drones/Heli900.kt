@@ -49,7 +49,8 @@ object Heli900 : DroneModule {
         com.horizon.nikonikodronesimulator.ui.settings.HelicopterIcon(modifier)
     }
 
-    override val physicsPower: Float get() = 17.5f
+    override val physicsPower: Float get() = 32.0f
+    override val physicsMass: Float get() = 1.2f
 
     // [v1.7.17] 物理特性重構：低恢復、高慣性的 900 級直昇機
     override val physicsDamping: Float get() = 0.99f // 極高的水平慣性，使其收桿後持續滑行

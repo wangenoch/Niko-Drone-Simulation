@@ -6,7 +6,6 @@ import com.horizon.nikonikodronesimulator.model.StickInputState
 import com.horizon.nikonikodronesimulator.model.DroneRegistry
 import kotlinx.coroutines.delay
 import kotlin.math.abs
-import java.io.Serializable
 
 /**
  * [v1.7.24] 搖桿交互控制中心 - 核心補丁整合版
