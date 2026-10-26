@@ -73,7 +73,7 @@ android {
     // [v1.3.9] README ➔ Kotlin 代碼生成轉譯層
     // 讀取根目錄 README.md 並將升級報告區塊轉譯為 Kotlin 常數，消除檔案冗餘
     val generateReleaseContent by tasks.registering {
-        val readmeFile = rootProject.file("README.md")
+        val readmeFile = rootProject.file("../README.md")
         val outputFile = file("src/main/java/com/horizon/nikonikodronesimulator/generated/ReleaseContent.kt")
         
         inputs.file(readmeFile)
