@@ -169,6 +169,7 @@
     <string name="settings_expert_active">專家模式已在開啟狀態</string>
     <string name="settings_apply_physics">套用真實物理特性</string>
     <string name="settings_auto_connect">啟動時自動掃描連線 USB</string>
+    <string name="settings_auto_detect_hw_label">啟動時自動偵測內置硬體</string>
     <string name="settings_hide_status_bar">自動隱藏 Android 系統狀態欄</string>
     <string name="settings_pause_in_settings">進入設定時暫停模擬</string>
     <string name="settings_hid_priority">優先使用標準搖桿模式 (USB HID)</string>
@@ -294,6 +295,7 @@
     <string name="notice_intro_error">無法加載更新日誌，請參考根目錄 README.md</string>
     <string name="notice_known_issues">已知問題</string>
     <string name="notice_special_thanks">特別感謝</string>
+    <string name="notice_special_thanks_content">測試與建議：飛能科技、飛恩模型 全體考照班教官與學員。</string>
     <string name="notice_scroll_hint">請向下滾動查看完整內容</string>
     <string name="log_export_not_supported">上架版不支援診斷日誌匯出</string>
 
@@ -403,6 +405,13 @@
     <string name="settings_lang_zh">繁體中文</string>
     <string name="settings_lang_en">English</string>
     <string name="settings_lang_ja">日本語</string>
+    <string name="settings_startup_boost_label">起動動力增益</string>
+    <string name="settings_startup_boost_desc">解決部分裝置(如A55)推桿起飛延遲問題 (解決數值下溢)。</string>
+    <string name="settings_ground_effect_label">地面效應模擬 (Ground Effect)</string>
+    <string name="settings_ground_effect_desc">模擬靠近地面時的額外氣流升力</string>
+    <string name="settings_non_center_force_label">非中心點受力 (Multi-point Force)</string>
+    <string name="settings_non_center_force_desc">模擬馬達非均衡推力產生的力矩</string>
+    <string name="settings_show_fpv_body_label">顯示 FPV 機身結構 (沈浸式)</string>
     <string name="settings_mute_label">飛行音效開關</string>
     <string name="settings_mute_desc">控制飛行模擬中的馬達聲與環境音效。</string>
     <string name="settings_expert_unlock_title">解鎖專家模式</string>

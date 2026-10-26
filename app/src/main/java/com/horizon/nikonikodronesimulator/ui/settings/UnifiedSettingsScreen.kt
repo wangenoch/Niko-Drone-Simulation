@@ -315,7 +315,7 @@ fun UnifiedSettingsScreen(
                                             // [v1.7.8] 加固：依據 AppConfig 控制是否顯示啟動自動掃描
                                             if (AppConfig.SystemDefaults.showAutoConnect()) {
                                                 SystemSettingRow(
-                                                    label = AppConfig.SystemDefaults.getAutoConnectLabel(state.appLanguage),
+                                                    label = stringResource(R.string.settings_auto_detect_hw_label),
                                                     checked = state.isAutoConnectEnabled,
                                                     onToggle = { onUpdateState { isAutoConnectEnabled = it } },
                                                     thumbColor = NikoTheme.colors.primary
@@ -325,8 +325,8 @@ fun UnifiedSettingsScreen(
 
                                             // [v1.7.15] 起動動力增益切換 (解決部分硬體如 A55 起飛延遲問題)
                                             SystemSettingRow(
-                                                label = "起動動力增益",
-                                                description = "解決部分裝置(如A55)推桿起飛延遲問題 (解決數值下溢)。",
+                                                label = stringResource(R.string.settings_startup_boost_label),
+                                                description = stringResource(R.string.settings_startup_boost_desc),
                                                 checked = state.useIdleWakeupPatch,
                                                 onToggle = { onUpdateState { useIdleWakeupPatch = it } },
                                                 thumbColor = NikoTheme.colors.primary
@@ -374,15 +374,15 @@ fun UnifiedSettingsScreen(
                                                 Text("實驗性物理 (Beta)", color = NikoTheme.colors.warning, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 4.dp))
                                                 
                                                 SystemSettingRow(
-                                                    label = "地面效應模擬 (Ground Effect)",
-                                                    description = "模擬靠近地面時的額外氣流升力",
+                                                    label = stringResource(R.string.settings_ground_effect_label),
+                                                    description = stringResource(R.string.settings_ground_effect_desc),
                                                     checked = state.enableGroundEffect,
                                                     onToggle = { onUpdateState { enableGroundEffect = it } },
                                                     thumbColor = NikoTheme.colors.warning
                                                 )
                                                 SystemSettingRow(
-                                                    label = "非中心點受力 (Multi-point Force)",
-                                                    description = "模擬馬達非均衡推力產生的力矩",
+                                                    label = stringResource(R.string.settings_non_center_force_label),
+                                                    description = stringResource(R.string.settings_non_center_force_desc),
                                                     checked = state.enableNonCenterForce,
                                                     onToggle = { onUpdateState { enableNonCenterForce = it } },
                                                     thumbColor = NikoTheme.colors.warning

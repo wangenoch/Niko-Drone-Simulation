@@ -175,7 +175,7 @@ fun VisualNavigationScreen(
                 if (isFpv) {
                     Spacer(modifier = Modifier.height(12.dp))
                     VisualSwitchItem(
-                        label = "顯示 FPV 機身結構 (沈浸式)",
+                        label = stringResource(R.string.settings_show_fpv_body_label),
                         checked = showFpvBody,
                         onToggle = { onToggleFpvBody(it); onSave() },
                         onManualInteraction = onManualInteraction
@@ -293,7 +293,7 @@ fun VisualNavigationScreen(
                 if (isFpv) {
                     Spacer(modifier = Modifier.height(12.dp))
                     VisualSwitchItem(
-                        label = "顯示 FPV 機身結構 (沈浸式)",
+                        label = stringResource(R.string.settings_show_fpv_body_label),
                         checked = showFpvBody,
                         onToggle = { onToggleFpvBody(it); onSave() },
                         onManualInteraction = onManualInteraction

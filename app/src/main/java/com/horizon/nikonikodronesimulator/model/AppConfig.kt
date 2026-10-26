@@ -26,9 +26,7 @@ object AppConfig {
         }
     }
 
-    val SPECIAL_THANKS = listOf(
-        "測試與建議：飛能科技、飛恩模型 全體考照班教官與學員。"
-    )
+    val SPECIAL_THANKS = listOf<String>()
 
     /** [v1.7.6] 攝影機模式內部 ID */
     const val CAM_MODE_STATION_TRACK = "STATION_TRACK"
@@ -162,14 +160,6 @@ object AppConfig {
         /** [v1.7.8] UI 顯示控制：是否顯示啟動自動連線開關 (僅 Pro 版顯示) */
         fun showAutoConnect(): Boolean {
             return isProVersion
-        }
-
-        /** [v1.7.8] 動態標籤：根據語系獲取自動連線開關文字 */
-        fun getAutoConnectLabel(lang: String): String {
-            return when (lang) {
-                "zh" -> "啟動時自動偵測內置硬體"
-                else -> "Auto Detect Internal Hardware on Startup"
-            }
         }
 
         /** 飛行圍欄：限高 30m 與場地邊界碰撞判定 */

@@ -169,6 +169,7 @@
     <string name="settings_expert_active">Expert Mode is already active</string>
     <string name="settings_apply_physics">Apply Real Physics Specs</string>
     <string name="settings_auto_connect">Auto Scan USB on Startup</string>
+    <string name="settings_auto_detect_hw_label">Auto Detect Internal Hardware on Startup</string>
     <string name="settings_hide_status_bar">Hide Android Status Bar</string>
     <string name="settings_pause_in_settings">Pause Simulation in Menu</string>
     <string name="settings_hid_priority">Priority Standard Joystick (USB HID)</string>
@@ -294,6 +295,7 @@
     <string name="notice_intro_error">Failed to load changelog, refer to README.md</string>
     <string name="notice_known_issues">Known Issues</string>
     <string name="notice_special_thanks">Special Thanks</string>
+    <string name="notice_special_thanks_content">Tests &amp; Suggestions: Flyshark Technology, Flyen Model - All instructors and students.</string>
     <string name="notice_scroll_hint">Scroll down for full content</string>
     <string name="log_export_not_supported">Store version does not support log export</string>
 
@@ -395,6 +397,13 @@
     <string name="settings_lang_zh">繁體中文</string>
     <string name="settings_lang_en">English</string>
     <string name="settings_lang_ja">Japanese</string>
+    <string name="settings_startup_boost_label">Startup Power Boost</string>
+    <string name="settings_startup_boost_desc">Fixes takeoff delay on some devices (e.g. A55) by preventing value underflow.</string>
+    <string name="settings_ground_effect_label">Ground Effect Simulation</string>
+    <string name="settings_ground_effect_desc">Simulate extra lift when flying close to the ground.</string>
+    <string name="settings_non_center_force_label">Multi-point Force Simulation</string>
+    <string name="settings_non_center_force_desc">Simulate torque caused by unbalanced motor thrust.</string>
+    <string name="settings_show_fpv_body_label">Show FPV Body Structure (Immersive)</string>
     <string name="settings_mute_label">Mute Audio</string>
     <string name="settings_mute_desc">Toggle flight engine and environment sound effects.</string>
     <string name="settings_expert_unlock_title">Unlock Expert Mode</string>

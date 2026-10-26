@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-feature android:name="android.hardware.usb.host" />
+    <uses-feature android:name="android.hardware.usb.host" android:required="false" />
 
     <application
         android:allowBackup="true"
@@ -11,7 +11,14 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:isGame="true"
+        android:appCategory="game"
         android:theme="@style/Theme.NikoNikoDroneSimulator">
+
+        <!-- [v1.8.01] Android 16 API 36 相容性：宣告此遊戲「選擇退出」自動大小調整，保留橫屏鎖定 -->
+        <property
+            android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY"
+            android:value="true" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

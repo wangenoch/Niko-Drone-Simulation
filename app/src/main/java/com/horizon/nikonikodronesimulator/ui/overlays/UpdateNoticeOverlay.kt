@@ -107,8 +107,9 @@ fun UpdateNoticeOverlay(
                             }
                         }
 
-                        // 5. 特別感謝 (合併 README內容與 AppConfig 全域清單)
-                        val allSpecialThanks = (updateData.specialThanks + AppConfig.SPECIAL_THANKS).distinct()
+                        // 5. 特別感謝 (合併 README內容與 AppConfig 全域清單，並加入在地化支援)
+                        val localizedThanks = stringResource(R.string.notice_special_thanks_content)
+                        val allSpecialThanks = (updateData.specialThanks + AppConfig.SPECIAL_THANKS + listOf(localizedThanks)).distinct()
                         
                         if (allSpecialThanks.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(24.dp))

@@ -6,15 +6,15 @@ plugins {
 
 android {
     namespace = "com.horizon.nikonikodronesimulator"
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     defaultConfig {
         applicationId = "com.horizon.nikonikodronesimulator"
         minSdk = 28
-        targetSdk = 35
-        versionCode = 9
-        versionName = "1.7.35"
+        targetSdk = 36
+        versionCode = 11
+        versionName = "1.8.01"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk {
