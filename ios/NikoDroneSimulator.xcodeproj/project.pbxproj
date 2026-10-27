@@ -1,0 +1,385 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000010000000000000001 /* NikoDroneSimulatorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000001 /* NikoDroneSimulatorApp.swift */; };
+		A10000020000000000000001 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000020000000000000001 /* AppConfig.swift */; };
+		A10000030000000000000001 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000030000000000000001 /* Constants.swift */; };
+		A10000040000000000000001 /* DroneConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000040000000000000001 /* DroneConfig.swift */; };
+		A10000050000000000000001 /* DronePhysicsState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000050000000000000001 /* DronePhysicsState.swift */; };
+		A10000060000000000000001 /* DroneState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000060000000000000001 /* DroneState.swift */; };
+		A10000070000000000000001 /* StickInputState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000070000000000000001 /* StickInputState.swift */; };
+		A10000080000000000000001 /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000080000000000000001 /* L10n.swift */; };
+		A10000090000000000000001 /* StandardDrone.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000090000000000000001 /* StandardDrone.swift */; };
+		A10000100000000000000001 /* T4HeavyLift.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000100000000000000001 /* T4HeavyLift.swift */; };
+		A10000110000000000000001 /* Heli900.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000110000000000000001 /* Heli900.swift */; };
+		A10000120000000000000001 /* InputProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000120000000000000001 /* InputProcessor.swift */; };
+		A10000130000000000000001 /* WindManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000130000000000000001 /* WindManager.swift */; };
+		A10000140000000000000001 /* PhysicsEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000140000000000000001 /* PhysicsEngine.swift */; };
+		A10000150000000000000001 /* CameraDirector.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000150000000000000001 /* CameraDirector.swift */; };
+		A10000160000000000000001 /* SpotTimerEvaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000160000000000000001 /* SpotTimerEvaluator.swift */; };
+		A10000170000000000000001 /* TypeCHidControllerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000170000000000000001 /* TypeCHidControllerManager.swift */; };
+		A10000250000000000000001 /* ConfigurationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000250000000000000001 /* ConfigurationStore.swift */; };
+		A10000180000000000000001 /* DroneSoundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000180000000000000001 /* DroneSoundManager.swift */; };
+		A10000190000000000000001 /* SimulationSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000190000000000000001 /* SimulationSceneView.swift */; };
+		A10000200000000000000001 /* HUDComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000200000000000000001 /* HUDComponents.swift */; };
+		A10000210000000000000001 /* UnifiedSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000210000000000000001 /* UnifiedSettingsSheet.swift */; };
+		A10000220000000000000001 /* MainAppScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000220000000000000001 /* MainAppScreen.swift */; };
+		A10000230000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000230000000000000001 /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A00000010000000000000001 /* NikoDroneSimulator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NikoDroneSimulator.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A20000010000000000000001 /* NikoDroneSimulatorApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NikoDroneSimulatorApp.swift; sourceTree = "<group>"; };
+		A20000020000000000000001 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
+		A20000030000000000000001 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		A20000040000000000000001 /* DroneConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DroneConfig.swift; sourceTree = "<group>"; };
+		A20000050000000000000001 /* DronePhysicsState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DronePhysicsState.swift; sourceTree = "<group>"; };
+		A20000060000000000000001 /* DroneState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DroneState.swift; sourceTree = "<group>"; };
+		A20000070000000000000001 /* StickInputState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickInputState.swift; sourceTree = "<group>"; };
+		A20000080000000000000001 /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
+		A20000090000000000000001 /* StandardDrone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandardDrone.swift; sourceTree = "<group>"; };
+		A20000100000000000000001 /* T4HeavyLift.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = T4HeavyLift.swift; sourceTree = "<group>"; };
+		A20000110000000000000001 /* Heli900.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Heli900.swift; sourceTree = "<group>"; };
+		A20000120000000000000001 /* InputProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputProcessor.swift; sourceTree = "<group>"; };
+		A20000130000000000000001 /* WindManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindManager.swift; sourceTree = "<group>"; };
+		A20000140000000000000001 /* PhysicsEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysicsEngine.swift; sourceTree = "<group>"; };
+		A20000150000000000000001 /* CameraDirector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraDirector.swift; sourceTree = "<group>"; };
+		A20000160000000000000001 /* SpotTimerEvaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotTimerEvaluator.swift; sourceTree = "<group>"; };
+		A20000170000000000000001 /* TypeCHidControllerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypeCHidControllerManager.swift; sourceTree = "<group>"; };
+		A20000250000000000000001 /* ConfigurationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationStore.swift; sourceTree = "<group>"; };
+		A20000180000000000000001 /* DroneSoundManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DroneSoundManager.swift; sourceTree = "<group>"; };
+		A20000190000000000000001 /* SimulationSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimulationSceneView.swift; sourceTree = "<group>"; };
+		A20000200000000000000001 /* HUDComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDComponents.swift; sourceTree = "<group>"; };
+		A20000210000000000000001 /* UnifiedSettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedSettingsSheet.swift; sourceTree = "<group>"; };
+		A20000220000000000000001 /* MainAppScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainAppScreen.swift; sourceTree = "<group>"; };
+		A20000230000000000000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A20000240000000000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A30000010000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A40000010000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				A40000020000000000000001 /* NikoDroneSimulator */,
+				A40000090000000000000001 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A40000020000000000000001 /* NikoDroneSimulator */ = {
+			isa = PBXGroup;
+			children = (
+				A20000010000000000000001 /* NikoDroneSimulatorApp.swift */,
+				A40000030000000000000001 /* Model */,
+				A40000040000000000000001 /* Drones */,
+				A40000050000000000000001 /* Logic */,
+				A40000060000000000000001 /* Audio */,
+				A40000070000000000000001 /* Render */,
+				A40000080000000000000001 /* UI */,
+				A20000230000000000000001 /* Assets.xcassets */,
+				A20000240000000000000001 /* Info.plist */,
+			);
+			path = NikoDroneSimulator;
+			sourceTree = "<group>";
+		};
+		A40000030000000000000001 /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				A20000020000000000000001 /* AppConfig.swift */,
+				A20000030000000000000001 /* Constants.swift */,
+				A20000040000000000000001 /* DroneConfig.swift */,
+				A20000050000000000000001 /* DronePhysicsState.swift */,
+				A20000060000000000000001 /* DroneState.swift */,
+				A20000070000000000000001 /* StickInputState.swift */,
+				A20000080000000000000001 /* L10n.swift */,
+			);
+			path = Model;
+			sourceTree = "<group>";
+		};
+		A40000040000000000000001 /* Drones */ = {
+			isa = PBXGroup;
+			children = (
+				A20000090000000000000001 /* StandardDrone.swift */,
+				A20000100000000000000001 /* T4HeavyLift.swift */,
+				A20000110000000000000001 /* Heli900.swift */,
+			);
+			path = Drones;
+			sourceTree = "<group>";
+		};
+		A40000050000000000000001 /* Logic */ = {
+			isa = PBXGroup;
+			children = (
+				A20000120000000000000001 /* InputProcessor.swift */,
+				A20000130000000000000001 /* WindManager.swift */,
+				A20000140000000000000001 /* PhysicsEngine.swift */,
+				A20000150000000000000001 /* CameraDirector.swift */,
+				A20000160000000000000001 /* SpotTimerEvaluator.swift */,
+				A20000170000000000000001 /* TypeCHidControllerManager.swift */,
+				A20000250000000000000001 /* ConfigurationStore.swift */,
+			);
+			path = Logic;
+			sourceTree = "<group>";
+		};
+		A40000060000000000000001 /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				A20000180000000000000001 /* DroneSoundManager.swift */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
+		A40000070000000000000001 /* Render */ = {
+			isa = PBXGroup;
+			children = (
+				A20000190000000000000001 /* SimulationSceneView.swift */,
+			);
+			path = Render;
+			sourceTree = "<group>";
+		};
+		A40000080000000000000001 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				A20000200000000000000001 /* HUDComponents.swift */,
+				A20000210000000000000001 /* UnifiedSettingsSheet.swift */,
+				A20000220000000000000001 /* MainAppScreen.swift */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		A40000090000000000000001 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A00000010000000000000001 /* NikoDroneSimulator.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A50000010000000000000001 /* NikoDroneSimulator */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A80000020000000000000001 /* Build configuration list for PBXNativeTarget "NikoDroneSimulator" */;
+			buildPhases = (
+				A60000010000000000000001 /* Sources */,
+				A30000010000000000000001 /* Frameworks */,
+				A70000010000000000000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = NikoDroneSimulator;
+			productName = NikoDroneSimulator;
+			productReference = A00000010000000000000001 /* NikoDroneSimulator.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A90000010000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					A50000010000000000000001 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = A80000010000000000000001 /* Build configuration list for PBXProject "NikoDroneSimulator" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = zh_TW;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				zh_TW,
+				ja,
+				Base,
+			);
+			mainGroup = A40000010000000000000001;
+			productRefGroup = A40000090000000000000001 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A50000010000000000000001 /* NikoDroneSimulator */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A70000010000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000230000000000000001 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A60000010000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000010000000000000001 /* NikoDroneSimulatorApp.swift in Sources */,
+				A10000020000000000000001 /* AppConfig.swift in Sources */,
+				A10000030000000000000001 /* Constants.swift in Sources */,
+				A10000040000000000000001 /* DroneConfig.swift in Sources */,
+				A10000050000000000000001 /* DronePhysicsState.swift in Sources */,
+				A10000060000000000000001 /* DroneState.swift in Sources */,
+				A10000070000000000000001 /* StickInputState.swift in Sources */,
+				A10000080000000000000001 /* L10n.swift in Sources */,
+				A10000090000000000000001 /* StandardDrone.swift in Sources */,
+				A10000100000000000000001 /* T4HeavyLift.swift in Sources */,
+				A10000110000000000000001 /* Heli900.swift in Sources */,
+				A10000120000000000000001 /* InputProcessor.swift in Sources */,
+				A10000130000000000000001 /* WindManager.swift in Sources */,
+				A10000140000000000000001 /* PhysicsEngine.swift in Sources */,
+				A10000150000000000000001 /* CameraDirector.swift in Sources */,
+				A10000160000000000000001 /* SpotTimerEvaluator.swift in Sources */,
+				A10000170000000000000001 /* TypeCHidControllerManager.swift in Sources */,
+				A10000250000000000000001 /* ConfigurationStore.swift in Sources */,
+				A10000180000000000000001 /* DroneSoundManager.swift in Sources */,
+				A10000190000000000000001 /* SimulationSceneView.swift in Sources */,
+				A10000200000000000000001 /* HUDComponents.swift in Sources */,
+				A10000210000000000000001 /* UnifiedSettingsSheet.swift in Sources */,
+				A10000220000000000000001 /* MainAppScreen.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		AA0000010000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 11;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.8.01;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		AA0000020000000000000001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 11;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.8.01;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		AA0000030000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 11;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = NikoDroneSimulator/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.8.01;
+				PRODUCT_BUNDLE_IDENTIFIER = com.horizon.nikonikodronesimulator;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		AA0000040000000000000001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 11;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = NikoDroneSimulator/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.8.01;
+				PRODUCT_BUNDLE_IDENTIFIER = com.horizon.nikonikodronesimulator;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A80000010000000000000001 /* Build configuration list for PBXProject "NikoDroneSimulator" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000010000000000000001 /* Debug */,
+				AA0000020000000000000001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A80000020000000000000001 /* Build configuration list for PBXNativeTarget "NikoDroneSimulator" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000030000000000000001 /* Debug */,
+				AA0000040000000000000001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A90000010000000000000001 /* Project object */;
+}
