@@ -84,13 +84,13 @@ protocol DroneModule {
 
 extension DroneModule {
     var isHoldSupported: Bool { false }
-    var baseRateT_Up: Float { 1.0 }
-    var baseRateT_Down: Float { 1.0 }
-    var baseRateY: Float { 1.0 }
-    var baseRateP: Float { 1.0 }
-    var baseRateR: Float { 1.0 }
-    var physicsMass: Float { 1.0 }
-    var physicsDamping: Float { 0.92 }
+    var baseRateT_Up: Float { baseRate }
+    var baseRateT_Down: Float { baseRate }
+    var baseRateY: Float { baseRate }
+    var baseRateP: Float { baseRate }
+    var baseRateR: Float { baseRate }
+    var physicsMass: Float { max(hardwareSpecs.takeoffWeightKg / 5.3, 0.1) }
+    var physicsDamping: Float { min(max(0.90 + (Float(hardwareSpecs.wheelbaseMm) / 12000.0), 0.91), 0.99) }
     var attitudeRestorationForce: Float { 8.0 }
     var brakingInertiaScale: Float { 1.0 }
 }

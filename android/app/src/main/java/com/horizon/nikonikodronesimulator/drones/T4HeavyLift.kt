@@ -10,7 +10,7 @@ object T4HeavyLift : DroneModule {
     override val id = "HEAVY_LIFT"
     override val name = "JoyFlight T4"
     override val icon = "🏗️"
-    override val hardwareSpecs = ModelHardwareSpecs(type = DroneType.MR, wheelbaseMm = 1100, propDiameterInch = 24, propPitchInch = 8, motorKv = 150, takeoffWeightKg = 14.9f, payloadKg = 1.0f, flightTimeMin = 15, description = "說明：大型負重機型具有更長的力臂與獨特的起落架設計。")
+    override val hardwareSpecs = ModelHardwareSpecs(type = DroneType.MR, wheelbaseMm = 1100, propDiameterInch = 24, propPitchInch = 8, motorKv = 150, takeoffWeightKg = 14.9f, payloadKg = 1.0f, flightTimeMin = 15, description = "SPECS_T4_HEAVY_DESC")
     override val groundOffset = 0.45f
     override val visualOffset = -0.07f
     override val collisionRadius = 0.83f

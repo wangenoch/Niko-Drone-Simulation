@@ -43,6 +43,10 @@ struct RadarHUDView: View {
         let scaleMultiplier: CGFloat = {
             switch state.radarZoomMode {
             case 0: return 0.9
+            case 1:
+                if state.horizontalDist < 12.0 { return 2.5 }
+                else if state.horizontalDist < 28.0 { return 1.5 }
+                else { return 0.65 }
             case 2: return 3.2
             default: return 1.5
             }
@@ -346,15 +350,15 @@ struct SpotTimerFloatingOverlay: View {
         switch key {
         case "IDLE": return state.isMotorLocked ? L10n.tr("status_motor_locked") : L10n.tr("spot_idle")
         case "SEARCHING": return L10n.tr("spot_searching")
-        case "TOO_LOW": return String(format: "高度過低 (%.1fm < 1.0m)", param)
-        case "TOO_HIGH": return String(format: "高度過高 (%.1fm > 3.5m)", param)
+        case "TOO_LOW": return String(format: L10n.tr("spot_too_low"), param)
+        case "TOO_HIGH": return String(format: L10n.tr("spot_too_high"), param)
         case "ROTATING": return L10n.tr("spot_rotating")
-        case "YAW_ERROR_H": return String(format: "H坪航向偏差 %.0f° (需 ≤8°)", param)
-        case "YAW_ERROR_G": return String(format: "角錐航向偏差 %.0f° (需 ≤15°)", param)
+        case "YAW_ERROR_H": return String(format: L10n.tr("spot_yaw_err_h"), param)
+        case "YAW_ERROR_G": return String(format: L10n.tr("spot_yaw_err_g"), param)
         case "PERFECT_H": return L10n.tr("spot_perfect_h")
         case "SUCCESS_G": return L10n.tr("spot_success_g")
-        case "COUNTING_H": return String(format: "H坪定點倒數: %.1fs", param)
-        case "COUNTING_G": return String(format: "角錐定點倒數: %.1fs", param)
+        case "COUNTING_H": return String(format: L10n.tr("spot_count_h"), param)
+        case "COUNTING_G": return String(format: L10n.tr("spot_count_g"), param)
         default: return raw
         }
     }
@@ -397,13 +401,20 @@ struct CollisionOverlayView: View {
                     Text(L10n.tr("status_crash"))
                         .font(.system(size: 18, weight: .heavy))
                         .foregroundStyle(.white)
-                    Text(String(format: "Impact Speed Snapshot: %.2f m/s | Code: %@", state.impactSpeedSnapshot, state.systemMessage ?? "IMPACT"))
+                    let reasonDesc: String = {
+                        switch state.crashReason {
+                        case .batteryLow: return L10n.tr("crash_battery")
+                        case .outOfBounds: return L10n.tr("crash_bounds")
+                        default: return L10n.tr("crash_impact")
+                        }
+                    }()
+                    Text(String(format: "%@ | Speed: %.2f m/s", reasonDesc, state.impactSpeedSnapshot))
                         .font(.system(size: 12, weight: .medium, design: .monospaced))
                         .foregroundStyle(theme.warning)
                     Button(action: onReset) {
                         HStack {
                             Image(systemName: "arrow.counterclockwise")
-                            Text("RESET AIRCRAFT (H-PAD)")
+                            Text(L10n.tr("btn_reset_h"))
                                 .fontWeight(.bold)
                         }
                         .foregroundStyle(.white)

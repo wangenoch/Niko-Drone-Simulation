@@ -58,6 +58,7 @@ class ConfigurationStore(private val context: Context) {
             putString("timeOfDay", state.timeOfDay); putFloat("shadowIntensity", state.shadowIntensity)
             putBoolean("isSunSimEnabled", state.isSunSimEnabled); putFloat("sunPosition", state.sunPosition)
             putBoolean("showClouds", state.showClouds); putFloat("cloudDensity", state.cloudDensity); putBoolean("showMountains", state.showMountains)
+            putInt("weatherMode", state.weatherMode)
             putBoolean("useStrictLanding", state.useStrictLanding); putBoolean("optimizationPromptIgnored", state.optimizationPromptIgnored)
             putBoolean("useIdleWakeupPatch", state.useIdleWakeupPatch) // [v1.7.15] 持久化動力補丁開關
             putBoolean("showFpvBody", state.camera.showFpvBody) // [v1.7.18] 持久化 FPV 機身顯示開關
@@ -170,14 +171,20 @@ class ConfigurationStore(private val context: Context) {
             this.useHardcorePhysics = prefs.getBoolean("useHardcorePhysics", false)
             this.isSunSimEnabled = prefs.getBoolean("isSunSimEnabled", false); this.sunPosition = prefs.getFloat("sunPosition", 0.5f)
             this.showClouds = prefs.getBoolean("showClouds", true); this.cloudDensity = prefs.getFloat("cloudDensity", 0.5f); this.showMountains = prefs.getBoolean("showMountains", true)
+            this.weatherMode = prefs.getInt("weatherMode", AppConfig.EnvironmentDefaults.WEATHER_MODE)
             this.useStrictLanding = prefs.getBoolean("useStrictLanding", true); this.optimizationPromptIgnored = prefs.getBoolean("optimizationPromptIgnored", false)
             this.useIdleWakeupPatch = prefs.getBoolean("useIdleWakeupPatch", AppConfig.SystemDefaults.ENABLE_IDLE_WAKEUP_PATCH)
 
             // [v1.7.18] 載入 FPV 機身顯示偏好
             this.camera.showFpvBody = prefs.getBoolean("showFpvBody", false)
 
-            // [v1.7.6] 語言讀取優化：若 SharedPreferences 為空，則優先參考系統語言
-            val defaultLang = if (java.util.Locale.getDefault().language.startsWith("zh")) "zh" else "en"
+            // [v1.7.6] 語言讀取優化：若 SharedPreferences 為空，則優先參考系統語言 (支援 zh / ja / en)
+            val sysLang = java.util.Locale.getDefault().language
+            val defaultLang = when {
+                sysLang.startsWith("zh") -> "zh"
+                sysLang.startsWith("ja") -> "ja"
+                else -> "en"
+            }
             this.appLanguage = prefs.getString("appLanguage", defaultLang) ?: defaultLang
             this.appTheme = prefs.getString("appTheme", AppConfig.THEME_CLASSIC) ?: AppConfig.THEME_CLASSIC
             
@@ -206,9 +213,13 @@ class ConfigurationStore(private val context: Context) {
     private fun performInitialSetup(state: DroneState) {
         val hasTouchScreen = context.packageManager.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)
         
-        // [v1.7.6] 首次啟動：自動識別系統語言
+        // [v1.7.6] 首次啟動：自動識別系統語言 (支援 zh / ja / en)
         val sysLang = java.util.Locale.getDefault().language
-        val initialLang = if (sysLang.startsWith("zh")) "zh" else "en"
+        val initialLang = when {
+            sysLang.startsWith("zh") -> "zh"
+            sysLang.startsWith("ja") -> "ja"
+            else -> "en"
+        }
         
         state.apply { 
             appLanguage = initialLang

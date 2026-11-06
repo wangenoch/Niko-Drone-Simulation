@@ -14,10 +14,25 @@ enum WindManager {
     private static var eventIntensity: Float = 0.0
     private static var eventVerticalBias: Float = 0.0
 
+    static func reset() {
+        nextEventTime = 0.0
+        isEventActive = false
+        eventStartTime = 0.0
+        eventDuration = 0.0
+        eventIntensity = 0.0
+        eventVerticalBias = 0.0
+    }
+
     static func update(currentTime: Float, level: Int, variation: Int, useHardcore: Bool) {
         if level <= 0 {
             isEventActive = false
             return
+        }
+
+        if currentTime < eventStartTime || (nextEventTime > 0.0 && currentTime + 35.0 < nextEventTime) {
+            isEventActive = false
+            eventStartTime = 0.0
+            nextEventTime = currentTime + 5.0 + Float.random(in: 0..<10.0)
         }
 
         if isEventActive && currentTime > eventStartTime + eventDuration {

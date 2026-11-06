@@ -3,15 +3,8 @@ import Foundation
 /// [v1.8.01] 標準手感演算引擎 (1:1 對齊 InputProcessor.kt)
 enum InputProcessor {
     static func process(raw: Float, deadzone: Float, expo: Float, rate: Float, mapping: ChannelMapping) -> Float {
-        var normalized: Float
-        if raw > mapping.center {
-            let denom = max(mapping.max - mapping.center, 0.01)
-            normalized = (raw - mapping.center) / denom
-        } else {
-            let denom = max(mapping.center - mapping.min, 0.01)
-            normalized = (raw - mapping.center) / denom
-        }
-        normalized = min(max(normalized, -1.0), 1.0)
+        // 1. 安全限幅 (校準量程與極性反轉已於 StickInputState.resolveValue 單一中樞完成)
+        let normalized = min(max(raw, -1.0), 1.0)
 
         if abs(normalized) < deadzone { return 0.0 }
 
@@ -21,11 +14,13 @@ enum InputProcessor {
         return afterExpo * rate
     }
 
-    static func processVirtual(touch: Float, expo: Float, rate: Float) -> Float {
+    static func processVirtual(touch: Float, expo: Float, rate: Float, deadzone: Float = 0.05) -> Float {
         let clamped = min(max(touch, -1.0), 1.0)
+        let absRaw = abs(clamped)
+        if absRaw < deadzone { return 0.0 }
         let sign: Float = clamped >= 0 ? 1.0 : -1.0
-        let absVal = abs(clamped)
-        let afterExpo = pow(absVal, 1.0 + expo * 2.0) * sign
+        let rescaled = (absRaw - deadzone) / max(1.0 - deadzone, 0.01)
+        let afterExpo = pow(rescaled, 1.0 + expo * 2.0) * sign
         return afterExpo * rate
     }
 }

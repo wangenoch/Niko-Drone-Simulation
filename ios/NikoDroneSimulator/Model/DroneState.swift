@@ -184,6 +184,7 @@ final class DroneState {
     var spotTimerMessageTimer: Float = 0.0
 
     // 手感與通道映射 (Rates & Expo)
+    var halfThrottle: Bool = false
     var joystickDeadzone: Float = AppConfig.JoystickDefaults.DEADZONE
     var useGlobalRates: Bool = true
     var globalRate: Float = AppConfig.JoystickDefaults.RATE
@@ -224,12 +225,87 @@ final class DroneState {
         expoR = mod.baseExpo
     }
 
+    func applyCameraModeDefaults(_ mode: String) {
+        cameraMode = mode
+        switch mode {
+        case AppConfig.CAM_MODE_STATION_FIXED:
+            mainFOV = fovFixed
+            zoomFactor = AppConfig.VisualDefaults.ZOOM_FACTOR_FIXED
+            observerHeight = AppConfig.VisualDefaults.OBSERVER_HEIGHT
+            observerTilt = AppConfig.VisualDefaults.OBSERVER_TILT
+        case AppConfig.CAM_MODE_STATION_SMART:
+            mainFOV = fovSmart
+            zoomFactor = AppConfig.VisualDefaults.ZOOM_FACTOR_SMART
+            observerHeight = AppConfig.VisualDefaults.OBSERVER_HEIGHT_SMART
+            observerTilt = AppConfig.VisualDefaults.OBSERVER_TILT_SMART
+        case AppConfig.CAM_MODE_STATION_TRACK:
+            mainFOV = fovTracking
+            zoomFactor = AppConfig.VisualDefaults.ZOOM_FACTOR_TRACKING
+            observerHeight = AppConfig.VisualDefaults.OBSERVER_HEIGHT_TRACKING
+            observerTilt = AppConfig.VisualDefaults.OBSERVER_TILT_TRACKING
+        default:
+            break
+        }
+    }
+
+    func restoreFactoryDefaults() {
+        joystickMode = 2
+        halfThrottle = false
+        joystickDeadzone = AppConfig.JoystickDefaults.DEADZONE
+        useGlobalRates = true
+        globalRate = AppConfig.JoystickDefaults.RATE
+        globalExpo = AppConfig.JoystickDefaults.EXPO
+        droneType = "QUAD_STANDARD"
+        applyDroneGene(droneType)
+
+        mappingLY = ChannelMapping(axis: 1, inverted: false, label: "AXIS_LY")
+        mappingLX = ChannelMapping(axis: 0, inverted: false, label: "AXIS_LX")
+        mappingRY = ChannelMapping(axis: 2, inverted: false, label: "AXIS_RY")
+        mappingRX = ChannelMapping(axis: 3, inverted: false, label: "AXIS_RX")
+
+        windLevel = AppConfig.EnvironmentDefaults.WIND_LEVEL
+        windDirection = AppConfig.EnvironmentDefaults.WIND_DIRECTION
+        windVariation = 0
+        windDirVariation = 0
+        enableVerticalDraft = AppConfig.EnvironmentDefaults.ENABLE_VERTICAL_DRAFT
+        timeOfDay = AppConfig.TIME_NOON
+        isSunSimEnabled = AppConfig.EnvironmentDefaults.SUN_ENABLED
+        sunPosition = AppConfig.EnvironmentDefaults.SUN_POSITION
+        useHardcorePhysics = AppConfig.EnvironmentDefaults.HARDCORE_PHYSICS
+        showClouds = AppConfig.EnvironmentDefaults.SHOW_CLOUDS
+        cloudDensity = AppConfig.EnvironmentDefaults.CLOUD_DENSITY
+        showMountains = AppConfig.EnvironmentDefaults.SHOW_MOUNTAINS
+        weatherMode = AppConfig.EnvironmentDefaults.WEATHER_MODE
+        showShadow = AppConfig.SystemDefaults.SHOW_SHADOW
+        shadowIntensity = AppConfig.EnvironmentDefaults.SHADOW_INTENSITY
+
+        applyCameraModeDefaults(AppConfig.CAM_MODE_STATION_TRACK)
+        cameraTilt = 0.0
+        showGroundAnchor = AppConfig.VisualDefaults.SHOW_GROUND_ANCHOR
+        enableZoomAssistant = AppConfig.VisualDefaults.ENABLE_ZOOM_ASSISTANT
+        radarZoomMode = AppConfig.VisualDefaults.RADAR_ZOOM_MODE
+        showFlightPath = false
+
+        isMuted = AppConfig.SystemDefaults.IS_MUTED
+        useFlightLimit = AppConfig.SystemDefaults.USE_FLIGHT_LIMIT
+        useStrictLanding = AppConfig.SystemDefaults.USE_STRICT_LANDING
+        isTetherModeEnabled = false
+        enableGroundEffect = true
+        enableNonCenterForce = true
+        applyPhysicalSpecs = AppConfig.SystemDefaults.APPLY_PHYSICAL_SPECS
+        isSpotTimerEnabled = AppConfig.SystemDefaults.IS_SPOT_TIMER_ENABLED
+        appTheme = AppConfig.THEME_CLASSIC
+        foldablePosture = .auto
+
+        ConfigurationStore.shared.wipeAllSettings(self)
+    }
+
     func getMappingSnapshot() -> [ChannelMapping] {
         [mappingLY, mappingLX, mappingRY, mappingRX]
     }
 
     func getRate(_ key: String, stickValue: Float = 0.0) -> Float {
-        let userRate = globalRate
+        let userRate = useGlobalRates ? globalRate : 1.0
         let geneRate: Float
         switch key {
         case "T": geneRate = stickValue >= 0 ? rateT_Up : rateT_Down
@@ -242,7 +318,7 @@ final class DroneState {
     }
 
     func getExpo(_ key: String) -> Float {
-        let userExpo = globalExpo
+        let userExpo = useGlobalRates ? globalExpo : 0.0
         let geneExpo: Float
         switch key {
         case "T": geneExpo = expoT

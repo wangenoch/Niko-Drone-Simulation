@@ -9,7 +9,7 @@ object StandardDrone : DroneModule {
     override val id = "QUAD_STANDARD"
     override val name = "SPECS_QUAD_NAME"
     override val icon = "🚁"
-    override val hardwareSpecs = ModelHardwareSpecs(type = DroneType.MR, wheelbaseMm = 210, propDiameterInch = 5, propPitchInch = 4, motorKv = 2450, takeoffWeightKg = 0.6f, payloadKg = 0f, flightTimeMin = 8, description = "說明：高機動性機型，反應極其靈敏，適合練習精準穿越與反應速度。")
+    override val hardwareSpecs = ModelHardwareSpecs(type = DroneType.MR, wheelbaseMm = 210, propDiameterInch = 5, propPitchInch = 4, motorKv = 2450, takeoffWeightKg = 0.6f, payloadKg = 0f, flightTimeMin = 8, description = "SPECS_QUAD_DESC")
     override val groundOffset = 0.08f
     override val visualOffset = 0.0f
     override val collisionRadius = 0.6f

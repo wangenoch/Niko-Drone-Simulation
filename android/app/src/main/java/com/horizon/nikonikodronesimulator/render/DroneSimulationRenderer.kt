@@ -89,15 +89,17 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
         val dt = ((now - lastFrameTime) / 1_000_000_000f).coerceIn(0.001f, 0.05f); lastFrameTime = now
         this.rendererTime += dt // 累積渲染總時長
         
-        // [v1.7.7] 雲層與大氣流動計算：必須放在這裡，不論馬達是否解鎖都要運行
+        // [v1.7.7] 雲層與大氣流動計算：僅在馬達上鎖時由渲染器推進大氣時鐘，解鎖後統一使用 physicsState.flightTime 防止雙時鐘衝突
         val ds = com.horizon.nikonikodronesimulator.model.DroneState.getInstance()
-        com.horizon.nikonikodronesimulator.logic.WindManager.update(this.rendererTime, windLevel, windVariation.toInt(), useHardcorePhysics)
+        val unifiedWindTime = if (isMotorLocked) this.rendererTime else physicsState.flightTime
+        if (isMotorLocked) {
+            com.horizon.nikonikodronesimulator.logic.WindManager.update(unifiedWindTime, windLevel, windVariation.toInt(), useHardcorePhysics)
+        }
         
-        // [v1.7.7 核心修正] 傳遞 rendererTime 替代 flightTime，強制亂數風向與渲染幀同步
         // [v1.7.9 唯一寫回點] 由 Renderer 接管數據更新主權
         val windResult = com.horizon.nikonikodronesimulator.logic.WindManager.calculateWindVector(
             windLevel, windDirection, windVariation.toInt(), windDirVariation.toInt(), 
-            this.rendererTime, ds.env.randomWindAngle
+            unifiedWindTime, ds.env.randomWindAngle
         )
         ds.env.currentWindAngle = windResult.visualAngle
         
@@ -212,8 +214,10 @@ class DroneSimulationRenderer(private val onFlightDataUpdate: (Float, Float, Flo
         // [v1.7.7] 校準：FPV 模式現在也支持 zoomFactor 縮放
         val finalZoom = if (cameraMode == AppConfig.CAM_MODE_FPV) zoomFactor else com.horizon.nikonikodronesimulator.logic.CameraDirector.smoothedZoom
         
-        // [v1.7.18] 主畫面近剪裁面同步
-        val mainNearPlane = if (cameraMode == AppConfig.CAM_MODE_FPV && ds.camera.showFpvBody) 0.01f else 1.0f
+        // [v1.7.18] 主畫面近剪裁面同步：FPV 模式下使用 0.05f 避免 0.45m 高度時遠方 y=-0.1f 草地被近剪裁面切出藍天缺口
+        val mainNearPlane = if (cameraMode == AppConfig.CAM_MODE_FPV) {
+            if (ds.camera.showFpvBody) 0.01f else 0.05f
+        } else 0.2f
         Matrix.perspectiveM(pMatrix, 0, finalFov / finalZoom, viewWidth.toFloat() / viewHeight, mainNearPlane, 6000f)
         
         // [v1.7.19] 主畫面鏡頭偏移統一：主權交還給機種基因

@@ -9,15 +9,10 @@ import kotlin.math.*
  */
 object InputProcessor {
 
-    /** 處理實體搖桿輸入 */
+    /** 處理實體搖桿輸入 (已由 StickInputState.resolveValue 完成校準歸一化與極性反轉) */
     fun process(raw: Float, deadzone: Float, expo: Float, rate: Float, mapping: ChannelMapping): Float {
-        // 1. 校準量程 (Normalization)
-        var normalized = if (raw > mapping.center) {
-            (raw - mapping.center) / (mapping.max - mapping.center)
-        } else {
-            (raw - mapping.center) / (mapping.center - mapping.min)
-        }
-        normalized = normalized.coerceIn(-1.0f, 1.0f)
+        // 1. 安全限幅 (校準量程與反轉已於 StickInputState.resolveValue 單一中樞執行)
+        val normalized = raw.coerceIn(-1.0f, 1.0f)
 
         // 2. 應用死區 (Deadzone)
         if (abs(normalized) < deadzone) return 0f

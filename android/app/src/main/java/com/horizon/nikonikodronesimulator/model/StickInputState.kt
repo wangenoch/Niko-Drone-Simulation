@@ -17,6 +17,7 @@ class StickInputState {
     // --- 全域通道緩衝池 (唯一的數據真源) ---
     private val channelBuffer = FloatArray(125) { 0f }
     private val lastRawBuffer = FloatArray(125) { 0f } // [v1.7.9] 變動偵測快照
+    private val lastAxisMoveTimeMs = LongArray(125) { 0L } // 防止同幀多次讀取沖銷變動狀態
 
     // --- 視覺同步層 (節流狀態) ---
     // 僅用於 Compose UI 重繪，防止渲染風暴
@@ -72,13 +73,17 @@ class StickInputState {
         val rawValue = if (axis in 0..124) channelBuffer[axis] else 0f
         
         // 1. [v1.7.9 智慧仲裁] 實體優先與意圖偵測
-        // 只要實體搖桿有顯著變動 (>1%)，則鎖定實體路徑；否則若在觸摸中，則切換至虛擬路徑
+        // 只要實體搖桿有顯著變動 (>1%)，則鎖定實體路徑 150ms (確保同幀多次呼叫一致)；否則若在觸摸中，則切換至虛擬路徑
+        val nowMs = System.currentTimeMillis()
         val isMoving = if (axis in 0..124) {
             val delta = Math.abs(rawValue - lastRawBuffer[axis])
             if (delta > 0.01f) {
                 lastRawBuffer[axis] = rawValue // 更新快照
+                lastAxisMoveTimeMs[axis] = nowMs
                 true
-            } else false
+            } else {
+                (nowMs - lastAxisMoveTimeMs[axis]) < 150L
+            }
         } else false
 
         val isTouching = if (isLeft) isTouchingLeft else isTouchingRight
@@ -123,10 +128,17 @@ class StickInputState {
 
         // 3. 唯一極性反轉 (Inversion)
         // [v1.7.9] 移除底層硬編碼取反，僅依據 MappingDB 執行
-        val processed = if (mapping.inverted) -normalized else normalized
+        val invertedVal = if (mapping.inverted) -normalized else normalized
         
         // [v1.7.11] 原始行程路徑：跳過手感曲線運算，直接回傳反轉並歸一化後的原始物理位置
-        if (ignoreRate) return processed
+        if (ignoreRate) return invertedVal
+
+        // 半行程油門模式 (適配彈簧中位遙控器：負半軸歸零或單向輸出)
+        val processed = if (func == "T" && state.halfThrottle) {
+            invertedVal.coerceAtLeast(0f)
+        } else {
+            invertedVal
+        }
 
         // 4. 手感曲線演算 (Expo & Rates)
         val finalCmd = InputProcessor.process(processed, state.joystickDeadzone, state.getExpo(func), state.getRate(func, processed), mapping)

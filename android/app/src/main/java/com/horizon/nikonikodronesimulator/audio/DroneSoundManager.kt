@@ -121,7 +121,8 @@ class DroneSoundManager {
         if (now - lastUpdateTime < 32 && !state.isMotorLocked && !state.isMuted) return 
         lastUpdateTime = now
 
-        if (state.isMuted || state.isMotorLocked) {
+        val isPausedByUi = (state.showSettings && state.pauseInSettings) || state.isCollision || state.showTutorial || state.showJoystickTutorial || state.showClimateTutorial
+        if (state.isMuted || state.isMotorLocked || isPausedByUi) {
             volume = 0f
             targetFreq = 100f
             windVolume = 0f

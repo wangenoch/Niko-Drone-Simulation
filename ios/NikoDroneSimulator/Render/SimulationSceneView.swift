@@ -22,6 +22,8 @@ final class SimulationSceneCoordinator: NSObject, SCNSceneRendererDelegate {
     private let cloudLayerNode = SCNNode()
     private let mountainRootNode = SCNNode()
     private let sunNode = SCNNode()
+    private let ambientLightNode = SCNNode()
+    private let directionalLightNode = SCNNode()
 
     private var propellerNodes: [(node: SCNNode, part: DronePart)] = []
     private var builtDroneType: String = ""
@@ -51,7 +53,7 @@ final class SimulationSceneCoordinator: NSObject, SCNSceneRendererDelegate {
 
         let fpvCam = SCNCamera()
         fpvCam.fieldOfView = 85.0
-        fpvCam.zNear = 0.02
+        fpvCam.zNear = 0.22
         fpvCam.zFar = 1000.0
         fpvCameraNode.camera = fpvCam
         scene.rootNode.addChildNode(fpvCameraNode)
@@ -64,19 +66,17 @@ final class SimulationSceneCoordinator: NSObject, SCNSceneRendererDelegate {
         scene.rootNode.addChildNode(zoomCameraNode)
 
         // Ambient & Directional Light
-        let ambient = SCNNode()
-        ambient.light = SCNLight()
-        ambient.light?.type = .ambient
-        ambient.light?.intensity = 650
-        ambient.light?.color = UIColor.white
-        scene.rootNode.addChildNode(ambient)
+        ambientLightNode.light = SCNLight()
+        ambientLightNode.light?.type = .ambient
+        ambientLightNode.light?.intensity = 650
+        ambientLightNode.light?.color = UIColor.white
+        scene.rootNode.addChildNode(ambientLightNode)
 
-        let dirLight = SCNNode()
-        dirLight.light = SCNLight()
-        dirLight.light?.type = .directional
-        dirLight.light?.intensity = 900
-        dirLight.eulerAngles = SCNVector3(-Float.pi / 3, Float.pi / 6, 0)
-        scene.rootNode.addChildNode(dirLight)
+        directionalLightNode.light = SCNLight()
+        directionalLightNode.light?.type = .directional
+        directionalLightNode.light?.intensity = 900
+        directionalLightNode.eulerAngles = SCNVector3(-Float.pi / 3, Float.pi / 6, 0)
+        scene.rootNode.addChildNode(directionalLightNode)
 
         buildFieldGeometry()
         buildObstaclesGeometry()
@@ -298,20 +298,32 @@ final class SimulationSceneCoordinator: NSObject, SCNSceneRendererDelegate {
         // 處理 USB-C HID 搖桿與 CSC 解鎖手勢
         TypeCHidControllerManager.shared.stepStickInteraction(dt: dt, state: ds, stickState: stick)
 
-        // 更新大氣風場 (唯一寫回點)
-        WindManager.update(currentTime: rendererTime, level: ds.windLevel, variation: ds.windVariation, useHardcore: ds.useHardcorePhysics)
+        // 更新大氣風場 (統一時鐘：鎖定時使用 rendererTime，解鎖飛行時由 PhysicsEngine 使用 flightTime 更新)
+        let unifiedWindTime = ds.isMotorLocked ? rendererTime : physicsState.flightTime
+        if ds.isMotorLocked {
+            WindManager.update(currentTime: unifiedWindTime, level: ds.windLevel, variation: ds.windVariation, useHardcore: ds.useHardcorePhysics)
+        }
         let windRes = WindManager.calculateWindVector(
             level: ds.windLevel,
             direction: ds.windDirection,
             variation: ds.windVariation,
             dirVariation: ds.windDirVariation,
-            flightTime: rendererTime,
+            flightTime: unifiedWindTime,
             randomWindAngle: ds.randomWindAngle
         )
         ds.currentWindAngle = windRes.visualAngle
 
         let isPaused = ds.pauseInSettings && ds.showSettings
-        if !isPaused {
+        if isPaused {
+            DroneSoundManager.shared.update(
+                rpmFactor: 0.0,
+                isLocked: true,
+                isMuted: true,
+                windLevel: 0,
+                droneSpeed: 0.0,
+                droneType: ds.droneType
+            )
+        } else {
             randomWindPhase += dt * (1.2 + Float(ds.windVariation) * 0.6)
             turbulencePhase += dt * (0.8 + Float(ds.windVariation) * 0.4)
 
@@ -382,13 +394,25 @@ final class SimulationSceneCoordinator: NSObject, SCNSceneRendererDelegate {
 
             if result.isImpact && !ds.isCollision {
                 ds.isCollision = true
+                ds.crashReason = (result.systemMessage == "OUT_OF_BOUNDS") ? .outOfBounds : .impact
                 ds.impactSpeedSnapshot = result.impactSpeed
+                ds.isMotorLocked = true
+            } else if ds.useFlightLimit && ds.batteryPercent <= 0 && !ds.isCollision && !ds.isMotorLocked {
+                ds.isCollision = true
+                ds.crashReason = .batteryLow
+                ds.impactSpeedSnapshot = totalVel
                 ds.isMotorLocked = true
             }
             if let msg = result.systemMessage {
                 ds.systemMessage = msg
             } else if ds.systemMessage?.hasPrefix("TETHER_") == true {
                 ds.systemMessage = nil
+            }
+
+            // 雲層隨風漂移
+            if windRes.forceVector.count >= 3 {
+                ds.cloudU += windRes.forceVector[0] * dt * 0.35
+                ds.cloudV += windRes.forceVector[2] * dt * 0.35
             }
 
             // 軌跡記錄
@@ -410,7 +434,7 @@ final class SimulationSceneCoordinator: NSObject, SCNSceneRendererDelegate {
             DroneSoundManager.shared.update(
                 rpmFactor: ds.motorRpmFactor,
                 isLocked: ds.isMotorLocked,
-                isMuted: ds.isMuted,
+                isMuted: ds.isMuted || ds.isCollision,
                 windLevel: ds.windLevel,
                 droneSpeed: ds.speed,
                 droneType: ds.droneType
@@ -456,6 +480,7 @@ final class SimulationSceneCoordinator: NSObject, SCNSceneRendererDelegate {
 
         // 3. 陰影與 AR 投影環
         droneShadowNode.isHidden = !state.showShadow
+        droneShadowNode.opacity = CGFloat(min(max(state.shadowIntensity, 0.1), 1.0))
         let relAlt = max(physicsState.posY - spec.groundOffset, 0.0)
         let sunAngle = (state.sunPosition * 180.0) * .pi / 180.0
         let shadowX = state.isSunSimEnabled ? (physicsState.posX - cos(sunAngle) * 1.2 * relAlt) : physicsState.posX
@@ -470,23 +495,55 @@ final class SimulationSceneCoordinator: NSObject, SCNSceneRendererDelegate {
             arAnchorLineNode.simdScale = SIMD3<Float>(1.0, relAlt, 1.0)
         }
 
-        // 4. 繫留繩索視覺化
+        // 4. 繫留繩索視覺化 (防止正上方時 up 向量共線產生 NaN)
         tetherLineNode.isHidden = !state.isTetherModeEnabled
         if state.isTetherModeEnabled {
             let start = SIMD3<Float>(0, 0.02, 0)
             let end = SIMD3<Float>(physicsState.posX, physicsState.posY, physicsState.posZ)
             let mid = (start + end) * 0.5
-            let len = max(simd_distance(start, end), 0.05)
+            let diff = end - start
+            let len = max(simd_length(diff), 0.05)
+            let dir = diff / len
+            let tetherUp = abs(dir.z) > 0.95 ? SIMD3<Float>(0, 1, 0) : SIMD3<Float>(0, 0, 1)
             tetherLineNode.simdPosition = mid
             tetherLineNode.simdScale = SIMD3<Float>(1.0, len, 1.0)
-            tetherLineNode.simdLook(at: end, up: SIMD3<Float>(0, 0, 1), localFront: SIMD3<Float>(0, 1, 0))
+            tetherLineNode.simdLook(at: end, up: tetherUp, localFront: SIMD3<Float>(0, 1, 0))
         }
 
-        // 5. 障礙物、山脈、雲層、風向旗更新
+        // 5. 障礙物、山脈、雲層、太陽與天色更新
         obstaclesRootNode.isHidden = !state.showObstacles
         mountainRootNode.isHidden = !state.showMountains
         cloudLayerNode.isHidden = !state.showClouds
+        cloudLayerNode.opacity = CGFloat(min(max(state.cloudDensity, 0.1), 1.0))
+        let driftX = state.cloudU.truncatingRemainder(dividingBy: 90.0)
+        let driftZ = state.cloudV.truncatingRemainder(dividingBy: 90.0)
+        cloudLayerNode.simdPosition = SIMD3<Float>(driftX, 0, driftZ)
+
         sunNode.isHidden = !state.isSunSimEnabled
+        if state.isSunSimEnabled {
+            sunNode.simdPosition = SIMD3<Float>(cos(sunAngle) * 180.0, max(sin(sunAngle) * 140.0, 22.0), 220.0)
+            directionalLightNode.eulerAngles = SCNVector3(-max(sin(sunAngle), 0.25) * (.pi / 2.4), cos(sunAngle) * (.pi / 3.0), 0)
+        }
+
+        // 根據時段 (MORNING / NOON / AFTERNOON) 與天氣模式調整天色與光照
+        let weatherDim: CGFloat = state.weatherMode == 2 ? 0.68 : (state.weatherMode == 1 ? 0.85 : 1.0)
+        switch state.timeOfDay {
+        case AppConfig.TIME_MORNING:
+            scene.background.contents = UIColor(red: 0.55 * weatherDim, green: 0.72 * weatherDim, blue: 0.92 * weatherDim, alpha: 1.0)
+            ambientLightNode.light?.intensity = 580 * weatherDim
+            directionalLightNode.light?.intensity = 820 * weatherDim
+            directionalLightNode.light?.color = UIColor(red: 1.0, green: 0.94, blue: 0.84, alpha: 1.0)
+        case AppConfig.TIME_AFTERNOON:
+            scene.background.contents = UIColor(red: 0.72 * weatherDim, green: 0.58 * weatherDim, blue: 0.52 * weatherDim, alpha: 1.0)
+            ambientLightNode.light?.intensity = 520 * weatherDim
+            directionalLightNode.light?.intensity = 780 * weatherDim
+            directionalLightNode.light?.color = UIColor(red: 1.0, green: 0.82, blue: 0.64, alpha: 1.0)
+        default:
+            scene.background.contents = UIColor(red: 0.42 * weatherDim, green: 0.65 * weatherDim, blue: 0.90 * weatherDim, alpha: 1.0)
+            ambientLightNode.light?.intensity = 650 * weatherDim
+            directionalLightNode.light?.intensity = 900 * weatherDim
+            directionalLightNode.light?.color = UIColor.white
+        }
 
         windFlagPivotNode.isHidden = (state.windLevel <= 0)
         if state.windLevel > 0 {
@@ -514,6 +571,7 @@ final class SimulationSceneCoordinator: NSObject, SCNSceneRendererDelegate {
         )
         let finalFov = (state.cameraMode == AppConfig.CAM_MODE_FPV) ? spec.fpvFov : CameraDirector.smoothedFov
         let finalZoom = (state.cameraMode == AppConfig.CAM_MODE_FPV) ? state.zoomFactor : CameraDirector.smoothedZoom
+        mainCameraNode.camera?.zNear = (state.cameraMode == AppConfig.CAM_MODE_FPV) ? 0.22 : 0.1
         mainCameraNode.camera?.fieldOfView = CGFloat(max(finalFov / max(finalZoom, 0.2), 5.0))
         mainCameraNode.simdPosition = mainPose.eye
         mainCameraNode.simdLook(at: mainPose.target, up: mainPose.up, localFront: SIMD3<Float>(0, 0, -1))
@@ -546,11 +604,32 @@ final class SimulationSceneCoordinator: NSObject, SCNSceneRendererDelegate {
         let ds = DroneState.shared
         let spec = DroneRegistry.getSpec(ds.droneType)
         PhysicsEngine.clearState()
+        WindManager.reset()
         physicsState.reset(groundY: spec.groundOffset)
+        ds.altitude = spec.groundOffset
+        ds.posX = 0.0
+        ds.posZ = 0.0
+        ds.yaw = 0.0
+        ds.pitch = 0.0
+        ds.roll = 0.0
+        ds.speed = 0.0
+        ds.horizontalDist = 0.0
+        ds.batteryVoltage = 4.2
+        ds.batteryPercent = 100
+        ds.motorRpmFactor = 0.0
+        ds.sessionFlightTime = 0.0
         ds.isCollision = false
+        ds.crashReason = .none
         ds.isMotorLocked = true
+        ds.isNearBoundary = false
         ds.systemMessage = nil
         ds.flightPath = []
+        ds.spotTimerSeconds = AppConfig.SystemDefaults.SPOT_TIMER_SECONDS
+        ds.spotTimerTargetId = -1
+        ds.spotTimerMessage = "IDLE"
+        ds.spotTimerSuccess = false
+        ds.spotTimerInZone = false
+        ds.spotTimerStable = false
         CameraDirector.snapToDefaults(height: ds.observerHeight, tilt: ds.observerTilt, zoom: ds.zoomFactor, fov: ds.mainFOV)
     }
 

@@ -4,6 +4,7 @@ import SwiftUI
 struct MainAppScreen: View {
     @State private var state = DroneState.shared
     @State private var stickState = StickInputState.shared
+    @State private var pinchBaseZoom: Float = 1.0
 
     /// 根據螢幕長寬比與使用者設定，決定當前啟用的 iPhone Duo 折疊形態
     private func effectivePosture(for size: CGSize) -> FoldablePostureMode {
@@ -11,13 +12,31 @@ struct MainAppScreen: View {
             return state.foldablePosture
         }
         let aspect = size.width / max(size.height, 1.0)
-        // iPhone Duo 展開時接近正方形或直立雙屏 (aspect 介於 0.65 ~ 1.45 且短邊 >= 580)
-        if aspect < 1.15 {
+        // iPhone Duo 展開時接近正方形或直立雙屏 (aspect < 1.15 且短邊 >= 580，避免一般 iPhone 直立誤判)
+        if aspect < 1.15 && min(size.width, size.height) >= 580 {
             return .duoVerticalDeck
         } else if min(size.width, size.height) >= 650 && aspect < 1.55 {
             return .duoBookSplit
         }
         return .standard
+    }
+
+    private func leftStickModeTitle(_ mode: Int) -> String {
+        switch mode {
+        case 1: return "PITCH / YAW"
+        case 3: return "PITCH / ROLL"
+        case 4: return "THROTTLE / ROLL"
+        default: return "THROTTLE / YAW"
+        }
+    }
+
+    private func rightStickModeTitle(_ mode: Int) -> String {
+        switch mode {
+        case 1: return "THROTTLE / ROLL"
+        case 3: return "THROTTLE / YAW"
+        case 4: return "PITCH / YAW"
+        default: return "PITCH / ROLL"
+        }
     }
 
     var body: some View {
@@ -53,6 +72,8 @@ struct MainAppScreen: View {
             .ignoresSafeArea()
         }
         .statusBarHidden(state.hideStatusBar)
+        .defersSystemGestures(on: .all)
+        .persistentSystemOverlays(.hidden)
     }
 
     // MARK: - 形態 1：標準橫屏全螢幕佈局 (1:1 對齊 Android DroneHUD + FlightInteractionLayer)
@@ -67,9 +88,23 @@ struct MainAppScreen: View {
             !state.showSettings
 
         return ZStack {
-            // 1. 底層 120Hz 3D 渲染視場
+            // 1. 底層 120Hz 3D 渲染視場 (支援雙指捏合無段光學變焦)
             SimulationSceneView(role: .main)
                 .ignoresSafeArea()
+                .gesture(
+                    MagnificationGesture()
+                        .onChanged { scale in
+                            let newZoom = min(max(pinchBaseZoom * Float(scale), 0.5), 3.0)
+                            state.zoomFactor = newZoom
+                            state.lastManualTouchTime = Date().timeIntervalSince1970
+                        }
+                        .onEnded { _ in
+                            pinchBaseZoom = state.zoomFactor
+                        }
+                )
+                .onAppear {
+                    pinchBaseZoom = state.zoomFactor
+                }
 
             // 2. 定點計時浮動標籤 (跟隨飛機 2D 投影位置)
             if let dPos = state.droneScreenPos {
@@ -251,7 +286,7 @@ struct MainAppScreen: View {
             HStack(spacing: 14) {
                 // 左搖桿區
                 VStack(spacing: 6) {
-                    Text(state.joystickMode == 2 ? "THROTTLE / YAW" : "PITCH / YAW")
+                    Text(leftStickModeTitle(state.joystickMode))
                         .font(.system(size: 9, weight: .bold, design: .monospaced))
                         .foregroundStyle(theme.textSecondary)
                     VirtualJoystickView(
@@ -314,7 +349,7 @@ struct MainAppScreen: View {
 
                 // 右搖桿區
                 VStack(spacing: 6) {
-                    Text(state.joystickMode == 2 ? "PITCH / ROLL" : "THROTTLE / ROLL")
+                    Text(rightStickModeTitle(state.joystickMode))
                         .font(.system(size: 9, weight: .bold, design: .monospaced))
                         .foregroundStyle(theme.textSecondary)
                     VirtualJoystickView(
@@ -359,7 +394,8 @@ struct MainAppScreen: View {
                     SpotTimerFloatingOverlay(state: state)
                     Spacer()
                     StatusTelemetryBar(state: state)
-                        .padding(.bottom, 12)
+                        .scaleEffect(0.84)
+                        .padding(.bottom, 22)
                 }
             }
             .frame(width: leftWidth)
@@ -702,6 +738,27 @@ struct MainAppScreen: View {
                     circleIconButton("arrow.counterclockwise", tint: theme.warning, isSelected: false) {
                         SimulationSceneCoordinator.shared.resetSimulation()
                         state.isMenuExpanded = false
+                    }
+                    circleIconButton("video.fill", tint: theme.textPrimary, isSelected: state.cameraMode == AppConfig.CAM_MODE_FPV) {
+                        let camModes = [
+                            AppConfig.CAM_MODE_STATION_TRACK,
+                            AppConfig.CAM_MODE_STATION_SMART,
+                            AppConfig.CAM_MODE_STATION_FIXED,
+                            AppConfig.CAM_MODE_FOLLOW,
+                            AppConfig.CAM_MODE_FPV,
+                            AppConfig.CAM_MODE_OBS
+                        ]
+                        if let idx = camModes.firstIndex(of: state.cameraMode) {
+                            state.applyCameraModeDefaults(camModes[(idx + 1) % camModes.count])
+                        } else {
+                            state.applyCameraModeDefaults(AppConfig.CAM_MODE_STATION_TRACK)
+                        }
+                    }
+                    circleIconButton("point.topleft.down.curvedto.point.bottomright.up", tint: theme.textPrimary, isSelected: state.showFlightPath) {
+                        state.showFlightPath.toggle()
+                        if !state.showFlightPath {
+                            state.flightPath = []
+                        }
                     }
                     circleIconButton("gamecontroller.fill", tint: theme.textPrimary, isSelected: state.showVirtualJoysticks) {
                         state.showVirtualJoysticks.toggle()

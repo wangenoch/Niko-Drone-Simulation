@@ -14,6 +14,8 @@ object PhysicsEngine {
     private var isLatchedImpact = false
     private var latchedSystemMsg: String? = null
     private var latchedImpactSpeed = 0f
+    private var hasBeenAirborneInSession = false
+    private var lastStateIdentity: Int = 0
 
     /** [v1.7.6] 重置引擎狀態：徹底清除上一次的運算結果，防止無限碰撞遞迴 */
     fun clearState() {
@@ -21,6 +23,11 @@ object PhysicsEngine {
         isLatchedImpact = false
         latchedSystemMsg = null
         latchedImpactSpeed = 0f
+        hasBeenAirborneInSession = false
+        smoothWindAccX = 0f
+        smoothWindAccZ = 0f
+        smoothVDraft = 0f
+        WindManager.reset()
     }
 
     data class AtmosConfig(
@@ -49,6 +56,12 @@ object PhysicsEngine {
     private var smoothVDraft = 0f
 
     fun step(dt: Float, state: DronePhysicsState, input: PhysicsEngine.ControlInput, atmos: AtmosConfig, droneType: String): PhysicsResult {
+        val currentIdentity = System.identityHashCode(state)
+        if (lastStateIdentity != 0 && currentIdentity != lastStateIdentity) {
+            clearState()
+        }
+        lastStateIdentity = currentIdentity
+
         val spec = DroneRegistry.getSpec(droneType)
         
         // [v1.7.9.19] 鎖定保護：若已處於損毀鎖定狀態，直接回傳鎖定結果，拒絕任何新計算
@@ -251,6 +264,7 @@ object PhysicsEngine {
 
         // 地面鎖定 (Ground Lock)
         val isTrulyAirborne = state.posY > spec.groundOffset + 0.05f
+        if (isTrulyAirborne) hasBeenAirborneInSession = true
         val isTakeoffAttempt = rawThrottle > -0.8f
         if (!isTrulyAirborne && !isTakeoffAttempt) {
             state.velX = 0f; state.velZ = 0f
@@ -273,7 +287,7 @@ object PhysicsEngine {
             if (sqrt(nextX * nextX + nextZ * nextZ) >= radiusLimit - 0.05f) {
                 if (systemMsg == null) systemMsg = "TETHER_DIST_LIMIT"
             }
-            if (nextY <= spec.groundOffset + 0.01f) {
+            if (hasBeenAirborneInSession && nextY <= spec.groundOffset + 0.01f) {
                 if (systemMsg == null) systemMsg = "TETHER_GROUND_LIMIT"
             }
         }

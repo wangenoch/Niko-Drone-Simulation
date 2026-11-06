@@ -99,7 +99,7 @@ fun ClimateSettingsScreen(
                                 selectedColor = theme.colors.primary,
                                 onClick = { 
                                     onUpdateWindLevel(level)
-                                    if (level == 0) onUpdateWindDirection("無")
+                                    if (level == 0) onUpdateWindDirection(AppConfig.WIND_DIR_NONE)
                                     onSave() 
                                 }
                             )

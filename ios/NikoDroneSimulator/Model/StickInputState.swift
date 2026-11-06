@@ -8,6 +8,7 @@ final class StickInputState {
 
     private var channelBuffer = [Float](repeating: 0.0, count: 125)
     private var lastRawBuffer = [Float](repeating: 0.0, count: 125)
+    private var lastAxisMoveTimestamp = [TimeInterval](repeating: 0.0, count: 125)
 
     var visualBuffer = [Float](repeating: 0.0, count: 125)
     private var lastUiUpdateTime: TimeInterval = 0
@@ -63,13 +64,17 @@ final class StickInputState {
         let axis = mapping.axis
         let rawValue = (axis >= 0 && axis < 125) ? channelBuffer[axis] : 0.0
 
-        // 1. 智慧仲裁：實體優先與意圖偵測
+        // 1. 智慧仲裁：實體優先與意圖偵測 (維持 150ms 移動鎖定，防止同幀多次讀取沖銷狀態)
+        let now = Date().timeIntervalSince1970
         var isMoving = false
         if state.controllerConnected && axis >= 0 && axis < 125 {
             let delta = abs(rawValue - lastRawBuffer[axis])
             if delta > 0.01 {
                 lastRawBuffer[axis] = rawValue
+                lastAxisMoveTimestamp[axis] = now
                 isMoving = true
+            } else {
+                isMoving = (now - lastAxisMoveTimestamp[axis]) < 0.15
             }
         }
 
@@ -77,16 +82,17 @@ final class StickInputState {
 
         // 若正在觸控（或未接實體手把），優先走觸控路徑
         if (!isMoving && isTouching) || !state.controllerConnected {
-            let touchVal: Float
+            let rawTouchVal: Float
             switch funcKey {
-            case "T": touchVal = isLeft ? touchLY : touchRY
-            case "Y": touchVal = isLeft ? touchLX : touchRX
-            case "P": touchVal = isLeft ? touchLY : touchRY
-            case "R": touchVal = isLeft ? touchLX : touchRX
-            default: touchVal = 0.0
+            case "T": rawTouchVal = isLeft ? touchLY : touchRY
+            case "Y": rawTouchVal = isLeft ? touchLX : touchRX
+            case "P": rawTouchVal = isLeft ? touchLY : touchRY
+            case "R": rawTouchVal = isLeft ? touchLX : touchRX
+            default: rawTouchVal = 0.0
             }
-            if ignoreRate { return touchVal }
-            let finalCmd = InputProcessor.processVirtual(touch: touchVal, expo: state.getExpo(funcKey), rate: state.getRate(funcKey, stickValue: touchVal))
+            if ignoreRate { return rawTouchVal }
+            let touchVal = (funcKey == "T" && state.halfThrottle) ? max(rawTouchVal, 0.0) : rawTouchVal
+            let finalCmd = InputProcessor.processVirtual(touch: touchVal, expo: state.getExpo(funcKey), rate: state.getRate(funcKey, stickValue: touchVal), deadzone: state.joystickDeadzone)
             let rate = max(state.getRate(funcKey, stickValue: touchVal), 0.01)
             return isVisual ? (finalCmd / rate) : finalCmd
         }
@@ -103,8 +109,10 @@ final class StickInputState {
             normalized = currentRaw - mapping.center
         }
 
-        let processed = mapping.inverted ? -normalized : normalized
-        if ignoreRate { return processed }
+        let invertedVal = mapping.inverted ? -normalized : normalized
+        if ignoreRate { return invertedVal }
+
+        let processed = (funcKey == "T" && state.halfThrottle) ? max(invertedVal, 0.0) : invertedVal
 
         let finalCmd = InputProcessor.process(
             raw: processed,

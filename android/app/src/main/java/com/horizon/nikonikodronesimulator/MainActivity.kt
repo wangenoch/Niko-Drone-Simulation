@@ -57,6 +57,9 @@ class MainActivity : androidx.activity.ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (savedInstanceState != null) {
+            showSplash = false
+        }
         
         // 1. 系統 UI 與存儲初始化
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -199,6 +202,9 @@ class MainActivity : androidx.activity.ComponentActivity() {
     override fun onResume() {
         super.onResume()
         updateSystemUI()
+        if (!showSplash && ::soundManager.isInitialized) {
+            soundManager.start()
+        }
         // [v1.7.8] 加固：啟動延遲偵測，避開系統啟動資源競爭
         lifecycleScope.launch {
             delay(800)

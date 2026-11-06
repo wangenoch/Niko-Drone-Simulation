@@ -80,7 +80,7 @@ fun JoystickMappingScreen(
     val isSmallScreen = configuration.screenWidthDp < 640
     val smallFont = if (isSmallScreen) 8.2.sp else 10.sp
     val rowFont = if (isSmallScreen) 9.2.sp else 11.sp
-    val labelWidth = if (isSmallScreen) 36.dp else 40.dp
+    val labelWidth = if (isSmallScreen) 58.dp else 72.dp
     val interactionHeight = if (isSmallScreen) 24.dp else 22.dp
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

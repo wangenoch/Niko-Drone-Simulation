@@ -12,6 +12,9 @@ final class TypeCHidControllerManager {
     private var lastUnlockTimestamp: TimeInterval = 0
     private var packetCounter: Int = 0
     private var lastPpsTimestamp: TimeInterval = 0
+    private var wasButtonAPressed: Bool = false
+    private var wasLeftShoulderPressed: Bool = false
+    private var wasRightShoulderPressed: Bool = false
 
     private init() {
         setupNotifications()
@@ -48,6 +51,8 @@ final class TypeCHidControllerManager {
             queue: .main
         ) { [weak self] note in
             guard let ctrl = note.object as? GCController else { return }
+            let vendor = (ctrl.vendorName ?? "").lowercased()
+            guard !vendor.isEmpty && !vendor.contains("keyboard") && !vendor.contains("mouse") && ctrl.extendedGamepad != nil else { return }
             self?.attachController(ctrl)
         }
 
@@ -63,9 +68,14 @@ final class TypeCHidControllerManager {
     }
 
     func scanConnectedControllers() {
-        if let first = GCController.controllers().first {
+        let realControllers = GCController.controllers().filter { ctrl in
+            let vendor = (ctrl.vendorName ?? "").lowercased()
+            return !vendor.isEmpty && !vendor.contains("keyboard") && !vendor.contains("mouse") && ctrl.extendedGamepad != nil
+        }
+        if let first = realControllers.first {
             attachController(first)
         } else {
+            detachController()
             let cap = Self.detectTypeCCapability()
             DroneState.shared.isTypeCHardwarePort = cap.isSupported
         }
@@ -81,7 +91,8 @@ final class TypeCHidControllerManager {
         state.isSignalActive = true
 
         if let extended = controller.extendedGamepad {
-            extended.valueChangedHandler = { [weak self] gamepad, element in
+            extended.valueChangedHandler = { [weak self] gamepad, _ in
+                self?.packetCounter += 1
                 self?.pollGamepad(gamepad)
             }
         }
@@ -105,18 +116,26 @@ final class TypeCHidControllerManager {
 
         StickInputState.shared.updateRawHid(lx: lx, ly: ly, ry: ry, rx: rx)
 
-        // Aux switches mapping on shoulder buttons
-        if gamepad.leftShoulder.isPressed {
+        // Aux switches mapping on shoulder buttons (Edge-triggered)
+        let lPressed = gamepad.leftShoulder.isPressed
+        if lPressed && !wasLeftShoulderPressed {
             DroneState.shared.isMotorLocked = false
+            notifyManualUnlock()
         }
-        if gamepad.rightShoulder.isPressed {
+        wasLeftShoulderPressed = lPressed
+
+        let rPressed = gamepad.rightShoulder.isPressed
+        if rPressed && !wasRightShoulderPressed {
             DroneState.shared.isMotorLocked = true
         }
-        if gamepad.buttonA.isPressed {
+        wasRightShoulderPressed = rPressed
+
+        let aPressed = gamepad.buttonA.isPressed
+        if aPressed && !wasButtonAPressed {
             DroneState.shared.isTetherModeEnabled.toggle()
         }
+        wasButtonAPressed = aPressed
 
-        packetCounter += 1
         let now = Date().timeIntervalSince1970
         if now - lastPpsTimestamp >= 1.0 {
             DroneState.shared.packetsPerSecond = packetCounter

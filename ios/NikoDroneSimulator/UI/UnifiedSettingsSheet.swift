@@ -124,15 +124,15 @@ struct UnifiedSettingsSheet: View {
                 Image(systemName: "cable.connector.horizontal")
                     .foregroundStyle(theme.primary)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("USB Type-C 實體遙控器 / HID 狀態: \(state.controllerConnected ? state.activeHidName : "未連接 (使用觸控搖桿)")")
+                    Text("\(L10n.tr("set_usbc_status_title")) \(state.controllerConnected ? state.activeHidName : L10n.tr("set_usbc_unconnected"))")
                         .font(.system(size: 12.5, weight: .bold))
                         .foregroundStyle(state.controllerConnected ? theme.success : theme.warning)
-                    Text("硬體介面檢查: \(typeCCap.deviceDescription) | PPS: \(state.packetsPerSecond) Hz")
+                    Text("\(L10n.tr("set_hw_port_check")) \(typeCCap.deviceDescription) | PPS: \(state.packetsPerSecond) Hz")
                         .font(.system(size: 10.5, design: .monospaced))
                         .foregroundStyle(theme.textSecondary)
                 }
                 Spacer()
-                Button("重新掃描 USB-C") {
+                Button(L10n.tr("set_rescan_usbc")) {
                     TypeCHidControllerManager.shared.scanConnectedControllers()
                 }
                 .font(.system(size: 11, weight: .bold))
@@ -145,13 +145,13 @@ struct UnifiedSettingsSheet: View {
             .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.3)))
 
             // Mode 1 - 4 選擇
-            Text("搖桿操作手別 (Stick Mode)")
+            Text(L10n.tr("set_stick_mode"))
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(theme.textPrimary)
 
             HStack(spacing: 8) {
                 ForEach([1, 2, 3, 4], id: \.self) { m in
-                    let label = (m == 1) ? "Mode 1 (日本手)" : (m == 2 ? "Mode 2 (美國手)" : "Mode \(m)")
+                    let label = (m == 1) ? L10n.tr("set_mode_1") : (m == 2 ? L10n.tr("set_mode_2") : "Mode \(m)")
                     Button {
                         state.joystickMode = m
                     } label: {
@@ -165,17 +165,73 @@ struct UnifiedSettingsSheet: View {
                 }
             }
 
+            Toggle(L10n.tr("set_half_throttle"), isOn: $state.halfThrottle)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(theme.textPrimary)
+                .tint(theme.primary)
+
+            // 通道反轉與中立點校準
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(L10n.tr("set_axis_invert_cal"))
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(theme.primary)
+                    Spacer()
+                    Button(L10n.tr("set_cal_center_btn")) {
+                        state.mappingLY.center = stickState.visualBuffer[1]
+                        state.mappingLX.center = stickState.visualBuffer[0]
+                        state.mappingRY.center = stickState.visualBuffer[2]
+                        state.mappingRX.center = stickState.visualBuffer[3]
+                        state.mappingLY.min = -1.0; state.mappingLY.max = 1.0
+                        state.mappingLX.min = -1.0; state.mappingLX.max = 1.0
+                        state.mappingRY.min = -1.0; state.mappingRY.max = 1.0
+                        state.mappingRX.min = -1.0; state.mappingRX.max = 1.0
+                    }
+                    .font(.system(size: 10.5, weight: .bold))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(RoundedRectangle(cornerRadius: 6).fill(theme.warning.opacity(0.22)))
+                    .foregroundStyle(theme.warning)
+                }
+
+                HStack(spacing: 8) {
+                    axisInvertToggle("LY (左縱)", isInverted: $state.mappingLY.inverted, theme: theme)
+                    axisInvertToggle("LX (左橫)", isInverted: $state.mappingLX.inverted, theme: theme)
+                    axisInvertToggle("RY (右縱)", isInverted: $state.mappingRY.inverted, theme: theme)
+                    axisInvertToggle("RX (右橫)", isInverted: $state.mappingRX.inverted, theme: theme)
+                }
+            }
+            .padding(10)
+            .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.25)))
+
             // 手感滑桿
-            sliderRow("全域靈敏度 (Rate)", value: $state.globalRate, range: 0.4...2.0, format: "%.2f")
-            sliderRow("指數柔和曲線 (Expo)", value: $state.globalExpo, range: 0.0...0.8, format: "%.2f")
-            sliderRow("搖桿中位死區 (Deadzone)", value: $state.joystickDeadzone, range: 0.0...0.2, format: "%.2f")
+            Toggle(L10n.tr("set_use_global_rates"), isOn: $state.useGlobalRates)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(theme.textPrimary)
+                .tint(theme.primary)
+
+            if state.useGlobalRates {
+                sliderRow(L10n.tr("set_global_rate"), value: $state.globalRate, range: 0.4...2.0, format: "%.2f")
+                sliderRow(L10n.tr("set_global_expo"), value: $state.globalExpo, range: 0.0...0.8, format: "%.2f")
+            } else {
+                sliderRow("Throttle Up Rate", value: $state.rateT_Up, range: 0.3...2.0, format: "%.2f")
+                sliderRow("Throttle Down Rate", value: $state.rateT_Down, range: 0.3...2.0, format: "%.2f")
+                sliderRow("Yaw Rate", value: $state.rateY, range: 0.3...2.0, format: "%.2f")
+                sliderRow("Pitch Rate", value: $state.rateP, range: 0.3...2.0, format: "%.2f")
+                sliderRow("Roll Rate", value: $state.rateR, range: 0.3...2.0, format: "%.2f")
+                sliderRow("Yaw Expo", value: $state.expoY, range: 0.0...0.8, format: "%.2f")
+                sliderRow("Pitch Expo", value: $state.expoP, range: 0.0...0.8, format: "%.2f")
+                sliderRow("Roll Expo", value: $state.expoR, range: 0.0...0.8, format: "%.2f")
+            }
+
+            sliderRow(L10n.tr("set_deadzone"), value: $state.joystickDeadzone, range: 0.0...0.2, format: "%.2f")
 
             Toggle(isOn: $state.useIdleWakeupPatch) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("起動動力增益 (Idle Wakeup & Escape Impulse)")
+                    Text(L10n.tr("set_idle_wakeup_title"))
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(theme.textPrimary)
-                    Text("消除地面起飛數值下溢與黏滯感 (v1.7.35 核心守護補丁)")
+                    Text(L10n.tr("set_idle_wakeup_desc"))
                         .font(.system(size: 10))
                         .foregroundStyle(theme.textSecondary)
                 }
@@ -184,19 +240,37 @@ struct UnifiedSettingsSheet: View {
         }
     }
 
+    private func axisInvertToggle(_ title: String, isInverted: Binding<Bool>, theme: TacticalColors) -> some View {
+        Button {
+            isInverted.wrappedValue.toggle()
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: isInverted.wrappedValue ? "arrow.up.arrow.down.circle.fill" : "arrow.up.arrow.down.circle")
+                Text("\(title) \(isInverted.wrappedValue ? "REV" : "NOR")")
+            }
+            .font(.system(size: 10.5, weight: .bold))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+            .background(RoundedRectangle(cornerRadius: 6).fill(isInverted.wrappedValue ? theme.warning : Color.black.opacity(0.35)))
+            .foregroundStyle(isInverted.wrappedValue ? .black : theme.textPrimary)
+        }
+    }
+
     // MARK: - 2. 氣候與風場分頁
     @ViewBuilder
     private func environmentTabContent(_ theme: TacticalColors) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("風力等級 (Wind Level): L\(state.windLevel)")
+                Text("\(L10n.tr("set_wind_level")) L\(state.windLevel)")
                     .font(.system(size: 12.5, weight: .bold))
                     .foregroundStyle(theme.textPrimary)
                 Spacer()
                 ForEach(0...5, id: \.self) { lvl in
                     Button("L\(lvl)") {
                         state.windLevel = lvl
-                        if lvl > 0 && state.windDirection == AppConfig.WIND_DIR_NONE {
+                        if lvl == 0 {
+                            state.windDirection = AppConfig.WIND_DIR_NONE
+                        } else if state.windDirection == AppConfig.WIND_DIR_NONE {
                             state.windDirection = AppConfig.WIND_DIR_N
                         }
                     }
@@ -208,7 +282,38 @@ struct UnifiedSettingsSheet: View {
                 }
             }
 
-            Text("風向來源 (Wind Source Direction)")
+            // 陣風強度變化與風向擺動幅度
+            HStack {
+                Text("\(L10n.tr("set_wind_variation")): \(state.windVariation)")
+                    .font(.system(size: 11.5, weight: .semibold))
+                    .foregroundStyle(theme.textPrimary)
+                Spacer()
+                ForEach(0...3, id: \.self) { v in
+                    Button("V\(v)") { state.windVariation = v }
+                        .font(.system(size: 10.5, weight: .bold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(state.windVariation == v ? theme.primary : Color.black.opacity(0.3)))
+                        .foregroundStyle(state.windVariation == v ? .black : theme.textPrimary)
+                }
+            }
+
+            HStack {
+                Text("\(L10n.tr("set_wind_dir_variation")): \(state.windDirVariation)")
+                    .font(.system(size: 11.5, weight: .semibold))
+                    .foregroundStyle(theme.textPrimary)
+                Spacer()
+                ForEach(0...3, id: \.self) { dv in
+                    Button("D\(dv)") { state.windDirVariation = dv }
+                        .font(.system(size: 10.5, weight: .bold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(state.windDirVariation == dv ? theme.primary : Color.black.opacity(0.3)))
+                        .foregroundStyle(state.windDirVariation == dv ? .black : theme.textPrimary)
+                }
+            }
+
+            Text(L10n.tr("set_wind_source"))
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(theme.textPrimary)
 
@@ -222,6 +327,11 @@ struct UnifiedSettingsSheet: View {
                 ForEach(dirs, id: \.self) { dir in
                     Button(dir) {
                         state.windDirection = dir
+                        if dir == AppConfig.WIND_DIR_NONE {
+                            state.windLevel = 0
+                        } else if state.windLevel == 0 {
+                            state.windLevel = 1
+                        }
                         if dir == AppConfig.WIND_DIR_RANDOM {
                             state.randomWindAngle = Float.random(in: 0..<360)
                         }
@@ -234,17 +344,67 @@ struct UnifiedSettingsSheet: View {
                 }
             }
 
-            Toggle("進階高度風切與分形脈衝 (Hardcore Wind Physics)", isOn: $state.useHardcorePhysics)
+            // 時段與天氣模式
+            HStack(spacing: 8) {
+                Text(L10n.tr("set_time_of_day"))
+                    .font(.system(size: 11.5, weight: .semibold))
+                    .foregroundStyle(theme.textPrimary)
+                Spacer()
+                ForEach([
+                    (AppConfig.TIME_MORNING, L10n.tr("set_time_morning")),
+                    (AppConfig.TIME_NOON, L10n.tr("set_time_noon")),
+                    (AppConfig.TIME_AFTERNOON, L10n.tr("set_time_afternoon"))
+                ], id: \.0) { item in
+                    Button(item.1) { state.timeOfDay = item.0 }
+                        .font(.system(size: 10.5, weight: .bold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(state.timeOfDay == item.0 ? theme.primary : Color.black.opacity(0.3)))
+                        .foregroundStyle(state.timeOfDay == item.0 ? .black : theme.textPrimary)
+                }
+            }
+
+            HStack(spacing: 8) {
+                Text(L10n.tr("set_weather_mode"))
+                    .font(.system(size: 11.5, weight: .semibold))
+                    .foregroundStyle(theme.textPrimary)
+                Spacer()
+                ForEach([
+                    (0, L10n.tr("set_weather_sunny")),
+                    (1, L10n.tr("set_weather_cloudy")),
+                    (2, L10n.tr("set_weather_overcast"))
+                ], id: \.0) { w in
+                    Button(w.1) { state.weatherMode = w.0 }
+                        .font(.system(size: 10.5, weight: .bold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(state.weatherMode == w.0 ? theme.primary : Color.black.opacity(0.3)))
+                        .foregroundStyle(state.weatherMode == w.0 ? .black : theme.textPrimary)
+                }
+            }
+
+            Toggle(L10n.tr("set_hardcore_wind"), isOn: $state.useHardcorePhysics)
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(theme.textPrimary)
                 .tint(theme.primary)
 
-            Toggle("垂直升降氣流模擬 (Vertical Draft)", isOn: $state.enableVerticalDraft)
+            Toggle(L10n.tr("set_vertical_draft"), isOn: $state.enableVerticalDraft)
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(theme.textPrimary)
                 .tint(theme.primary)
 
-            sliderRow("太陽方位角 (Sun Position)", value: $state.sunPosition, range: 0.1...0.9, format: "%.2f")
+            HStack(spacing: 16) {
+                Toggle(L10n.tr("set_clouds"), isOn: $state.showClouds)
+                Toggle(L10n.tr("set_mountains"), isOn: $state.showMountains)
+                Toggle(L10n.tr("set_shadow"), isOn: $state.showShadow)
+            }
+            .font(.system(size: 11.5, weight: .semibold))
+            .foregroundStyle(theme.textPrimary)
+            .tint(theme.primary)
+
+            sliderRow(L10n.tr("set_sun_pos"), value: $state.sunPosition, range: 0.1...0.9, format: "%.2f")
+            sliderRow(L10n.tr("set_cloud_density"), value: $state.cloudDensity, range: 0.1...1.0, format: "%.2f")
+            sliderRow(L10n.tr("set_shadow_intensity"), value: $state.shadowIntensity, range: 0.1...1.0, format: "%.2f")
         }
     }
 
@@ -266,8 +426,11 @@ struct UnifiedSettingsSheet: View {
                             Text(L10n.tr(spec.name))
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundStyle(isSelected ? theme.primary : theme.textPrimary)
-                            Text("軸距: \(mod.hardwareSpecs.wheelbaseMm)mm | 重量: \(String(format: "%.1f", mod.hardwareSpecs.takeoffWeightKg))kg | 推力基因: \(String(format: "%.0f", spec.physicsPower)) | 續航: \(spec.flightTimeMin)min")
-                                .font(.system(size: 10.5, design: .monospaced))
+                            Text(L10n.tr(mod.hardwareSpecs.description))
+                                .font(.system(size: 11))
+                                .foregroundStyle(theme.textSecondary)
+                            Text("Wheelbase: \(String(mod.hardwareSpecs.wheelbaseMm))mm | Weight: \(String(format: "%.1f", mod.hardwareSpecs.takeoffWeightKg))kg | Power: \(String(format: "%.0f", spec.physicsPower)) | Flight: \(String(spec.flightTimeMin))min")
+                                .font(.system(size: 10, design: .monospaced))
                                 .foregroundStyle(theme.textSecondary)
                         }
                         Spacer()
@@ -300,7 +463,7 @@ struct UnifiedSettingsSheet: View {
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                 ForEach(modes, id: \.0) { item in
                     Button {
-                        state.cameraMode = item.0
+                        state.applyCameraModeDefaults(item.0)
                     } label: {
                         Text(item.1)
                             .font(.system(size: 11.5, weight: .bold))
@@ -312,24 +475,42 @@ struct UnifiedSettingsSheet: View {
                 }
             }
 
-            sliderRow("光學變焦倍率 (Zoom Factor)", value: $state.zoomFactor, range: 0.5...3.0, format: "%.1fX")
-            sliderRow("觀察員高度 (Observer Height)", value: $state.observerHeight, range: 1.2...12.0, format: "%.1fm")
-            sliderRow("鏡頭俯仰角 (Camera Tilt)", value: $state.observerTilt, range: -25.0...45.0, format: "%.0f°")
+            sliderRow(L10n.tr("set_zoom_factor"), value: $state.zoomFactor, range: 0.5...3.0, format: "%.1fX")
+            sliderRow(L10n.tr("set_main_fov"), value: $state.mainFOV, range: 25.0...90.0, format: "%.0f°")
+            sliderRow(L10n.tr("set_obs_height"), value: $state.observerHeight, range: 1.2...12.0, format: "%.1fm")
+            sliderRow(L10n.tr("set_obs_tilt"), value: $state.observerTilt, range: -25.0...45.0, format: "%.0f°")
+            sliderRow(L10n.tr("set_fpv_tilt"), value: $state.cameraTilt, range: -15.0...45.0, format: "%.0f°")
 
-            Toggle("AR 地面垂直投影定位環 (Ground Anchor)", isOn: $state.showGroundAnchor)
+            Toggle(L10n.tr("set_ground_anchor"), isOn: $state.showGroundAnchor)
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(theme.textPrimary)
                 .tint(theme.primary)
 
-            Toggle("遠距離姿態放大助手視窗 (Zoom Assistant PiP)", isOn: $state.enableZoomAssistant)
+            Toggle(L10n.tr("set_zoom_assist"), isOn: $state.enableZoomAssistant)
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(theme.textPrimary)
                 .tint(theme.primary)
 
-            Toggle("顯示 3D 飛行軌跡與障礙物", isOn: $state.showObstacles)
+            Toggle(L10n.tr("set_show_flight_path"), isOn: $state.showFlightPath)
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(theme.textPrimary)
                 .tint(theme.primary)
+
+            Toggle(L10n.tr("set_show_obstacles"), isOn: $state.showObstacles)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(theme.textPrimary)
+                .tint(theme.primary)
+
+            Toggle(
+                L10n.tr("set_show_attitude_ball"),
+                isOn: Binding(
+                    get: { state.hudMode == 2 },
+                    set: { state.hudMode = $0 ? 2 : 1 }
+                )
+            )
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(theme.textPrimary)
+            .tint(theme.primary)
         }
     }
 
@@ -345,7 +526,7 @@ struct UnifiedSettingsSheet: View {
         ]
 
         VStack(alignment: .leading, spacing: 10) {
-            Text("📱 iPhone Duo / 折疊螢幕自適應佈局模式 (Foldable Posture)")
+            Text(L10n.tr("set_duo_header"))
                 .font(.system(size: 12.5, weight: .bold))
                 .foregroundStyle(theme.primary)
 
@@ -369,33 +550,43 @@ struct UnifiedSettingsSheet: View {
 
             Divider().background(theme.border)
 
-            Toggle("繫留練習模式 (Tethered Mentor: 限高 3.5m / 半徑 2.0m)", isOn: $state.isTetherModeEnabled)
+            Toggle(L10n.tr("set_tether_mode"), isOn: $state.isTetherModeEnabled)
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(theme.textPrimary)
                 .tint(theme.primary)
 
-            Toggle("地面效應模擬 (Ground Effect Lift)", isOn: $state.enableGroundEffect)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(theme.textPrimary)
-                .tint(theme.warning)
-
-            Toggle("非中心點力矩模擬 (Multi-point Force)", isOn: $state.enableNonCenterForce)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(theme.textPrimary)
-                .tint(theme.warning)
-
-            Toggle("專業考照嚴格降落損毀判定 (2.2 m/s 閾值)", isOn: $state.useStrictLanding)
+            Toggle(L10n.tr("set_apply_phys_specs"), isOn: $state.applyPhysicalSpecs)
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(theme.textPrimary)
                 .tint(theme.primary)
 
-            Toggle("靜音模式 (Mute Flight Audio)", isOn: $state.isMuted)
+            Toggle(L10n.tr("set_use_flight_limit"), isOn: $state.useFlightLimit)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(theme.textPrimary)
+                .tint(theme.primary)
+
+            Toggle(L10n.tr("set_ground_effect"), isOn: $state.enableGroundEffect)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(theme.textPrimary)
+                .tint(theme.warning)
+
+            Toggle(L10n.tr("set_non_center_force"), isOn: $state.enableNonCenterForce)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(theme.textPrimary)
+                .tint(theme.warning)
+
+            Toggle(L10n.tr("set_strict_landing"), isOn: $state.useStrictLanding)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(theme.textPrimary)
+                .tint(theme.primary)
+
+            Toggle(L10n.tr("set_mute_audio"), isOn: $state.isMuted)
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(theme.textPrimary)
                 .tint(theme.primary)
 
             HStack {
-                Text("介面語言 (Language):")
+                Text(L10n.tr("set_language"))
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(theme.textPrimary)
                 ForEach([("zh", "繁體中文"), ("en", "English"), ("ja", "日本語")], id: \.0) { lang in
@@ -409,6 +600,24 @@ struct UnifiedSettingsSheet: View {
                     .foregroundStyle(state.appLanguage == lang.0 ? .black : theme.textPrimary)
                 }
             }
+
+            Divider().background(theme.border)
+
+            Button {
+                state.restoreFactoryDefaults()
+                onResetSimulation()
+            } label: {
+                HStack {
+                    Image(systemName: "arrow.counterclockwise.circle.fill")
+                    Text(L10n.tr("set_restore_defaults"))
+                        .fontWeight(.bold)
+                }
+                .font(.system(size: 12))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 9)
+                .background(RoundedRectangle(cornerRadius: 8).fill(theme.danger.opacity(0.75)))
+            }
         }
     }
 
@@ -420,7 +629,7 @@ struct UnifiedSettingsSheet: View {
                 Button {
                     state.appTheme = AppConfig.THEME_CLASSIC
                 } label: {
-                    Text("戰術深色主題 (Classic Tactical Dark)")
+                    Text(L10n.tr("set_theme_dark"))
                         .font(.system(size: 12, weight: .bold))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
@@ -431,7 +640,7 @@ struct UnifiedSettingsSheet: View {
                 Button {
                     state.appTheme = AppConfig.THEME_LIGHT
                 } label: {
-                    Text("戶外高對比亮色 (Daylight High-Contrast)")
+                    Text(L10n.tr("set_theme_light"))
                         .font(.system(size: 12, weight: .bold))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
@@ -447,6 +656,10 @@ struct UnifiedSettingsSheet: View {
                 Text(L10n.tr("notice_special_thanks"))
                     .font(.system(size: 11))
                     .foregroundStyle(theme.textSecondary)
+                Text(L10n.tr("set_privacy_note"))
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(theme.textSecondary)
+                    .padding(.top, 4)
             }
             .padding(12)
             .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.25)))

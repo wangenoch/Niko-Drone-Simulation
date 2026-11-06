@@ -16,7 +16,7 @@ struct T4HeavyLift: DroneModule {
         takeoffWeightKg: 14.9,
         payloadKg: 1.0,
         flightTimeMin: 15,
-        description: "說明：大型負重機型具有更長的力臂與獨特的起落架設計。"
+        description: "SPECS_T4_HEAVY_DESC"
     )
     let groundOffset: Float = 0.45
     let visualOffset: Float = -0.07

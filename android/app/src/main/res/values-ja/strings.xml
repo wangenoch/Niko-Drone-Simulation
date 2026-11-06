@@ -365,6 +365,18 @@
     <string name="settings_lang_zh">繁体字中国語</string>
     <string name="settings_lang_en">English</string>
     <string name="settings_lang_ja">日本語</string>
+    <string name="settings_startup_boost_label">起動出力ブースト</string>
+    <string name="settings_startup_boost_desc">一部端末（A55など）でのスロットル離陸遅延（数値アンダーフロー）を解消します。</string>
+    <string name="settings_ground_effect_label">地面効果シミュレーション (Ground Effect)</string>
+    <string name="settings_ground_effect_desc">地面付近を飛行する際の追加揚力をシミュレートします。</string>
+    <string name="settings_non_center_force_label">多点推力シミュレーション (Multi-point Force)</string>
+    <string name="settings_non_center_force_desc">モーターの不均衡な推力によるトルクをシミュレートします。</string>
+    <string name="settings_show_fpv_body_label">FPV機体フレームを表示 (没入モード)</string>
     <string name="settings_mute_label">飛行音響スイッチ</string>
     <string name="settings_mute_desc">飛行シミュレーション中のモーター音と環境音を制御します。</string>
+    <string name="specs_heli_900_name">大型ヘリコプター (HELI-900)</string>
+    <string name="specs_heli_900_desc">注記：高重心設計と22インチ大型ローターを採用し、極めて高い飛行安定性を備えています。</string>
+    <string name="specs_t4_heavy_desc">注記：T4実技試験規格に最適化された大型ペイロード機です。</string>
+    <string name="specs_quad_name">標準練習機 (小型)</string>
+    <string name="specs_quad_desc">注記：応答性に優れた標準クアッドコプター練習機です。</string>
 </resources>

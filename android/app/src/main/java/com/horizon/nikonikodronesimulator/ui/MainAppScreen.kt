@@ -175,13 +175,6 @@ fun MainAppScreen(
         viewModel.startPhysicsLoop(droneState, stickInputState, renderer, soundManager)
     }
 
-    // [v1.7.23] 搖桿交互邏輯 (CSC 解鎖與自動上鎖)
-    StickInteractionLogic(
-        state = droneState,
-        stickState = stickInputState,
-        onUpdateState = { action -> droneState.action() }
-    )
-
     Box(modifier = Modifier.fillMaxSize()) {
         AndroidView(
             modifier = Modifier.fillMaxSize().zIndex(0f),

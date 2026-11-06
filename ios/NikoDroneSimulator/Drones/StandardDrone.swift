@@ -16,7 +16,7 @@ struct StandardDrone: DroneModule {
         takeoffWeightKg: 0.6,
         payloadKg: 0.0,
         flightTimeMin: 8,
-        description: "說明：高機動性機型，反應極其靈敏，適合練習精準穿越與反應速度。"
+        description: "SPECS_QUAD_DESC"
     )
     let groundOffset: Float = 0.08
     let visualOffset: Float = 0.0

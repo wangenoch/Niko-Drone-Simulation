@@ -31,6 +31,7 @@
 		A10000210000000000000001 /* UnifiedSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000210000000000000001 /* UnifiedSettingsSheet.swift */; };
 		A10000220000000000000001 /* MainAppScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000220000000000000001 /* MainAppScreen.swift */; };
 		A10000230000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000230000000000000001 /* Assets.xcassets */; };
+		A10000260000000000000001 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A20000260000000000000001 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -60,6 +61,7 @@
 		A20000220000000000000001 /* MainAppScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainAppScreen.swift; sourceTree = "<group>"; };
 		A20000230000000000000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A20000240000000000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A20000260000000000000001 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -93,6 +95,7 @@
 				A40000080000000000000001 /* UI */,
 				A20000230000000000000001 /* Assets.xcassets */,
 				A20000240000000000000001 /* Info.plist */,
+				A20000260000000000000001 /* PrivacyInfo.xcprivacy */,
 			);
 			path = NikoDroneSimulator;
 			sourceTree = "<group>";
@@ -230,6 +233,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10000230000000000000001 /* Assets.xcassets in Resources */,
+				A10000260000000000000001 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

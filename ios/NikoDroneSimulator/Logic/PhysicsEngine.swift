@@ -47,6 +47,8 @@ enum PhysicsEngine {
     private static var isLatchedImpact: Bool = false
     private static var latchedSystemMsg: String? = nil
     private static var latchedImpactSpeed: Float = 0.0
+    private static var hasBeenAirborneInSession: Bool = false
+    private static var lastStateId: ObjectIdentifier? = nil
 
     private static var smoothWindAccX: Float = 0.0
     private static var smoothWindAccZ: Float = 0.0
@@ -57,9 +59,11 @@ enum PhysicsEngine {
         isLatchedImpact = false
         latchedSystemMsg = nil
         latchedImpactSpeed = 0.0
+        hasBeenAirborneInSession = false
         smoothWindAccX = 0.0
         smoothWindAccZ = 0.0
         smoothVDraft = 0.0
+        WindManager.reset()
     }
 
     static func step(
@@ -69,6 +73,12 @@ enum PhysicsEngine {
         atmos: AtmosConfig,
         droneType: String
     ) -> PhysicsResult {
+        let currentId = ObjectIdentifier(state)
+        if let prevId = lastStateId, prevId != currentId {
+            clearState()
+        }
+        lastStateId = currentId
+
         let spec = DroneRegistry.getSpec(droneType)
         let ds = DroneState.shared
 
@@ -298,6 +308,7 @@ enum PhysicsEngine {
 
         // [Patch Guard 3] Ground Lock (L5 風偏修復)
         let isTrulyAirborne = state.posY > spec.groundOffset + 0.05
+        if isTrulyAirborne { hasBeenAirborneInSession = true }
         let isTakeoffAttempt = rawThrottle > -0.8
         if !isTrulyAirborne && !isTakeoffAttempt {
             state.velX = 0.0
@@ -331,7 +342,7 @@ enum PhysicsEngine {
             if sqrt(nextX * nextX + nextZ * nextZ) >= radiusLimit - 0.05 {
                 if systemMsg == nil { systemMsg = "TETHER_DIST_LIMIT" }
             }
-            if nextY <= spec.groundOffset + 0.01 {
+            if hasBeenAirborneInSession && nextY <= spec.groundOffset + 0.01 {
                 if systemMsg == nil { systemMsg = "TETHER_GROUND_LIMIT" }
             }
         }

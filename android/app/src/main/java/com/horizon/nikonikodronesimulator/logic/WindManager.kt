@@ -23,8 +23,24 @@ object WindManager {
     private var eventIntensity = 0f
     private var eventVerticalBias = 0f 
 
+    fun reset() {
+        nextEventTime = 0f
+        isEventActive = false
+        eventStartTime = 0f
+        eventDuration = 0f
+        eventIntensity = 0f
+        eventVerticalBias = 0f
+    }
+
     fun update(currentTime: Float, level: Int, variation: Int, useHardcore: Boolean) {
         if (level <= 0) { isEventActive = false; return }
+
+        // 若時鐘重置或回退，立即對齊新的時間軸
+        if (currentTime < eventStartTime || (nextEventTime > 0f && currentTime + 35f < nextEventTime)) {
+            isEventActive = false
+            eventStartTime = 0f
+            nextEventTime = currentTime + 5f + random.nextFloat() * 10f
+        }
 
         if (isEventActive && currentTime > eventStartTime + eventDuration) {
             isEventActive = false

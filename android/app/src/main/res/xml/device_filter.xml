@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <!-- DJI Controllers -->
+    <usb-device vendor-id="11427" />
+    <!-- OpenTX / EdgeTX (STM32 HID / VCP) -->
+    <usb-device vendor-id="1155" />
+    <!-- Silicon Labs CP210x / FTDI / CH340 -->
+    <usb-device vendor-id="4292" />
+    <usb-device vendor-id="1027" />
+    <usb-device vendor-id="6790" />
+    <!-- Sony DualShock / DualSense & Microsoft Xbox -->
+    <usb-device vendor-id="1356" />
+    <usb-device vendor-id="1118" />
 </resources>
